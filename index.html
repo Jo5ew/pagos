@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Consulta de Pagos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── TOKENS ─────────────────────────────────────────────── */
+    :root {
+      --bg:        #080C14;
+      --surface:   #0F1724;
+      --border:    rgba(255,255,255,0.07);
+      --muted:     #334155;
+      --text:      #E2E8F0;
+      --dim:       #64748B;
+      --green:     #00C9A7;
+      --green-dim: rgba(0,201,167,0.12);
+      --red:       #F43F5E;
+      --red-dim:   rgba(244,63,94,0.12);
+      --amber:     #F59E0B;
+      --blue:      #3B82F6;
+      --purple:    #8B5CF6;
+      --radius:    16px;
+    }
+
+    /* ── RESET ──────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── FONDO ANIMADO ──────────────────────────────────────── */
+    .bg-glow {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      overflow: hidden;
+    }
+    .glow {
+      position: absolute; border-radius: 50%;
+      filter: blur(100px); opacity: 0.15;
+    }
+    .glow-1 { width: 500px; height: 500px; background: var(--purple); top: -150px; left: -100px; }
+    .glow-2 { width: 400px; height: 400px; background: var(--green);  bottom: -100px; right: -80px; }
+
+    /* ── LAYOUT ─────────────────────────────────────────────── */
+    .wrap {
+      position: relative; z-index: 1;
+      max-width: 480px; margin: 0 auto;
+      padding: 32px 20px 60px;
+    }
+
+    /* ── HERO ───────────────────────────────────────────────── */
+    .hero {
+      text-align: center;
+      padding: 48px 0 40px;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(139,92,246,0.15);
+      border: 1px solid rgba(139,92,246,0.3);
+      border-radius: 99px;
+      padding: 6px 14px;
+      font-size: 12px; font-weight: 600;
+      color: #A78BFA;
+      margin-bottom: 20px;
+      letter-spacing: 0.5px;
+    }
+    .hero h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(28px, 7vw, 38px);
+      font-weight: 700;
+      line-height: 1.15;
+      color: #fff;
+      margin-bottom: 12px;
+    }
+    .hero h1 span {
+      background: linear-gradient(135deg, var(--green) 0%, var(--blue) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      font-size: 15px;
+      color: var(--dim);
+      line-height: 1.6;
+    }
+
+    /* ── CARD ───────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      backdrop-filter: blur(12px);
+    }
+
+    /* ── BÚSQUEDA ───────────────────────────────────────────── */
+    .search-label {
+      display: block;
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.8px; text-transform: uppercase;
+      color: var(--dim);
+      margin-bottom: 10px;
+    }
+    .search-row {
+      display: flex; gap: 10px;
+    }
+    .search-input {
+      flex: 1;
+      background: rgba(255,255,255,0.05);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 15px;
+      font-family: 'Inter', sans-serif;
+      color: #fff;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+      -webkit-appearance: none;
+    }
+    .search-input:focus {
+      border-color: var(--purple);
+      background: rgba(255,255,255,0.08);
+    }
+    .search-input::placeholder { color: var(--muted); }
+    .btn-buscar {
+      background: var(--purple);
+      border: none;
+      border-radius: 12px;
+      padding: 14px 20px;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: 'Inter', sans-serif;
+      color: #fff;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      white-space: nowrap;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .btn-buscar:active { transform: scale(0.97); opacity: 0.85; }
+    .btn-buscar:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Spinner dentro del botón */
+    .sp {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    .btn-buscar.loading .bl { display: none; }
+    .btn-buscar.loading .sp { display: block; }
+
+    /* ── SUGERENCIAS ────────────────────────────────────────── */
+    .sugg-wrap { position: relative; flex: 1; }
+    .sugg-box {
+      position: absolute; top: calc(100% + 6px); left: 0; right: 0;
+      background: #1A2332;
+      border: 1.5px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      z-index: 50;
+      max-height: 200px; overflow-y: auto;
+      display: none;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+    .sugg-item {
+      padding: 12px 14px;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      display: flex; align-items: center; gap: 12px;
+      transition: background 0.15s;
+    }
+    .sugg-item:last-child { border-bottom: none; }
+    .sugg-item:hover { background: rgba(255,255,255,0.05); }
+    .sugg-avatar {
+      width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+      background: rgba(139,92,246,0.2); color: #A78BFA;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700;
+    }
+    .sugg-info h5 { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 2px; }
+    .sugg-info p  { font-size: 12px; color: var(--dim); }
+    .sugg-empty   { padding: 16px; text-align: center; color: var(--dim); font-size: 13px; }
+
+    /* ── MENSAJE ERROR ──────────────────────────────────────── */
+    .msg-error {
+      display: none;
+      margin-top: 14px;
+      padding: 12px 16px;
+      background: var(--red-dim);
+      border: 1px solid rgba(244,63,94,0.25);
+      border-radius: 10px;
+      font-size: 13px; font-weight: 600;
+      color: var(--red);
+      text-align: center;
+    }
+
+    /* ── RESULTADO ──────────────────────────────────────────── */
+    #resultado { margin-top: 28px; display: none; }
+
+    /* Perfil del estudiante */
+    .perfil {
+      display: flex; align-items: center; gap: 16px;
+      margin-bottom: 24px;
+    }
+    .perfil-avatar {
+      width: 56px; height: 56px; border-radius: 16px; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--purple), var(--blue));
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 22px; font-weight: 700; color: #fff;
+    }
+    .perfil-info h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 18px; font-weight: 700; color: #fff;
+      margin-bottom: 4px;
+    }
+    .perfil-info p { font-size: 13px; color: var(--dim); }
+
+    /* Resumen */
+    .resumen {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 10px; margin-bottom: 24px;
+    }
+    .resumen-card {
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+    }
+    .resumen-card.verde { background: var(--green-dim); border: 1px solid rgba(0,201,167,0.2); }
+    .resumen-card.rojo  { background: var(--red-dim);   border: 1px solid rgba(244,63,94,0.2); }
+    .resumen-num {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 26px; font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .resumen-card.verde .resumen-num { color: var(--green); }
+    .resumen-card.rojo  .resumen-num { color: var(--red); }
+    .resumen-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--dim); }
+
+    /* Sección título */
+    .sec-title {
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.8px;
+      color: var(--dim);
+      margin-bottom: 12px;
+    }
+
+    /* Items de actividad */
+    .act-item {
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 14px 16px;
+      margin-bottom: 8px;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    }
+    .act-item.pagado  { border-color: rgba(0,201,167,0.2);  background: rgba(0,201,167,0.05); }
+    .act-item.pendiente { border-color: rgba(244,63,94,0.2); background: rgba(244,63,94,0.05); }
+    .act-left { display: flex; align-items: center; gap: 12px; }
+    .act-icon {
+      width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .act-item.pagado   .act-icon { background: var(--green-dim); }
+    .act-item.pendiente .act-icon { background: var(--red-dim); }
+    .act-nombre { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 3px; }
+    .act-meta   { font-size: 12px; color: var(--dim); }
+    .act-badge {
+      font-size: 12px; font-weight: 700;
+      padding: 5px 12px; border-radius: 99px; white-space: nowrap; flex-shrink: 0;
+    }
+    .act-item.pagado   .act-badge { background: var(--green-dim); color: var(--green); }
+    .act-item.pendiente .act-badge { background: var(--red-dim);   color: var(--red); }
+
+    /* Divider */
+    .div { height: 1px; background: var(--border); margin: 20px 0; }
+
+    /* Sin pendientes */
+    .all-good {
+      text-align: center; padding: 24px;
+      background: var(--green-dim);
+      border: 1px solid rgba(0,201,167,0.2);
+      border-radius: 12px;
+    }
+    .all-good .icon { font-size: 36px; margin-bottom: 10px; }
+    .all-good h3 { font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; color: var(--green); margin-bottom: 6px; }
+    .all-good p  { font-size: 13px; color: var(--dim); }
+
+    /* Footer */
+    .footer {
+      text-align: center; margin-top: 48px;
+      font-size: 12px; color: var(--muted);
+    }
+
+    /* ── ANIMACIONES ────────────────────────────────────────── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp 0.3s ease forwards; }
+
+    /* ── SCROLLBAR ──────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: var(--muted); border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+<div class="bg-glow">
+  <div class="glow glow-1"></div>
+  <div class="glow glow-2"></div>
+</div>
+
+<div class="wrap">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-badge">💎 Tesorería del Aula</div>
+    <h1>Consulta tus<br><span>pagos pendientes</span></h1>
+    <p>Escribe tu DNI o nombre para ver<br>tu estado de cuenta actualizado.</p>
+  </div>
+
+  <!-- BUSCADOR -->
+  <div class="card">
+    <label class="search-label">🔍 Buscar estudiante</label>
+    <div style="display:flex; gap:10px;">
+      <div class="sugg-wrap">
+        <input
+          class="search-input"
+          type="text"
+          id="inputBuscar"
+          placeholder="DNI o nombre..."
+          autocomplete="off"
+          autocorrect="off"
+          spellcheck="false"
+        >
+        <div class="sugg-box" id="suggBox"></div>
+      </div>
+      <button class="btn-buscar" id="btnBuscar" onclick="buscar()">
+        <span class="bl">Buscar</span>
+        <div class="sp"></div>
+      </button>
+    </div>
+    <div class="msg-error" id="msgError"></div>
+  </div>
+
+  <!-- RESULTADO -->
+  <div id="resultado"></div>
+
+  <div class="footer">
+    Sistema de Pagos · Actualizado automáticamente
+  </div>
+
+</div>
+
+<script>
+  // ── CONFIGURACIÓN ────────────────────────────────────────────
+  // IMPORTANTE: reemplaza este ID con el de tu Google Sheet principal
+  var SHEET_ID = '1ObB4TZOgCkTyN0iPhrbgZZJNqNw2A81yEoAUfs7kT-8';
+
+  var GID_ESTUDIANTES = 0;   // ← cambia si el gid es diferente
+  var GID_ACTIVIDADES = 0;
+  var GID_PAGOS       = 0;
+
+  // Nombres exactos de las pestañas
+  var HOJA_EST  = 'BD_Estudiantes';
+  var HOJA_ACT  = 'BD_Actividades';
+  var HOJA_PAG  = 'BD_Pagos';
+
+  // ── FETCH DE HOJA ────────────────────────────────────────────
+  function fetchSheet(nombre) {
+    var url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
+              '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent(nombre);
+    return fetch(url)
+      .then(function(r) { return r.text(); })
+      .then(function(txt) {
+        // Google devuelve /*O_o*/\ngoogle.visualization.Query.setResponse({...});
+        var json = JSON.parse(txt.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);/)[1]);
+        var cols = json.table.cols.map(function(c) { return c.label; });
+        var rows = (json.table.rows || []).map(function(r) {
+          var obj = {};
+          r.c.forEach(function(cell, i) {
+            obj[cols[i]] = cell ? (cell.v !== null && cell.v !== undefined ? cell.v : '') : '';
+          });
+          return obj;
+        });
+        return rows;
+      });
+  }
+
+  // ── DATOS EN MEMORIA ─────────────────────────────────────────
+  var dataEst = [], dataAct = [], dataPag = [];
+  var cargado = false;
+
+  function cargarDatos() {
+    return Promise.all([
+      fetchSheet(HOJA_EST),
+      fetchSheet(HOJA_ACT),
+      fetchSheet(HOJA_PAG)
+    ]).then(function(res) {
+      dataEst = res[0].filter(function(r) { return r['DNI'] && r['DNI'].toString().trim() !== ''; });
+      dataAct = res[1].filter(function(r) { return r['Código'] && r['Código'].toString().trim() !== ''; });
+      dataPag = res[2].filter(function(r) { return r['ID'] && r['ID'].toString().trim() !== ''; });
+      cargado = true;
+    });
+  }
+
+  // ── SUGERENCIAS AL ESCRIBIR ──────────────────────────────────
+  var tmr;
+  document.getElementById('inputBuscar').addEventListener('input', function() {
+    clearTimeout(tmr);
+    var q = this.value.trim().toLowerCase();
+    var sb = document.getElementById('suggBox');
+    if (q.length < 2) { sb.style.display = 'none'; return; }
+
+    tmr = setTimeout(function() {
+      if (!cargado) { cargarDatos().then(function() { mostrarSugg(q); }); }
+      else mostrarSugg(q);
+    }, 250);
+  });
+
+  function mostrarSugg(q) {
+    var sb = document.getElementById('suggBox');
+    var res = dataEst.filter(function(e) {
+      return e['DNI'].toString().toLowerCase().indexOf(q) !== -1 ||
+             e['Nombre'].toString().toLowerCase().indexOf(q) !== -1;
+    }).slice(0, 6);
+
+    if (res.length === 0) {
+      sb.innerHTML = '<div class="sugg-empty">Sin resultados</div>';
+      sb.style.display = 'block'; return;
+    }
+    var h = '';
+    res.forEach(function(e) {
+      var ini = e['Nombre'].toString().substring(0, 2).toUpperCase();
+      h += '<div class="sugg-item" onclick="elegir(\'' + e['DNI'] + '\',\'' + e['Nombre'].replace(/'/g,"&#39;") + '\')">' +
+           '<div class="sugg-avatar">' + ini + '</div>' +
+           '<div class="sugg-info"><h5>' + e['Nombre'] + '</h5><p>DNI: ' + e['DNI'] + '</p></div>' +
+           '</div>';
+    });
+    sb.innerHTML = h;
+    sb.style.display = 'block';
+  }
+
+  function elegir(dni, nombre) {
+    document.getElementById('inputBuscar').value = nombre + ' — ' + dni;
+    document.getElementById('suggBox').style.display = 'none';
+    buscarPor(dni);
+  }
+
+  // Cerrar sugerencias al click fuera
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.sugg-wrap')) {
+      document.getElementById('suggBox').style.display = 'none';
+    }
+  });
+
+  // ── BUSCAR ───────────────────────────────────────────────────
+  function buscar() {
+    var q = document.getElementById('inputBuscar').value.trim();
+    if (q.length < 2) { mostrarError('Escribe al menos 2 caracteres.'); return; }
+    setLoad(true);
+    limpiarError();
+
+    var fn = function() {
+      // Buscar por DNI exacto primero, luego por nombre
+      var q2 = q.toLowerCase();
+      var est = dataEst.find(function(e) { return e['DNI'].toString().toLowerCase() === q2; }) ||
+                dataEst.find(function(e) { return e['Nombre'].toString().toLowerCase().indexOf(q2) !== -1; });
+      if (!est) { mostrarError('No se encontró ningún estudiante con ese dato.'); setLoad(false); return; }
+      mostrarResultado(est);
+      setLoad(false);
+    };
+
+    if (!cargado) { cargarDatos().then(fn).catch(function() { mostrarError('Error al conectar con la base de datos.'); setLoad(false); }); }
+    else fn();
+  }
+
+  // Enter para buscar
+  document.getElementById('inputBuscar').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') buscar();
+  });
+
+  // ── MOSTRAR RESULTADO ────────────────────────────────────────
+  function mostrarResultado(est) {
+    var dni    = est['DNI'].toString();
+    var nombre = est['Nombre'].toString();
+    var ini    = nombre.substring(0, 2).toUpperCase();
+
+    // Pagos de este estudiante
+    var misPagos = dataPag.filter(function(p) { return p['DNI'].toString() === dni; });
+    var codsPagados = misPagos.map(function(p) { return p['Código Act.'].toString(); });
+
+    // Actividades pagadas y pendientes
+    var pagadas   = [];
+    var pendientes = [];
+
+    dataAct.forEach(function(a) {
+      var cod = a['Código'].toString();
+      if (codsPagados.indexOf(cod) !== -1) {
+        var pago = misPagos.find(function(p) { return p['Código Act.'].toString() === cod; });
+        pagadas.push({ act: a, pago: pago });
+      } else {
+        pendientes.push(a);
+      }
+    });
+
+    // ── Construir HTML ──
+    var html = '<div class="fade-up">';
+
+    // Perfil
+    html += '<div class="perfil">' +
+      '<div class="perfil-avatar">' + ini + '</div>' +
+      '<div class="perfil-info">' +
+        '<h2>' + nombre + '</h2>' +
+        '<p>DNI: ' + dni + '</p>' +
+      '</div>' +
+    '</div>';
+
+    // Resumen
+    html += '<div class="resumen">' +
+      '<div class="resumen-card verde">' +
+        '<div class="resumen-num">' + pagadas.length + '</div>' +
+        '<div class="resumen-label">Pagados</div>' +
+      '</div>' +
+      '<div class="resumen-card rojo">' +
+        '<div class="resumen-num">' + pendientes.length + '</div>' +
+        '<div class="resumen-label">Pendientes</div>' +
+      '</div>' +
+    '</div>';
+
+    // Pendientes
+    if (pendientes.length > 0) {
+      html += '<div class="sec-title">❌ Tienes pendiente</div>';
+      pendientes.forEach(function(a) {
+        var monto = parseFloat((a['Monto (S/.)'] || '0').toString().replace(/,/g,'')) || 0;
+        html += '<div class="act-item pendiente">' +
+          '<div class="act-left">' +
+            '<div class="act-icon">📌</div>' +
+            '<div>' +
+              '<div class="act-nombre">' + a['Nombre'] + '</div>' +
+              '<div class="act-meta">Cód: ' + a['Código'] + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="act-badge">S/. ' + monto.toFixed(2) + '</div>' +
+        '</div>';
+      });
+    } else {
+      html += '<div class="all-good">' +
+        '<div class="icon">🎉</div>' +
+        '<h3>¡Estás al día!</h3>' +
+        '<p>No tienes ningún pago pendiente.</p>' +
+      '</div>';
+    }
+
+    // Pagados
+    if (pagadas.length > 0) {
+      html += '<div class="div"></div>';
+      html += '<div class="sec-title">✅ Ya pagaste</div>';
+      pagadas.forEach(function(item) {
+        var a    = item.act;
+        var p    = item.pago;
+        var monto  = parseFloat((p['Monto (S/.)'] || '0').toString().replace(/,/g,'')) || 0;
+        var fecha  = p['Fecha'] ? p['Fecha'].toString().substring(0, 10) : '—';
+        var metodo = p['Método Pago'] ? p['Método Pago'].toString() : '—';
+        html += '<div class="act-item pagado">' +
+          '<div class="act-left">' +
+            '<div class="act-icon">✅</div>' +
+            '<div>' +
+              '<div class="act-nombre">' + a['Nombre'] + '</div>' +
+              '<div class="act-meta">' + fecha + ' · ' + metodo + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="act-badge">S/. ' + monto.toFixed(2) + '</div>' +
+        '</div>';
+      });
+    }
+
+    html += '</div>';
+
+    var el = document.getElementById('resultado');
+    el.innerHTML = html;
+    el.style.display = 'block';
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // ── HELPERS ──────────────────────────────────────────────────
+  function setLoad(on) {
+    var b = document.getElementById('btnBuscar');
+    b.disabled = on;
+    b.classList.toggle('loading', on);
+  }
+  function mostrarError(txt) {
+    var m = document.getElementById('msgError');
+    m.textContent = txt;
+    m.style.display = 'block';
+    document.getElementById('resultado').style.display = 'none';
+  }
+  function limpiarError() {
+    document.getElementById('msgError').style.display = 'none';
+  }
+
+  // Precarga de datos en segundo plano al abrir la página
+  cargarDatos();
+</script>
+</body>
+</html>
