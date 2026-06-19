@@ -544,7 +544,7 @@
     if (pendientes.length > 0) {
       html += '<div class="sec-title">❌ Tienes pendiente</div>';
       pendientes.forEach(function(a) {
-        var monto = parseFloat((a['Monto (S/.)'] || '0').toString().replace(/,/g,'')) || 0;
+        var monto = parseFloat((a['Monto'] || '0').toString().replace(/,/g,'')) || 0;
         html += '<div class="act-item pendiente">' +
           '<div class="act-left">' +
             '<div class="act-icon">📌</div>' +
@@ -571,7 +571,7 @@
       pagadas.forEach(function(item) {
         var a    = item.act;
         var p    = item.pago;
-        var monto  = parseFloat((p['Monto (S/.)'] || '0').toString().replace(/,/g,'')) || 0;
+        var monto  = parseFloat((p['Monto'] || '0').toString().replace(/,/g,'')) || 0;
         var fecha  = p['Fecha'] ? p['Fecha'].toString().substring(0, 10) : '—';
         var metodo = p['Método Pago'] ? p['Método Pago'].toString() : '—';
         html += '<div class="act-item pagado">' +
