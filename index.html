@@ -453,7 +453,10 @@
   function elegir(dni, nombre) {
     document.getElementById('inputBuscar').value = nombre + ' — ' + dni;
     document.getElementById('suggBox').style.display = 'none';
-    buscarPor(dni);
+    limpiarError();
+    var est = dataEst.find(function(e) { return e['DNI'].toString() === dni.toString(); });
+    if (est) mostrarResultado(est);
+    else mostrarError('No se encontró ningún estudiante con ese dato.');
   }
 
   // Cerrar sugerencias al click fuera
