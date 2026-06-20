@@ -222,10 +222,10 @@
       btn.disabled = false;
       btn.textContent = 'Entrar';
       if (r.ok) {
-        sessionStorage.setItem('pinTesoreria', pin);
         document.getElementById('pantallaLogin').style.display = 'none';
         document.getElementById('pantallaApp').style.display = 'block';
         cachearActividades(r.data);
+        iniciarTimeoutInactividad();
       } else {
         mostrarLoginError(r.error || 'PIN incorrecto.');
       }
@@ -247,22 +247,43 @@
   });
 
   function cerrarSesion() {
-    sessionStorage.removeItem('pinTesoreria');
     pinGuardado = '';
+    limpiarTimeoutInactividad();
     document.getElementById('pantallaApp').style.display = 'none';
     document.getElementById('pantallaLogin').style.display = 'flex';
     document.getElementById('pinInput').value = '';
     document.getElementById('loginError').style.display = 'none';
   }
 
-  // Auto-login si ya había sesión en este navegador
-  window.addEventListener('load', function() {
-    var saved = sessionStorage.getItem('pinTesoreria');
-    if (saved) {
-      document.getElementById('pinInput').value = saved;
-      verificarPin();
-    }
-  });
+  // ════════════════════════════════════════════════════════════
+  // CIERRE AUTOMÁTICO POR INACTIVIDAD (2 minutos sin tocar nada)
+  // ════════════════════════════════════════════════════════════
+  var TIEMPO_INACTIVIDAD = 2 * 60 * 1000; // 2 minutos
+  var timeoutInactividad = null;
+
+  function iniciarTimeoutInactividad() {
+    resetTimeoutInactividad();
+    ['click', 'keydown', 'input', 'touchstart', 'scroll'].forEach(function(evt) {
+      document.addEventListener(evt, resetTimeoutInactividad);
+    });
+  }
+
+  function resetTimeoutInactividad() {
+    if (timeoutInactividad) clearTimeout(timeoutInactividad);
+    timeoutInactividad = setTimeout(function() {
+      cerrarSesion();
+      mostrarLoginError('Sesión cerrada por inactividad. Ingresa tu PIN de nuevo.');
+    }, TIEMPO_INACTIVIDAD);
+  }
+
+  function limpiarTimeoutInactividad() {
+    if (timeoutInactividad) clearTimeout(timeoutInactividad);
+    ['click', 'keydown', 'input', 'touchstart', 'scroll'].forEach(function(evt) {
+      document.removeEventListener(evt, resetTimeoutInactividad);
+    });
+  }
+
+  // El login ya NO se recuerda entre cargas de página — siempre pide PIN.
 
   // ════════════════════════════════════════════════════════════
   // LLAMADAS A LA API (Apps Script doPost)
