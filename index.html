@@ -299,37 +299,34 @@
       font-size: 12px; color: var(--muted);
     }
 
-    /* ── ACCESOS RÁPIDOS (TESORERO) ─────────────────────────── */
-    .nav-tesorero {
-      margin-top: 40px;
-      padding-top: 20px;
-      border-top: 1px solid var(--border);
+
+    /* ── ANUNCIOS ───────────────────────────────────────────── */
+    .anuncios { margin-bottom: 20px; }
+    .anuncio-item {
+      background: rgba(245,158,11,0.08);
+      border: 1px solid rgba(245,158,11,0.25);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 8px;
+      display: flex; gap: 12px; align-items: flex-start;
+    }
+    .anuncio-icon { font-size: 18px; flex-shrink: 0; }
+    .anuncio-texto { font-size: 13px; color: var(--text); line-height: 1.5; }
+    .anuncio-fecha { font-size: 11px; color: var(--amber); font-weight: 600; margin-bottom: 2px; display: block; }
+
+    /* ── STAT COLECTIVO ─────────────────────────────────────── */
+    .stat-clase {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      margin-bottom: 20px;
       text-align: center;
     }
-    .nav-tesorero p {
-      font-size: 11px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-      margin-bottom: 10px;
-    }
-    .nav-tesorero a {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 13px;
-      color: var(--dim);
-      text-decoration: none;
-      margin: 4px 8px;
-      padding: 8px 14px;
-      border: 1px solid var(--border);
-      border-radius: 99px;
-      transition: border-color .2s, color .2s;
-    }
-    .nav-tesorero a:hover {
-      border-color: var(--purple);
-      color: #fff;
-    }
+    .stat-clase .num { font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 700; color: var(--green); }
+    .stat-clase .label { font-size: 12.5px; color: var(--dim); margin-top: 4px; }
+    .stat-bar { width: 100%; height: 8px; background: rgba(255,255,255,0.07); border-radius: 99px; margin-top: 14px; overflow: hidden; }
+    .stat-bar-fill { height: 100%; background: linear-gradient(90deg, var(--green), var(--blue)); border-radius: 99px; transition: width 0.6s ease; }
 
     /* ── ANIMACIONES ────────────────────────────────────────── */
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -360,6 +357,16 @@
     <p>Escribe tu DNI o nombre para ver<br>tu estado de cuenta actualizado.</p>
   </div>
 
+  <!-- ANUNCIOS -->
+  <div class="anuncios" id="anunciosWrap"></div>
+
+  <!-- STAT COLECTIVO -->
+  <div class="stat-clase" id="statClase" style="display:none;">
+    <div class="num" id="statNum">0%</div>
+    <div class="label">de la clase está al día 🎉</div>
+    <div class="stat-bar"><div class="stat-bar-fill" id="statBar" style="width:0%"></div></div>
+  </div>
+
   <!-- BUSCADOR -->
   <div class="card">
     <label class="search-label">🔍 Buscar estudiante</label>
@@ -387,13 +394,6 @@
   <!-- RESULTADO -->
   <div id="resultado"></div>
 
-  <!-- ACCESOS RÁPIDOS (TESORERO) -->
-  <div class="nav-tesorero">
-    <p>🔒 Acceso Tesorero</p>
-    <a href="registrar.html">💰 Registrar Pago</a>
-    <a href="generar-qr.html">📱 Generar QR</a>
-  </div>
-
   <div class="footer">
     Sistema de Pagos · Actualizado automáticamente
   </div>
@@ -413,6 +413,7 @@
   var HOJA_EST  = 'BD_Estudiantes';
   var HOJA_ACT  = 'BD_Actividades';
   var HOJA_PAG  = 'BD_Pagos';
+  var HOJA_ANU  = 'BD_Anuncios';
 
   // ── FETCH DE HOJA ────────────────────────────────────────────
   function fetchSheet(nombre) {
@@ -436,20 +437,62 @@
   }
 
   // ── DATOS EN MEMORIA ─────────────────────────────────────────
-  var dataEst = [], dataAct = [], dataPag = [];
+  var dataEst = [], dataAct = [], dataPag = [], dataAnu = [];
   var cargado = false;
 
   function cargarDatos() {
     return Promise.all([
       fetchSheet(HOJA_EST),
       fetchSheet(HOJA_ACT),
-      fetchSheet(HOJA_PAG)
+      fetchSheet(HOJA_PAG),
+      fetchSheet(HOJA_ANU).catch(function() { return []; }) // si la hoja no existe aún, no rompe la página
     ]).then(function(res) {
       dataEst = res[0].filter(function(r) { return r['DNI'] && r['DNI'].toString().trim() !== ''; });
       dataAct = res[1].filter(function(r) { return r['Código'] && r['Código'].toString().trim() !== ''; });
       dataPag = res[2].filter(function(r) { return r['ID'] && r['ID'].toString().trim() !== ''; });
+      dataAnu = (res[3] || []).filter(function(r) {
+        return r['Mensaje'] && r['Activo'] && r['Activo'].toString().toUpperCase() === 'SI';
+      });
       cargado = true;
+      renderAnuncios();
+      renderStatClase();
     });
+  }
+
+  // ── ANUNCIOS ──────────────────────────────────────────────────
+  function renderAnuncios() {
+    var wrap = document.getElementById('anunciosWrap');
+    if (!dataAnu || dataAnu.length === 0) { wrap.innerHTML = ''; return; }
+    var h = '';
+    dataAnu.slice().reverse().slice(0, 3).forEach(function(a) {
+      var fecha = a['Fecha'] ? a['Fecha'].toString().substring(0, 10) : '';
+      h += '<div class="anuncio-item">' +
+             '<div class="anuncio-icon">📢</div>' +
+             '<div class="anuncio-texto">' +
+               (fecha ? '<span class="anuncio-fecha">' + fecha + '</span>' : '') +
+               a['Mensaje'] +
+             '</div>' +
+           '</div>';
+    });
+    wrap.innerHTML = h;
+  }
+
+  // ── STAT COLECTIVO ────────────────────────────────────────────
+  function renderStatClase() {
+    if (dataEst.length === 0 || dataAct.length === 0) return;
+    var alDia = 0;
+    dataEst.forEach(function(e) {
+      var dni = e['DNI'].toString();
+      var debeAlgo = dataAct.some(function(a) {
+        var cod = a['Código'].toString();
+        return !dataPag.some(function(p) { return p['DNI'].toString() === dni && p['Código Act.'].toString() === cod; });
+      });
+      if (!debeAlgo) alDia++;
+    });
+    var pct = Math.round((alDia / dataEst.length) * 100);
+    document.getElementById('statNum').textContent = pct + '%';
+    document.getElementById('statBar').style.width = pct + '%';
+    document.getElementById('statClase').style.display = 'block';
   }
 
   // ── SUGERENCIAS AL ESCRIBIR ──────────────────────────────────
