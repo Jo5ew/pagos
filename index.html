@@ -328,6 +328,39 @@
     .stat-bar { width: 100%; height: 8px; background: rgba(255,255,255,0.07); border-radius: 99px; margin-top: 14px; overflow: hidden; }
     .stat-bar-fill { height: 100%; background: linear-gradient(90deg, var(--green), var(--blue)); border-radius: 99px; transition: width 0.6s ease; }
 
+
+    /* ── DEUDA TOTAL ────────────────────────────────────────── */
+    .total-debe {
+      background: var(--red-dim);
+      border: 1px solid rgba(244,63,94,0.25);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 14px;
+      text-align: center;
+      font-size: 14px;
+      color: var(--text);
+    }
+    .total-debe strong { color: var(--red); font-size: 17px; }
+
+    /* ── COLUMNAS PENDIENTES / PAGADOS ──────────────────────── */
+    .cols-resultado { display: block; }
+
+    /* ── RESPONSIVE: aprovechar pantallas grandes ───────────── */
+    @media (min-width: 768px) {
+      .wrap { max-width: 760px; }
+      .hero { padding: 56px 0 44px; }
+      .hero h1 { font-size: 42px; }
+      .cols-resultado {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 28px;
+        align-items: start;
+      }
+    }
+    @media (min-width: 1100px) {
+      .wrap { max-width: 920px; }
+    }
+
     /* ── ANIMACIONES ────────────────────────────────────────── */
     @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes fadeUp {
@@ -622,12 +655,17 @@
       '</div>' +
     '</div>';
 
-    // Pendientes
+    // Pendientes (columna izquierda)
+    var htmlPend = '';
     if (pendientes.length > 0) {
-      html += '<div class="sec-title">❌ Tienes pendiente</div>';
+      var totalDebe = pendientes.reduce(function(sum, a) {
+        return sum + (parseFloat((a['Monto'] || '0').toString().replace(/,/g,'')) || 0);
+      }, 0);
+      htmlPend += '<div class="sec-title">❌ Tienes pendiente</div>';
+      htmlPend += '<div class="total-debe">💰 Debes en total: <strong>S/. ' + totalDebe.toFixed(2) + '</strong></div>';
       pendientes.forEach(function(a) {
         var monto = parseFloat((a['Monto'] || '0').toString().replace(/,/g,'')) || 0;
-        html += '<div class="act-item pendiente">' +
+        htmlPend += '<div class="act-item pendiente">' +
           '<div class="act-left">' +
             '<div class="act-icon">📌</div>' +
             '<div>' +
@@ -639,24 +677,24 @@
         '</div>';
       });
     } else {
-      html += '<div class="all-good">' +
+      htmlPend += '<div class="all-good">' +
         '<div class="icon">🎉</div>' +
         '<h3>¡Estás al día!</h3>' +
         '<p>No tienes ningún pago pendiente.</p>' +
       '</div>';
     }
 
-    // Pagados
+    // Pagados (columna derecha)
+    var htmlPag = '';
     if (pagadas.length > 0) {
-      html += '<div class="div"></div>';
-      html += '<div class="sec-title">✅ Ya pagaste</div>';
+      htmlPag += '<div class="sec-title">✅ Ya pagaste</div>';
       pagadas.forEach(function(item) {
         var a    = item.act;
         var p    = item.pago;
         var monto  = parseFloat((p['Monto'] || '0').toString().replace(/,/g,'')) || 0;
         var fecha  = p['Fecha'] ? p['Fecha'].toString().substring(0, 10) : '—';
         var metodo = p['Método Pago'] ? p['Método Pago'].toString() : '—';
-        html += '<div class="act-item pagado">' +
+        htmlPag += '<div class="act-item pagado">' +
           '<div class="act-left">' +
             '<div class="act-icon">✅</div>' +
             '<div>' +
@@ -668,6 +706,11 @@
         '</div>';
       });
     }
+
+    html += '<div class="cols-resultado">' +
+              '<div class="col-pendientes">' + htmlPend + '</div>' +
+              (htmlPag ? '<div class="col-pagados">' + htmlPag + '</div>' : '') +
+            '</div>';
 
     html += '</div>';
 
