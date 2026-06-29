@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registrar Asistencia</title>
+<style>
+  * { box-sizing: border-box; margin:0; padding:0; }
+  body { font-family: -apple-system, "Segoe UI", sans-serif; background:#F1F5F9; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .card { background:#fff; border-radius:20px; padding:28px; max-width:380px; width:100%; box-shadow:0 8px 24px rgba(0,0,0,.08); }
+  .header { background:linear-gradient(135deg,#7C3AED,#4C1D95); color:#fff; padding:20px; border-radius:14px; margin-bottom:24px; text-align:center; }
+  .header h2 { font-size:20px; }
+  .fg { margin-bottom:16px; position:relative; }
+  .fg label { display:block; font-size:12px; font-weight:600; letter-spacing:.5px; text-transform:uppercase; color:#64748B; margin-bottom:6px; }
+  .fg input { width:100%; padding:12px 14px; border:1.5px solid #E2E8F0; border-radius:10px; font-size:14px; font-family:inherit; outline:none; }
+  .fg input:focus { border-color:#7C3AED; }
+  .sugg-box { position:absolute; top:calc(100% + 4px); left:0; right:0; background:#fff; border:1.5px solid #E2E8F0; border-radius:10px; max-height:180px; overflow-y:auto; display:none; z-index:10; box-shadow:0 8px 20px rgba(0,0,0,.1); }
+  .sugg-item { padding:10px 12px; cursor:pointer; border-bottom:1px solid #F1F5F9; font-size:13px; }
+  .sugg-item:last-child { border-bottom:none; }
+  .sugg-item:hover { background:#F8FAFC; }
+  .btn { width:100%; padding:14px; background:#7C3AED; color:#fff; border:none; border-radius:12px; font-size:15px; font-weight:700; font-family:inherit; cursor:pointer; }
+  .btn:disabled { background:#CBD5E1; cursor:not-allowed; }
+  .alert { display:none; padding:12px 14px; border-radius:10px; margin-bottom:18px; font-size:13px; font-weight:600; text-align:center; }
+  .alert.error { background:#FEF2F2; color:#DC2626; border:1.5px solid #FECACA; display:block; }
+  .alert.success { background:#F0FDF4; color:#16A34A; border:1.5px solid #BBF7D0; display:block; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="header"><h2>✅ Registrar mi Asistencia</h2></div>
+  <div id="msg" class="alert"></div>
+  <div id="form">
+    <div class="fg">
+      <label>Tu DNI o nombre</label>
+      <input type="text" id="q" placeholder="Escribe para buscarte..." autocomplete="off">
+      <input type="hidden" id="dni">
+      <input type="hidden" id="nombreH">
+      <div id="sugg" class="sugg-box"></div>
+    </div>
+    <button id="btnConfirmar" class="btn" disabled>Confirmar mi asistencia</button>
+  </div>
+</div>
+
+<script>
+// ───────────────────────────────────────────────────────────────────────────
+// CONFIGURACIÓN
+// ───────────────────────────────────────────────────────────────────────────
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzPSXCRHiMvXmDPexEyOaWlKpz-AshWHqaZ7WP6DsA2XEMvPf72rA9RIRTkk-TMcX0OpA/exec";
+const PIN = "2580"; // PIN_ASISTENCIA — público, solo abre check-in. NUNCA el PIN del tesorero (9071).
+
+const params = new URLSearchParams(window.location.search);
+const token = params.get('token');
+
+if (!token) {
+  document.getElementById('msg').className = 'alert error';
+  document.getElementById('msg').textContent = 'Falta el código del QR. Escanéalo de nuevo.';
+  document.getElementById('form').style.display = 'none';
+}
+
+function showMsg(txt, err) {
+  const m = document.getElementById('msg');
+  m.className = 'alert ' + (err ? 'error' : 'success');
+  m.textContent = txt;
+}
+
+let tmr;
+document.getElementById('q').oninput = function () {
+  clearTimeout(tmr);
+  const q = this.value;
+  document.getElementById('dni').value = '';
+  document.getElementById('btnConfirmar').disabled = true;
+  const sb = document.getElementById('sugg');
+  if (q.length < 2) { sb.style.display = 'none'; return; }
+  tmr = setTimeout(() => {
+    fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' }, // evita preflight CORS, igual que registrar.html
+      body: JSON.stringify({ pin: PIN, accion: 'buscarEstudiante', query: q })
+    }).then(r => r.json()).then(res => {
+      const data = res.data || [];
+      if (data.length === 0) {
+        sb.innerHTML = '<div class="sugg-item">Sin resultados</div>';
+        sb.style.display = 'block';
+        return;
+      }
+      sb.innerHTML = data.map(e =>
+        '<div class="sugg-item" onclick="pickEst(\'' + e.dni + '\',\'' + e.nombre.replace(/'/g, "&#39;") + '\')">' + e.nombre + ' (' + e.dni + ')</div>'
+      ).join('');
+      sb.style.display = 'block';
+    }).catch(() => {
+      showMsg('No se pudo conectar. Revisa tu internet.', true);
+    });
+  }, 300);
+};
+
+function pickEst(dni, nombre) {
+  document.getElementById('dni').value = dni;
+  document.getElementById('nombreH').value = nombre;
+  document.getElementById('q').value = '✅ ' + nombre + ' (' + dni + ')';
+  document.getElementById('sugg').style.display = 'none';
+  document.getElementById('btnConfirmar').disabled = false;
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.fg')) document.getElementById('sugg').style.display = 'none';
+});
+
+document.getElementById('btnConfirmar').onclick = function () {
+  this.disabled = true;
+  this.textContent = 'Registrando...';
+  fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' }, // evita preflight CORS, igual que registrar.html
+    body: JSON.stringify({
+      pin: PIN,
+      accion: 'registrarAsistenciaQR',
+      token: token,
+      dni: document.getElementById('dni').value,
+      nombre: document.getElementById('nombreH').value
+    })
+  }).then(r => r.json()).then(res => {
+    if (res.ok) {
+      showMsg('✅ ¡Asistencia registrada! Ya puedes cerrar esta página.', false);
+      document.getElementById('form').style.display = 'none';
+    } else {
+      showMsg(res.error, true);
+      this.disabled = false;
+      this.textContent = 'Confirmar mi asistencia';
+    }
+  }).catch(() => {
+    showMsg('No se pudo conectar. Revisa tu internet.', true);
+    this.disabled = false;
+    this.textContent = 'Confirmar mi asistencia';
+  });
+};
+</script>
+</body>
+</html>
