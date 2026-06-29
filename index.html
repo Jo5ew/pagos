@@ -300,34 +300,31 @@
     }
 
 
-    /* ── STAT COLECTIVO ─────────────────────────────────────── */
-    .stat-clase {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
+
+    /* ── DEUDA TOTAL (banner destacado, ancho completo) ─────── */
+    .total-debe {
+      background: linear-gradient(135deg, rgba(244,63,94,0.18), rgba(244,63,94,0.06));
+      border: 1.5px solid rgba(244,63,94,0.4);
+      border-radius: 16px;
       padding: 20px 22px;
       margin-bottom: 20px;
       text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      color: var(--dim);
     }
-    .stat-clase .num { font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 700; color: var(--green); }
-    .stat-clase .label { font-size: 12.5px; color: var(--dim); margin-top: 4px; }
-    .stat-sub { display: block; font-size: 11px; color: var(--muted); margin-top: 3px; }
-    .stat-bar { width: 100%; height: 8px; background: rgba(255,255,255,0.07); border-radius: 99px; margin-top: 14px; overflow: hidden; }
-    .stat-bar-fill { height: 100%; background: linear-gradient(90deg, var(--green), var(--blue)); border-radius: 99px; transition: width 0.6s ease; }
-
-
-    /* ── DEUDA TOTAL ────────────────────────────────────────── */
-    .total-debe {
-      background: var(--red-dim);
-      border: 1px solid rgba(244,63,94,0.25);
-      border-radius: 12px;
-      padding: 14px 16px;
-      margin-bottom: 14px;
-      text-align: center;
-      font-size: 14px;
-      color: var(--text);
+    .total-debe .monto-grande {
+      display: block;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 34px;
+      font-weight: 700;
+      color: var(--red);
+      margin-top: 6px;
+      letter-spacing: 0;
+      text-transform: none;
     }
-    .total-debe strong { color: var(--red); font-size: 17px; }
 
     /* ── COLUMNAS PENDIENTES / PAGADOS ──────────────────────── */
     .cols-resultado { display: block; }
@@ -386,13 +383,6 @@
     <div class="hero-badge">💎 Tesorería del Aula</div>
     <h1>Consulta tus<br><span>pagos pendientes</span></h1>
     <p>Escribe tu DNI o nombre para ver<br>tu estado de cuenta actualizado.</p>
-  </div>
-
-  <!-- STAT COLECTIVO -->
-  <div class="stat-clase" id="statClase" style="display:none;">
-    <div class="num" id="statNum">0%</div>
-    <div class="label" id="statLabel">de la clase está al día</div>
-    <div class="stat-bar"><div class="stat-bar-fill" id="statBar" style="width:0%"></div></div>
   </div>
 
   <!-- BUSCADOR -->
@@ -506,34 +496,7 @@
       dataPag = res[2].filter(function(r) { return r['ID'] && r['ID'].toString().trim() !== ''; });
       dataAsi = res[3] || [];
       cargado = true;
-      renderStatClase();
     });
-  }
-
-  // ── STAT COLECTIVO ────────────────────────────────────────────
-  // Promedio de avance de TODA la clase (no "todo o nada"), justo porque
-  // hay varias cuotas: pagar 16 de 17 debe contar como 94%, no como 0%.
-  function renderStatClase() {
-    if (dataEst.length === 0 || dataAct.length === 0) { document.getElementById('statClase').style.display = 'none'; return; }
-    var sumaPorcentajes = 0;
-    var alDia100 = 0; // cuántos llegaron al 100% exacto (dato extra, no el principal)
-
-    dataEst.forEach(function(e) {
-      var dni = e['DNI'].toString();
-      var cumplidas = dataAct.filter(function(a) { return estaCumplido(dni, a); }).length;
-      var pctEstudiante = cumplidas / dataAct.length;
-      sumaPorcentajes += pctEstudiante;
-      if (pctEstudiante === 1) alDia100++;
-    });
-
-    var total = dataEst.length;
-    var pct = Math.round((sumaPorcentajes / total) * 100);
-    var emoji = pct >= 90 ? '🎉' : (pct < 30 ? '📊' : '💪');
-    document.getElementById('statNum').textContent = pct + '%';
-    document.getElementById('statBar').style.width = pct + '%';
-    document.getElementById('statLabel').innerHTML = 'de avance promedio de la clase ' + emoji +
-      '<span class="stat-sub">' + alDia100 + ' de ' + total + ' estudiantes están 100% al día</span>';
-    document.getElementById('statClase').style.display = 'block';
   }
 
   // ── SUGERENCIAS AL ESCRIBIR ──────────────────────────────────
@@ -691,13 +654,13 @@
     '</div>';
 
     // Pendientes (columna izquierda)
+    var totalDebe = pendientes.reduce(function(sum, a) {
+      return sum + (parseFloat((a['Monto'] || '0').toString().replace(/,/g,'')) || 0);
+    }, 0);
+
     var htmlPend = '';
     if (pendientes.length > 0) {
-      var totalDebe = pendientes.reduce(function(sum, a) {
-        return sum + (parseFloat((a['Monto'] || '0').toString().replace(/,/g,'')) || 0);
-      }, 0);
       htmlPend += '<div class="sec-title">❌ Tienes pendiente</div>';
-      htmlPend += '<div class="total-debe">💰 Debes en total: <strong>S/. ' + totalDebe.toFixed(2) + '</strong></div>';
       pendientes.forEach(function(a) {
         var monto = parseFloat((a['Monto'] || '0').toString().replace(/,/g,'')) || 0;
         htmlPend += '<div class="act-item pendiente">' +
@@ -752,6 +715,10 @@
           '<div class="act-badge">Exento</div>' +
         '</div>';
       });
+    }
+
+    if (totalDebe > 0) {
+      html += '<div class="total-debe">💰 Debes en total<span class="monto-grande">S/. ' + totalDebe.toFixed(2) + '</span></div>';
     }
 
     html += '<div class="cols-resultado">' +
