@@ -300,20 +300,6 @@
     }
 
 
-    /* ── ANUNCIOS ───────────────────────────────────────────── */
-    .anuncios { margin-bottom: 20px; }
-    .anuncio-item {
-      background: rgba(245,158,11,0.08);
-      border: 1px solid rgba(245,158,11,0.25);
-      border-radius: 12px;
-      padding: 14px 16px;
-      margin-bottom: 8px;
-      display: flex; gap: 12px; align-items: flex-start;
-    }
-    .anuncio-icon { font-size: 18px; flex-shrink: 0; }
-    .anuncio-texto { font-size: 13px; color: var(--text); line-height: 1.5; }
-    .anuncio-fecha { font-size: 11px; color: var(--amber); font-weight: 600; margin-bottom: 2px; display: block; }
-
     /* ── STAT COLECTIVO ─────────────────────────────────────── */
     .stat-clase {
       background: var(--surface);
@@ -362,6 +348,17 @@
       .wrap { max-width: 920px; }
     }
 
+
+    /* ── INSIGNIA PERSONALIZADA ─────────────────────────────── */
+    .insignia {
+      display: flex; align-items: center; gap: 14px;
+      border-radius: 14px; padding: 16px 18px; margin-bottom: 20px;
+    }
+    .insignia.verde { background: var(--green-dim); border: 1px solid rgba(0,201,167,0.25); }
+    .insignia.ambar { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.25); }
+    .insignia-emoji { font-size: 30px; flex-shrink: 0; }
+    .insignia-texto { font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 700; color: #fff; }
+
     /* ── ANIMACIONES ────────────────────────────────────────── */
     @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes fadeUp {
@@ -390,9 +387,6 @@
     <h1>Consulta tus<br><span>pagos pendientes</span></h1>
     <p>Escribe tu DNI o nombre para ver<br>tu estado de cuenta actualizado.</p>
   </div>
-
-  <!-- ANUNCIOS -->
-  <div class="anuncios" id="anunciosWrap"></div>
 
   <!-- STAT COLECTIVO -->
   <div class="stat-clase" id="statClase" style="display:none;">
@@ -447,7 +441,6 @@
   var HOJA_EST  = 'BD_Estudiantes';
   var HOJA_ACT  = 'BD_Actividades';
   var HOJA_PAG  = 'BD_Pagos';
-  var HOJA_ANU  = 'BD_Anuncios';
 
   // ── PARSEO DE FECHAS (Google a veces las manda como Date(2026,5,30)) ──
   function parseFechaLegible(val) {
@@ -483,44 +476,21 @@
   }
 
   // ── DATOS EN MEMORIA ─────────────────────────────────────────
-  var dataEst = [], dataAct = [], dataPag = [], dataAnu = [];
+  var dataEst = [], dataAct = [], dataPag = [];
   var cargado = false;
 
   function cargarDatos() {
     return Promise.all([
       fetchSheet(HOJA_EST),
       fetchSheet(HOJA_ACT),
-      fetchSheet(HOJA_PAG),
-      fetchSheet(HOJA_ANU).catch(function() { return []; }) // si la hoja no existe aún, no rompe la página
+      fetchSheet(HOJA_PAG)
     ]).then(function(res) {
       dataEst = res[0].filter(function(r) { return r['DNI'] && r['DNI'].toString().trim() !== ''; });
       dataAct = res[1].filter(function(r) { return r['Código'] && r['Código'].toString().trim() !== ''; });
       dataPag = res[2].filter(function(r) { return r['ID'] && r['ID'].toString().trim() !== ''; });
-      dataAnu = (res[3] || []).filter(function(r) {
-        return r['Mensaje'] && r['Activo'] && r['Activo'].toString().toUpperCase() === 'SI';
-      });
       cargado = true;
-      renderAnuncios();
       renderStatClase();
     });
-  }
-
-  // ── ANUNCIOS ──────────────────────────────────────────────────
-  function renderAnuncios() {
-    var wrap = document.getElementById('anunciosWrap');
-    if (!dataAnu || dataAnu.length === 0) { wrap.innerHTML = ''; return; }
-    var h = '';
-    dataAnu.slice().reverse().slice(0, 3).forEach(function(a) {
-      var fecha = parseFechaLegible(a['Fecha']);
-      h += '<div class="anuncio-item">' +
-             '<div class="anuncio-icon">📢</div>' +
-             '<div class="anuncio-texto">' +
-               (fecha ? '<span class="anuncio-fecha">' + fecha + '</span>' : '') +
-               a['Mensaje'] +
-             '</div>' +
-           '</div>';
-    });
-    wrap.innerHTML = h;
   }
 
   // ── STAT COLECTIVO ────────────────────────────────────────────
@@ -660,15 +630,35 @@
       '</div>' +
     '</div>';
 
+    // Insignia personalizada según su avance
+    var totalAct = pagadas.length + pendientes.length;
+    if (totalAct > 0) {
+      var pctPersonal = Math.round((pagadas.length / totalAct) * 100);
+      var insignia;
+      if (pctPersonal === 100) {
+        insignia = { emoji: '🏆', titulo: '¡Estudiante Ejemplar! Estás al día con todo.', color: 'verde' };
+      } else if (pctPersonal >= 75) {
+        insignia = { emoji: '💪', titulo: '¡Ya casi! Te falta poquito.', color: 'verde' };
+      } else if (pctPersonal >= 40) {
+        insignia = { emoji: '📈', titulo: 'Vas avanzando, sigue así.', color: 'ambar' };
+      } else {
+        insignia = { emoji: '🎯', titulo: 'Buen momento para ponerte al día.', color: 'ambar' };
+      }
+      html += '<div class="insignia ' + insignia.color + '">' +
+                '<div class="insignia-emoji">' + insignia.emoji + '</div>' +
+                '<div class="insignia-texto">' + insignia.titulo + '</div>' +
+              '</div>';
+    }
+
     // Resumen
     html += '<div class="resumen">' +
-      '<div class="resumen-card verde">' +
-        '<div class="resumen-num">' + pagadas.length + '</div>' +
-        '<div class="resumen-label">Pagados</div>' +
-      '</div>' +
       '<div class="resumen-card rojo">' +
         '<div class="resumen-num">' + pendientes.length + '</div>' +
         '<div class="resumen-label">Pendientes</div>' +
+      '</div>' +
+      '<div class="resumen-card verde">' +
+        '<div class="resumen-num">' + pagadas.length + '</div>' +
+        '<div class="resumen-label">Pagados</div>' +
       '</div>' +
     '</div>';
 
@@ -709,7 +699,7 @@
         var a    = item.act;
         var p    = item.pago;
         var monto  = parseFloat((p['Monto'] || '0').toString().replace(/,/g,'')) || 0;
-        var fecha  = p['Fecha'] ? p['Fecha'].toString().substring(0, 10) : '—';
+        var fecha  = parseFechaLegible(p['Fecha']) || '—';
         var metodo = p['Método Pago'] ? p['Método Pago'].toString() : '—';
         htmlPag += '<div class="act-item pagado">' +
           '<div class="act-left">' +
