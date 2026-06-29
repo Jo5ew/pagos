@@ -299,6 +299,38 @@
       font-size: 12px; color: var(--muted);
     }
 
+    /* ── ACCESOS RÁPIDOS (TESORERO) ─────────────────────────── */
+    .nav-tesorero {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+    .nav-tesorero p {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 10px;
+    }
+    .nav-tesorero a {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--dim);
+      text-decoration: none;
+      margin: 4px 8px;
+      padding: 8px 14px;
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      transition: border-color .2s, color .2s;
+    }
+    .nav-tesorero a:hover {
+      border-color: var(--purple);
+      color: #fff;
+    }
+
     /* ── ANIMACIONES ────────────────────────────────────────── */
     @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes fadeUp {
@@ -354,6 +386,13 @@
 
   <!-- RESULTADO -->
   <div id="resultado"></div>
+
+  <!-- ACCESOS RÁPIDOS (TESORERO) -->
+  <div class="nav-tesorero">
+    <p>🔒 Acceso Tesorero</p>
+    <a href="registrar.html">💰 Registrar Pago</a>
+    <a href="generar-qr.html">📱 Generar QR</a>
+  </div>
 
   <div class="footer">
     Sistema de Pagos · Actualizado automáticamente
