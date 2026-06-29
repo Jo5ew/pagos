@@ -441,6 +441,7 @@
   var HOJA_EST  = 'BD_Estudiantes';
   var HOJA_ACT  = 'BD_Actividades';
   var HOJA_PAG  = 'BD_Pagos';
+  var HOJA_ASI  = 'BD_Asistencias';
 
   // ── PARSEO DE FECHAS (Google a veces las manda como Date(2026,5,30)) ──
   function parseFechaLegible(val) {
@@ -452,6 +453,20 @@
       return (dia < 10 ? '0' : '') + dia + '/' + (mes < 10 ? '0' : '') + mes + '/' + anio;
     }
     return str.substring(0, 10);
+  }
+
+  // ── REGLA COMPARTIDA: ¿este estudiante ya "cumplió" con esta actividad? ──
+  // Cobro normal      → cumplió si pagó.
+  // Tipo "Asistencia"  → cumplió si pagó (regularizó la multa) O si asistió.
+  function estaCumplido(dni, actividad) {
+    var cod  = actividad['Código'].toString();
+    var tipo = (actividad['Tipo'] || 'Cobro').toString();
+    var yaPago = dataPag.some(function(p) { return p['DNI'].toString() === dni && p['Código Act.'].toString() === cod; });
+    if (yaPago) return true;
+    if (tipo === 'Asistencia') {
+      return dataAsi.some(function(a) { return a['DNI'].toString() === dni && a['Código Actividad'].toString() === cod; });
+    }
+    return false;
   }
 
   // ── FETCH DE HOJA ────────────────────────────────────────────
@@ -476,42 +491,48 @@
   }
 
   // ── DATOS EN MEMORIA ─────────────────────────────────────────
-  var dataEst = [], dataAct = [], dataPag = [];
+  var dataEst = [], dataAct = [], dataPag = [], dataAsi = [];
   var cargado = false;
 
   function cargarDatos() {
     return Promise.all([
       fetchSheet(HOJA_EST),
       fetchSheet(HOJA_ACT),
-      fetchSheet(HOJA_PAG)
+      fetchSheet(HOJA_PAG),
+      fetchSheet(HOJA_ASI).catch(function() { return []; }) // si la hoja no existe aún, no rompe la página
     ]).then(function(res) {
       dataEst = res[0].filter(function(r) { return r['DNI'] && r['DNI'].toString().trim() !== ''; });
       dataAct = res[1].filter(function(r) { return r['Código'] && r['Código'].toString().trim() !== ''; });
       dataPag = res[2].filter(function(r) { return r['ID'] && r['ID'].toString().trim() !== ''; });
+      dataAsi = res[3] || [];
       cargado = true;
       renderStatClase();
     });
   }
 
   // ── STAT COLECTIVO ────────────────────────────────────────────
+  // Promedio de avance de TODA la clase (no "todo o nada"), justo porque
+  // hay varias cuotas: pagar 16 de 17 debe contar como 94%, no como 0%.
   function renderStatClase() {
     if (dataEst.length === 0 || dataAct.length === 0) { document.getElementById('statClase').style.display = 'none'; return; }
-    var alDia = 0;
+    var sumaPorcentajes = 0;
+    var alDia100 = 0; // cuántos llegaron al 100% exacto (dato extra, no el principal)
+
     dataEst.forEach(function(e) {
       var dni = e['DNI'].toString();
-      var debeAlgo = dataAct.some(function(a) {
-        var cod = a['Código'].toString();
-        return !dataPag.some(function(p) { return p['DNI'].toString() === dni && p['Código Act.'].toString() === cod; });
-      });
-      if (!debeAlgo) alDia++;
+      var cumplidas = dataAct.filter(function(a) { return estaCumplido(dni, a); }).length;
+      var pctEstudiante = cumplidas / dataAct.length;
+      sumaPorcentajes += pctEstudiante;
+      if (pctEstudiante === 1) alDia100++;
     });
+
     var total = dataEst.length;
-    var pct = Math.round((alDia / total) * 100);
-    var emoji = pct === 100 ? '🎉' : (pct === 0 ? '📊' : '💪');
+    var pct = Math.round((sumaPorcentajes / total) * 100);
+    var emoji = pct >= 90 ? '🎉' : (pct < 30 ? '📊' : '💪');
     document.getElementById('statNum').textContent = pct + '%';
     document.getElementById('statBar').style.width = pct + '%';
-    document.getElementById('statLabel').innerHTML = 'de la clase está al día ' + emoji +
-      '<span class="stat-sub">' + alDia + ' de ' + total + ' estudiantes</span>';
+    document.getElementById('statLabel').innerHTML = 'de avance promedio de la clase ' + emoji +
+      '<span class="stat-sub">' + alDia100 + ' de ' + total + ' estudiantes están 100% al día</span>';
     document.getElementById('statClase').style.display = 'block';
   }
 
@@ -604,15 +625,22 @@
     var misPagos = dataPag.filter(function(p) { return p['DNI'].toString() === dni; });
     var codsPagados = misPagos.map(function(p) { return p['Código Act.'].toString(); });
 
-    // Actividades pagadas y pendientes
-    var pagadas   = [];
+    // Actividades pagadas, asistidas (exentas) y pendientes
+    var pagadas    = [];
+    var asistidas  = [];
     var pendientes = [];
 
     dataAct.forEach(function(a) {
-      var cod = a['Código'].toString();
+      var cod  = a['Código'].toString();
+      var tipo = (a['Tipo'] || 'Cobro').toString();
+
       if (codsPagados.indexOf(cod) !== -1) {
         var pago = misPagos.find(function(p) { return p['Código Act.'].toString() === cod; });
         pagadas.push({ act: a, pago: pago });
+      } else if (tipo === 'Asistencia' && dataAsi.some(function(asi) {
+        return asi['DNI'].toString() === dni && asi['Código Actividad'].toString() === cod;
+      })) {
+        asistidas.push(a);
       } else {
         pendientes.push(a);
       }
@@ -631,9 +659,9 @@
     '</div>';
 
     // Insignia personalizada según su avance
-    var totalAct = pagadas.length + pendientes.length;
+    var totalAct = pagadas.length + asistidas.length + pendientes.length;
     if (totalAct > 0) {
-      var pctPersonal = Math.round((pagadas.length / totalAct) * 100);
+      var pctPersonal = Math.round(((pagadas.length + asistidas.length) / totalAct) * 100);
       var insignia;
       if (pctPersonal === 100) {
         insignia = { emoji: '🏆', titulo: '¡Estudiante Ejemplar! Estás al día con todo.', color: 'verde' };
@@ -657,8 +685,8 @@
         '<div class="resumen-label">Pendientes</div>' +
       '</div>' +
       '<div class="resumen-card verde">' +
-        '<div class="resumen-num">' + pagadas.length + '</div>' +
-        '<div class="resumen-label">Pagados</div>' +
+        '<div class="resumen-num">' + (pagadas.length + asistidas.length) + '</div>' +
+        '<div class="resumen-label">Cumplidos</div>' +
       '</div>' +
     '</div>';
 
@@ -691,10 +719,10 @@
       '</div>';
     }
 
-    // Pagados (columna derecha)
+    // Cumplidos: pagados + asistidos (columna derecha)
     var htmlPag = '';
-    if (pagadas.length > 0) {
-      htmlPag += '<div class="sec-title">✅ Ya pagaste</div>';
+    if (pagadas.length > 0 || asistidas.length > 0) {
+      htmlPag += '<div class="sec-title">✅ Ya cumpliste</div>';
       pagadas.forEach(function(item) {
         var a    = item.act;
         var p    = item.pago;
@@ -710,6 +738,18 @@
             '</div>' +
           '</div>' +
           '<div class="act-badge">S/. ' + monto.toFixed(2) + '</div>' +
+        '</div>';
+      });
+      asistidas.forEach(function(a) {
+        htmlPag += '<div class="act-item pagado">' +
+          '<div class="act-left">' +
+            '<div class="act-icon">🎟️</div>' +
+            '<div>' +
+              '<div class="act-nombre">' + a['Nombre'] + '</div>' +
+              '<div class="act-meta">Asististe · sin multa</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="act-badge">Exento</div>' +
         '</div>';
       });
     }
