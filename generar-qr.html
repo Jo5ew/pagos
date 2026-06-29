@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Generar QR de Asistencia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080C14; --surface: #0F1724; --border: rgba(255,255,255,0.08);
+    --muted: #334155; --text: #E2E8F0; --dim: #64748B;
+    --green: #00C9A7; --green-dim: rgba(0,201,167,0.12);
+    --red: #F43F5E; --red-dim: rgba(244,63,94,0.12);
+    --purple: #7C3AED; --purple-dim: rgba(124,58,237,0.15);
+    --radius: 16px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+  .bg-glow{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+  .glow{position:absolute;border-radius:50%;filter:blur(100px);opacity:.15;}
+  .glow-1{width:500px;height:500px;background:var(--purple);top:-150px;left:-100px;}
+  .glow-2{width:400px;height:400px;background:var(--green);bottom:-100px;right:-80px;}
+  .wrap{position:relative;z-index:1;max-width:460px;margin:0 auto;padding:32px 20px 60px;}
+
+  /* ── LOGIN ── */
+  #pantallaLogin{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:90vh;}
+  .login-icon{font-size:48px;margin-bottom:16px;}
+  .login-titulo{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;color:#fff;margin-bottom:8px;text-align:center;}
+  .login-sub{font-size:14px;color:var(--dim);margin-bottom:32px;text-align:center;}
+  .pin-input{
+    width:100%;max-width:280px;padding:18px;text-align:center;
+    font-size:28px;font-weight:700;letter-spacing:12px;
+    background:rgba(255,255,255,0.05);border:1.5px solid var(--border);
+    border-radius:14px;color:#fff;outline:none;font-family:'Space Grotesk',sans-serif;
+    -webkit-appearance:none;
+  }
+  .pin-input:focus{border-color:var(--purple);background:rgba(255,255,255,0.08);}
+  .btn-entrar{
+    width:100%;max-width:280px;margin-top:16px;padding:15px;
+    background:var(--purple);color:#fff;border:none;border-radius:13px;
+    font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;
+  }
+  .btn-entrar:active{transform:scale(.97);}
+  .login-error{
+    margin-top:14px;padding:10px 16px;background:var(--red-dim);
+    border:1px solid rgba(244,63,94,.25);border-radius:10px;
+    font-size:13px;font-weight:600;color:var(--red);display:none;text-align:center;
+  }
+
+  /* ── APP (después de login) ── */
+  #pantallaApp{display:none;}
+  .hero{text-align:center;padding:24px 0 32px;}
+  .hero-badge{
+    display:inline-flex;align-items:center;gap:8px;
+    background:var(--purple-dim);border:1px solid rgba(124,58,237,.3);
+    border-radius:99px;padding:6px 14px;font-size:12px;font-weight:600;
+    color:#A78BFA;margin-bottom:16px;
+  }
+  .hero h1{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;color:#fff;}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:16px;}
+
+  .fg{margin-bottom:16px;}
+  .fg label{display:block;font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--dim);margin-bottom:8px;}
+  .fg input,.fg select{
+    width:100%;padding:13px 15px;background:rgba(255,255,255,.07);
+    border:1.5px solid var(--border);border-radius:12px;font-size:15px;
+    font-family:inherit;color:#fff;outline:none;-webkit-appearance:none;
+  }
+  .fg input:focus,.fg select:focus{border-color:var(--purple);background:rgba(255,255,255,.1);}
+  .fg select option{background:#1E293B;color:#fff;}
+
+  .btn{
+    width:100%;padding:15px;background:var(--purple);color:#fff;border:none;
+    border-radius:13px;font-size:15px;font-weight:800;font-family:inherit;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px;
+  }
+  .btn:active{transform:scale(.98);}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+  .btn-secundario{background:#1E293B;}
+  .sp{width:18px;height:18px;border:2.5px solid rgba(255,255,255,.3);border-radius:50%;border-top-color:#fff;animation:spin .7s linear infinite;display:none;}
+  .btn.loading .bl{display:none;}
+  .btn.loading .sp{display:block;}
+
+  .msg{display:none;padding:13px 16px;border-radius:11px;margin-bottom:18px;font-size:13px;font-weight:700;text-align:center;}
+  .msg.ok{background:var(--green-dim);color:var(--green);border:1.5px solid rgba(0,201,167,.3);display:block;}
+  .msg.err{background:var(--red-dim);color:var(--red);border:1.5px solid rgba(244,63,94,.3);display:block;}
+
+  /* ── QR ── */
+  #qrWrap{display:none;text-align:center;}
+  #qrTitulo{font-family:'Space Grotesk',sans-serif;font-size:18px;color:#fff;margin-bottom:18px;}
+  #qrImg{width:240px;height:240px;border-radius:14px;border:6px solid #fff;background:#fff;}
+  #cuenta{margin-top:18px;font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;color:var(--purple);}
+  .link-box{
+    margin-top:18px;padding:12px 14px;background:rgba(255,255,255,.05);
+    border:1.5px solid var(--border);border-radius:10px;font-size:12px;
+    color:var(--dim);word-break:break-all;text-align:left;
+  }
+  .btn-copiar{
+    margin-top:10px;width:100%;padding:11px;background:rgba(255,255,255,.08);
+    color:#fff;border:1.5px solid var(--border);border-radius:10px;font-size:13px;
+    font-weight:700;font-family:inherit;cursor:pointer;
+  }
+
+  .footer{text-align:center;margin-top:32px;font-size:12px;color:var(--muted);}
+  .btn-salir{background:none;border:none;color:var(--dim);font-size:12px;cursor:pointer;text-decoration:underline;margin-top:24px;display:block;text-align:center;width:100%;font-family:inherit;}
+
+  @keyframes spin{to{transform:rotate(360deg)}}
+  ::-webkit-scrollbar{width:4px}
+  ::-webkit-scrollbar-thumb{background:var(--muted);border-radius:4px}
+</style>
+</head>
+<body>
+
+<div class="bg-glow"><div class="glow glow-1"></div><div class="glow glow-2"></div></div>
+
+<div class="wrap">
+
+  <!-- ═══ PANTALLA LOGIN ═══ -->
+  <div id="pantallaLogin">
+    <div class="login-icon">📱</div>
+    <div class="login-titulo">Acceso Tesorero</div>
+    <div class="login-sub">Ingresa tu PIN para generar sesiones QR</div>
+    <input type="password" id="pinInput" class="pin-input" maxlength="6" inputmode="numeric" placeholder="••••" autocomplete="off">
+    <button class="btn-entrar" id="btnEntrar" onclick="verificarPin()">Entrar</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+
+  <!-- ═══ PANTALLA APP ═══ -->
+  <div id="pantallaApp">
+    <div class="hero">
+      <div class="hero-badge">🔓 Sesión de Tesorero</div>
+      <h1>QR de Asistencia</h1>
+    </div>
+
+    <div class="card">
+      <div id="msg" class="msg"></div>
+
+      <div id="formWrap">
+        <form id="form">
+          <div class="fg">
+            <label>Evento de Asistencia</label>
+            <select id="evento" required>
+              <option value="">Seleccione...</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>Válido por (minutos)</label>
+            <input type="number" id="mins" value="15" min="1" max="180" required>
+          </div>
+          <button type="submit" id="btnS" class="btn">
+            <span class="bl">Generar Sesión QR</span>
+            <div class="sp"></div>
+          </button>
+        </form>
+      </div>
+
+      <div id="qrWrap">
+        <div id="qrTitulo"></div>
+        <img id="qrImg">
+        <div id="cuenta"></div>
+        <div class="link-box" id="linkBox"></div>
+        <button class="btn-copiar" id="btnCopiar">📋 Copiar link (para enviar por WhatsApp)</button>
+        <button class="btn btn-secundario" id="btnOtra" type="button">Generar otra sesión</button>
+      </div>
+    </div>
+
+    <button class="btn-salir" onclick="cerrarSesion()">Cerrar sesión</button>
+  </div>
+
+  <div class="footer">Sistema de Pagos · Tesorería</div>
+</div>
+
+<script>
+  // ════════════════════════════════════════════════════════════
+  // CONFIGURACIÓN — mismas constantes que tus otras páginas
+  // ════════════════════════════════════════════════════════════
+  var WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbzPSXCRHiMvXmDPexEyOaWlKpz-AshWHqaZ7WP6DsA2XEMvPf72rA9RIRTkk-TMcX0OpA/exec';
+  var URL_CHECKIN = 'https://jo5ew.github.io/pagos/checkin.html';
+
+  var pinGuardado = '';
+  var timerInterval;
+
+  // ════════════════════════════════════════════════════════════
+  // LOGIN (idéntico patrón a registrar.html)
+  // ════════════════════════════════════════════════════════════
+  function verificarPin() {
+    var pin = document.getElementById('pinInput').value.trim();
+    if (pin.length < 4) { mostrarLoginError('Ingresa tu PIN completo.'); return; }
+    pinGuardado = pin;
+
+    var btn = document.getElementById('btnEntrar');
+    btn.disabled = true;
+    btn.textContent = 'Verificando...';
+
+    llamarApi('getEventosAsistencia', {}).then(function(r) {
+      btn.disabled = false;
+      btn.textContent = 'Entrar';
+      if (r.ok) {
+        document.getElementById('pantallaLogin').style.display = 'none';
+        document.getElementById('pantallaApp').style.display = 'block';
+        cargarEventos(r.data);
+        iniciarTimeoutInactividad();
+      } else {
+        mostrarLoginError(r.error || 'PIN incorrecto.');
+      }
+    }).catch(function() {
+      btn.disabled = false;
+      btn.textContent = 'Entrar';
+      mostrarLoginError('Error de conexión. Intenta de nuevo.');
+    });
+  }
+
+  function mostrarLoginError(txt) {
+    var e = document.getElementById('loginError');
+    e.textContent = txt;
+    e.style.display = 'block';
+  }
+
+  document.getElementById('pinInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') verificarPin();
+  });
+
+  function cerrarSesion() {
+    pinGuardado = '';
+    limpiarTimeoutInactividad();
+    clearInterval(timerInterval);
+    document.getElementById('pantallaApp').style.display = 'none';
+    document.getElementById('pantallaLogin').style.display = 'flex';
+    document.getElementById('pinInput').value = '';
+    document.getElementById('loginError').style.display = 'none';
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // CIERRE AUTOMÁTICO POR INACTIVIDAD (2 minutos)
+  // ════════════════════════════════════════════════════════════
+  var TIEMPO_INACTIVIDAD = 2 * 60 * 1000;
+  var timeoutInactividad = null;
+
+  function iniciarTimeoutInactividad() {
+    resetTimeoutInactividad();
+    ['click', 'keydown', 'input', 'touchstart', 'scroll'].forEach(function(evt) {
+      document.addEventListener(evt, resetTimeoutInactividad);
+    });
+  }
+  function resetTimeoutInactividad() {
+    if (timeoutInactividad) clearTimeout(timeoutInactividad);
+    timeoutInactividad = setTimeout(function() {
+      cerrarSesion();
+      mostrarLoginError('Sesión cerrada por inactividad. Ingresa tu PIN de nuevo.');
+    }, TIEMPO_INACTIVIDAD);
+  }
+  function limpiarTimeoutInactividad() {
+    if (timeoutInactividad) clearTimeout(timeoutInactividad);
+    ['click', 'keydown', 'input', 'touchstart', 'scroll'].forEach(function(evt) {
+      document.removeEventListener(evt, resetTimeoutInactividad);
+    });
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // LLAMADAS A LA API
+  // ════════════════════════════════════════════════════════════
+  function llamarApi(accion, datosExtra) {
+    var body = Object.assign({ pin: pinGuardado, accion: accion }, datosExtra || {});
+    return fetch(WEBAPP_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(body)
+    }).then(function(r) { return r.json(); });
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // FORMULARIO QR
+  // ════════════════════════════════════════════════════════════
+  function cargarEventos(data) {
+    var sel = document.getElementById('evento');
+    var h = '<option value="">Seleccione...</option>';
+    data.forEach(function(ev) {
+      h += '<option value="' + ev.codigo + '">' + ev.nombre + '</option>';
+    });
+    sel.innerHTML = h;
+  }
+
+  document.getElementById('form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    var cod = document.getElementById('evento').value;
+    if (!cod) { showMsg('Selecciona un evento.', true); return; }
+    var mins = document.getElementById('mins').value;
+
+    setLoad(true);
+    llamarApi('generarSesionQR', { codigoActividad: cod, minutosValidez: mins }).then(function(r) {
+      setLoad(false);
+      if (!r.ok) { showMsg(r.error, true); return; }
+      mostrarQR(r.token, r.expiraMs, r.nombreEvento);
+    }).catch(function() {
+      setLoad(false);
+      showMsg('Error de conexión. Intenta de nuevo.', true);
+    });
+  });
+
+  function mostrarQR(token, expiraMs, nombreEvento) {
+    document.getElementById('formWrap').style.display = 'none';
+    document.getElementById('qrWrap').style.display = 'block';
+    document.getElementById('qrTitulo').textContent = nombreEvento;
+
+    var link = URL_CHECKIN + '?token=' + token;
+    document.getElementById('qrImg').src = 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=' + encodeURIComponent(link);
+    document.getElementById('linkBox').textContent = link;
+
+    clearInterval(timerInterval);
+    timerInterval = setInterval(function() {
+      var restante = Math.round((expiraMs - Date.now()) / 1000);
+      if (restante <= 0) {
+        document.getElementById('cuenta').textContent = '⛔ VENCIDO';
+        document.getElementById('qrImg').style.opacity = '0.25';
+        clearInterval(timerInterval);
+        return;
+      }
+      var m = Math.floor(restante / 60), s = restante % 60;
+      document.getElementById('cuenta').textContent = '⏱ ' + m + ':' + (s < 10 ? '0' : '') + s;
+    }, 1000);
+  }
+
+  document.getElementById('btnCopiar').addEventListener('click', function() {
+    var link = document.getElementById('linkBox').textContent;
+    navigator.clipboard.writeText(link).then(function() {
+      showMsg('✅ Link copiado al portapapeles', false);
+    });
+  });
+
+  document.getElementById('btnOtra').addEventListener('click', function() {
+    clearInterval(timerInterval);
+    document.getElementById('qrWrap').style.display = 'none';
+    document.getElementById('formWrap').style.display = 'block';
+  });
+
+  function setLoad(on) {
+    var b = document.getElementById('btnS');
+    b.disabled = on;
+    b.classList.toggle('loading', on);
+  }
+  function showMsg(txt, err) {
+    var m = document.getElementById('msg');
+    m.className = 'msg ' + (err ? 'err' : 'ok');
+    m.textContent = txt;
+    if (!err) setTimeout(function() { m.style.display = 'none'; }, 4000);
+  }
+</script>
+</body>
+</html>
