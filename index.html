@@ -325,6 +325,7 @@
     }
     .stat-clase .num { font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 700; color: var(--green); }
     .stat-clase .label { font-size: 12.5px; color: var(--dim); margin-top: 4px; }
+    .stat-sub { display: block; font-size: 11px; color: var(--muted); margin-top: 3px; }
     .stat-bar { width: 100%; height: 8px; background: rgba(255,255,255,0.07); border-radius: 99px; margin-top: 14px; overflow: hidden; }
     .stat-bar-fill { height: 100%; background: linear-gradient(90deg, var(--green), var(--blue)); border-radius: 99px; transition: width 0.6s ease; }
 
@@ -396,7 +397,7 @@
   <!-- STAT COLECTIVO -->
   <div class="stat-clase" id="statClase" style="display:none;">
     <div class="num" id="statNum">0%</div>
-    <div class="label">de la clase está al día 🎉</div>
+    <div class="label" id="statLabel">de la clase está al día</div>
     <div class="stat-bar"><div class="stat-bar-fill" id="statBar" style="width:0%"></div></div>
   </div>
 
@@ -448,6 +449,18 @@
   var HOJA_PAG  = 'BD_Pagos';
   var HOJA_ANU  = 'BD_Anuncios';
 
+  // ── PARSEO DE FECHAS (Google a veces las manda como Date(2026,5,30)) ──
+  function parseFechaLegible(val) {
+    if (!val) return '';
+    var str = val.toString();
+    var m = str.match(/^Date\((\d+),(\d+),(\d+)/);
+    if (m) {
+      var anio = parseInt(m[1]), mes = parseInt(m[2]) + 1, dia = parseInt(m[3]);
+      return (dia < 10 ? '0' : '') + dia + '/' + (mes < 10 ? '0' : '') + mes + '/' + anio;
+    }
+    return str.substring(0, 10);
+  }
+
   // ── FETCH DE HOJA ────────────────────────────────────────────
   function fetchSheet(nombre) {
     var url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
@@ -498,7 +511,7 @@
     if (!dataAnu || dataAnu.length === 0) { wrap.innerHTML = ''; return; }
     var h = '';
     dataAnu.slice().reverse().slice(0, 3).forEach(function(a) {
-      var fecha = a['Fecha'] ? a['Fecha'].toString().substring(0, 10) : '';
+      var fecha = parseFechaLegible(a['Fecha']);
       h += '<div class="anuncio-item">' +
              '<div class="anuncio-icon">📢</div>' +
              '<div class="anuncio-texto">' +
@@ -512,7 +525,7 @@
 
   // ── STAT COLECTIVO ────────────────────────────────────────────
   function renderStatClase() {
-    if (dataEst.length === 0 || dataAct.length === 0) return;
+    if (dataEst.length === 0 || dataAct.length === 0) { document.getElementById('statClase').style.display = 'none'; return; }
     var alDia = 0;
     dataEst.forEach(function(e) {
       var dni = e['DNI'].toString();
@@ -522,9 +535,13 @@
       });
       if (!debeAlgo) alDia++;
     });
-    var pct = Math.round((alDia / dataEst.length) * 100);
+    var total = dataEst.length;
+    var pct = Math.round((alDia / total) * 100);
+    var emoji = pct === 100 ? '🎉' : (pct === 0 ? '📊' : '💪');
     document.getElementById('statNum').textContent = pct + '%';
     document.getElementById('statBar').style.width = pct + '%';
+    document.getElementById('statLabel').innerHTML = 'de la clase está al día ' + emoji +
+      '<span class="stat-sub">' + alDia + ' de ' + total + ' estudiantes</span>';
     document.getElementById('statClase').style.display = 'block';
   }
 
