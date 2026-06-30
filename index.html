@@ -356,6 +356,43 @@
     .insignia-emoji { font-size: 30px; flex-shrink: 0; }
     .insignia-texto { font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 700; color: #fff; }
 
+
+    /* ── ENCABEZADO INSTITUCIONAL ───────────────────────────── */
+    .inst-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 16px 20px;
+      margin-bottom: 32px;
+    }
+    .inst-logo {
+      width: 56px;       /* ← cambia este valor para hacer el logo más grande o más pequeño */
+      height: 56px;      /* ← mismo aquí, mantenlos iguales para que no se deforme */
+      flex-shrink: 0;
+      object-fit: contain;
+    }
+    .inst-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .inst-nombre {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 15px;   /* ← tamaño del nombre de la institución */
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.2;
+    }
+    .inst-grupo {
+      font-size: 12px;   /* ← tamaño del texto de grupo/semestre */
+      font-weight: 500;
+      color: var(--dim);
+      letter-spacing: 0.3px;
+    }
+
     /* ── ANIMACIONES ────────────────────────────────────────── */
     @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes fadeUp {
@@ -378,9 +415,25 @@
 
 <div class="wrap">
 
+  <!-- ENCABEZADO INSTITUCIONAL -->
+  <!-- Para cambiar el logo: reemplaza "TU_LOGO.svg" por el nombre real de tu archivo SVG -->
+  <!-- Sube el archivo SVG al mismo repo de GitHub Pages donde están tus HTML -->
+  <div class="inst-header">
+    <img
+      src="TU_LOGO.svg"
+      alt="Logo de la institución"
+      class="inst-logo"
+    >
+    <div class="inst-info">
+      
+      <span class="inst-nombre">Manuel Núñez Butón</span>
+      <span class="inst-nombre">Instituto de Educación Superior Tecnológico Público</span>
+      <span class="inst-grupo">DESARROLLO DE SISTEMAS DE INFORMACIÓN · IV · 2026</span>
+    </div>
+  </div>
+
   <!-- HERO -->
   <div class="hero">
-    <div class="hero-badge">💎 Tesorería del Aula</div>
     <h1>Consulta tus<br><span>pagos pendientes</span></h1>
     <p>Escribe tu DNI o nombre para ver<br>tu estado de cuenta actualizado.</p>
   </div>
