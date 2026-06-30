@@ -637,6 +637,12 @@
     var nombre = est['Nombre'].toString();
     var ini    = nombre.substring(0, 2).toUpperCase();
 
+    // Registrar la consulta silenciosamente
+fetch('https://script.google.com/macros/s/AKfycbzPSXCRHiMvXmDPexEyOaWlKpz-AshWHqaZ7WP6DsA2XEMvPf72rA9RIRTkk-TMcX0OpA/exec', {
+  method: 'POST',
+  headers: { 'Content-Type': 'text/plain' },
+  body: JSON.stringify({ pin: '2580', accion: 'registrarConsulta', dni: dni, nombre: nombre })
+});
     // Pagos de este estudiante
     var misPagos = dataPag.filter(function(p) { return p['DNI'].toString() === dni; });
     var codsPagados = misPagos.map(function(p) { return p['Código Act.'].toString(); });
