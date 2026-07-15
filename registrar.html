@@ -94,12 +94,31 @@
     width:100%;padding:15px;background:var(--green);color:#062b25;border:none;
     border-radius:13px;font-size:15px;font-weight:800;font-family:inherit;
     cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px;
+    transition:opacity .2s,transform .15s;
   }
   .btn:active{transform:scale(.98);}
-  .btn:disabled{opacity:.4;cursor:not-allowed;}
+  .btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
   .sp{width:18px;height:18px;border:2.5px solid rgba(6,43,37,.3);border-radius:50%;border-top-color:#062b25;animation:spin .7s linear infinite;display:none;}
   .btn.loading .bl{display:none;}
   .btn.loading .sp{display:block;}
+
+  /* Barra de progreso animada */
+  .progress-bar-wrap{
+    width:100%;height:4px;background:rgba(255,255,255,.1);
+    border-radius:99px;margin-top:12px;overflow:hidden;display:none;
+  }
+  .progress-bar-fill{
+    height:100%;width:0%;background:var(--green);
+    border-radius:99px;transition:width .4s ease;
+  }
+  .progress-bar-wrap.visible{display:block;}
+
+  /* Estado del proceso */
+  .proceso-estado{
+    text-align:center;font-size:12px;font-weight:600;color:var(--dim);
+    margin-top:8px;min-height:18px;letter-spacing:.3px;display:none;
+  }
+  .proceso-estado.visible{display:block;}
 
   .msg{display:none;padding:13px 16px;border-radius:11px;margin-bottom:18px;font-size:13px;font-weight:700;text-align:center;}
   .msg.ok{background:var(--green-dim);color:var(--green);border:1.5px solid rgba(0,201,167,.3);display:block;}
@@ -186,6 +205,10 @@
           <span class="bl">Confirmar Pago</span>
           <div class="sp"></div>
         </button>
+        <div class="progress-bar-wrap" id="progressWrap">
+          <div class="progress-bar-fill" id="progressFill"></div>
+        </div>
+        <div class="proceso-estado" id="procesoEstado"></div>
       </form>
     </div>
 
@@ -202,6 +225,18 @@
   var WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbzPSXCRHiMvXmDPexEyOaWlKpz-AshWHqaZ7WP6DsA2XEMvPf72rA9RIRTkk-TMcX0OpA/exec';
 
   var pinGuardado = '';
+
+  // ════════════════════════════════════════════════════════════
+  // IDENTIFICADOR DE DISPOSITIVO (para el bloqueo anti fuerza bruta)
+  // ════════════════════════════════════════════════════════════
+  function getDeviceId() {
+    var id = localStorage.getItem('deviceId');
+    if (!id) {
+      id = 'dev_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+      localStorage.setItem('deviceId', id);
+    }
+    return id;
+  }
 
   // ════════════════════════════════════════════════════════════
   // LOGIN
@@ -289,7 +324,7 @@
   // LLAMADAS A LA API (Apps Script doPost)
   // ════════════════════════════════════════════════════════════
   function llamarApi(accion, datosExtra) {
-    var body = Object.assign({ pin: pinGuardado, accion: accion }, datosExtra || {});
+    var body = Object.assign({ pin: pinGuardado, accion: accion, deviceId: getDeviceId() }, datosExtra || {});
     return fetch(WEBAPP_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' }, // evita preflight CORS
@@ -415,10 +450,50 @@
     });
   });
 
-  function setLoad(on) {
-    var b = document.getElementById('btnS');
+  var progressTimer = null;
+
+  function setLoad(on, estado) {
+    var b    = document.getElementById('btnS');
+    var wrap = document.getElementById('progressWrap');
+    var fill = document.getElementById('progressFill');
+    var txt  = document.getElementById('procesoEstado');
+
     b.disabled = on;
     b.classList.toggle('loading', on);
+
+    if (on) {
+      // Mostrar barra y texto
+      wrap.classList.add('visible');
+      txt.classList.add('visible');
+      txt.textContent = estado || 'Verificando datos...';
+      fill.style.width = '0%';
+
+      // Animar la barra de progreso en etapas
+      var etapas = [
+        { pct: '20%', ms: 200,  txt: 'Verificando datos...' },
+        { pct: '45%', ms: 600,  txt: 'Guardando pago...' },
+        { pct: '70%', ms: 1200, txt: 'Confirmando registro...' },
+        { pct: '90%', ms: 1800, txt: 'Casi listo...' }
+      ];
+      etapas.forEach(function(e) {
+        setTimeout(function() {
+          if (b.disabled) { // solo si todavía está cargando
+            fill.style.width = e.pct;
+            txt.textContent = e.txt;
+          }
+        }, e.ms);
+      });
+
+    } else {
+      // Completar la barra al 100% antes de ocultar
+      fill.style.width = '100%';
+      txt.textContent = '✅ Completado';
+      setTimeout(function() {
+        wrap.classList.remove('visible');
+        txt.classList.remove('visible');
+        fill.style.width = '0%';
+      }, 800);
+    }
   }
   function showMsg(txt, err) {
     var m = document.getElementById('msg');
