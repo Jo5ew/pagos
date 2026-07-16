@@ -440,17 +440,17 @@ function resetFormulario() {
   ocultarProgress();
 }
 
+// ── CARGAR PENDIENTES ──
 function cargarPendientes(dni) {
   api('getPendientesEstudiante', { dni: dni }).then(function(r) {
-    console.log('RESPUESTA:', JSON.stringify(r));
     pendientesData = r.ok ? (r.data || []) : [];
     renderPendientes();
-  }).catch(function(err) {
-    console.log('ERROR:', err);
+  }).catch(function() {
     pendientesData = [];
     renderPendientes();
   });
 }
+
 function renderPendientes() {
   var list = document.getElementById('pendList');
   if (pendientesData.length === 0) {
