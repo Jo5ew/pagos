@@ -10,126 +10,195 @@
   :root {
     --bg: #080C14; --surface: #0F1724; --border: rgba(255,255,255,0.08);
     --muted: #334155; --text: #E2E8F0; --dim: #64748B;
-    --green: #00C9A7; --green-dim: rgba(0,201,167,0.12);
+    --green: #00C9A7; --green-dark: #00796B; --green-dim: rgba(0,201,167,0.12);
     --red: #F43F5E; --red-dim: rgba(244,63,94,0.12);
+    --amber: #F59E0B; --amber-dim: rgba(245,158,11,0.12);
     --purple: #8B5CF6; --blue: #3B82F6;
-    --radius: 16px;
+    --radius: 14px;
   }
-  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
-  .bg-glow{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
-  .glow{position:absolute;border-radius:50%;filter:blur(100px);opacity:.15;}
-  .glow-1{width:500px;height:500px;background:var(--purple);top:-150px;left:-100px;}
-  .glow-2{width:400px;height:400px;background:var(--green);bottom:-100px;right:-80px;}
-  .wrap{position:relative;z-index:1;max-width:460px;margin:0 auto;padding:32px 20px 60px;}
+  *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+  /* ── FONDO ── */
+  .bg-glow { position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+  .glow { position:absolute; border-radius:50%; filter:blur(100px); opacity:.12; }
+  .glow-1 { width:500px; height:500px; background:var(--green); top:-150px; left:-100px; }
+  .glow-2 { width:400px; height:400px; background:var(--blue); bottom:-100px; right:-80px; }
+
+  /* ── LAYOUT ── */
+  .wrap { position:relative; z-index:1; max-width:420px; margin:0 auto; padding:0 0 80px; min-height:100vh; display:flex; flex-direction:column; }
+
+  /* ── HEADER ── */
+  .app-header {
+    background:linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
+    padding:48px 20px 24px;
+    position:sticky; top:0; z-index:10;
+  }
+  .header-top { display:flex; align-items:center; gap:12px; margin-bottom:4px; }
+  .header-icon { width:38px; height:38px; border-radius:12px; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:20px; }
+  .header-title { font-family:'Space Grotesk',sans-serif; font-size:20px; font-weight:700; color:#fff; }
+  .header-sub { font-size:12px; color:rgba(255,255,255,0.7); margin-left:50px; }
+
+  /* ── BODY ── */
+  .body { padding:16px; display:flex; flex-direction:column; gap:12px; flex:1; }
 
   /* ── LOGIN ── */
-  #pantallaLogin{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:90vh;}
-  .login-icon{font-size:48px;margin-bottom:16px;}
-  .login-titulo{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;color:#fff;margin-bottom:8px;text-align:center;}
-  .login-sub{font-size:14px;color:var(--dim);margin-bottom:32px;text-align:center;}
-  .pin-input{
-    width:100%;max-width:280px;padding:18px;text-align:center;
-    font-size:28px;font-weight:700;letter-spacing:12px;
-    background:rgba(255,255,255,0.05);border:1.5px solid var(--border);
-    border-radius:14px;color:#fff;outline:none;font-family:'Space Grotesk',sans-serif;
+  #pantallaLogin { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:70vh; gap:16px; padding:24px; }
+  .pin-label { font-size:14px; color:var(--dim); }
+  .pin-input {
+    width:200px; padding:18px; text-align:center;
+    font-size:28px; font-weight:700; letter-spacing:12px;
+    background:rgba(255,255,255,0.05); border:1.5px solid var(--border);
+    border-radius:14px; color:#fff; outline:none;
+    font-family:'Space Grotesk',sans-serif; -webkit-appearance:none;
+  }
+  .pin-input:focus { border-color:var(--green); }
+  .btn-entrar {
+    width:200px; padding:14px; background:var(--green); color:#062b25;
+    border:none; border-radius:13px; font-size:15px; font-weight:700;
+    font-family:inherit; cursor:pointer;
+  }
+  .login-error {
+    font-size:13px; font-weight:600; color:var(--red);
+    background:var(--red-dim); border:1px solid rgba(244,63,94,.25);
+    border-radius:10px; padding:10px 14px; text-align:center; display:none;
+  }
+
+  /* ── CARDS ── */
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px; }
+
+  /* ── BUSCADOR ── */
+  .search-wrap { position:relative; }
+  .search-input {
+    width:100%; padding:12px 14px 12px 40px;
+    background:rgba(255,255,255,.06); border:1.5px solid var(--border);
+    border-radius:11px; font-size:14px; font-family:inherit; color:#fff;
+    outline:none; transition:border-color .2s, background .2s;
     -webkit-appearance:none;
   }
-  .pin-input:focus{border-color:var(--purple);background:rgba(255,255,255,0.08);}
-  .btn-entrar{
-    width:100%;max-width:280px;margin-top:16px;padding:15px;
-    background:var(--purple);color:#fff;border:none;border-radius:13px;
-    font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;
+  .search-input:focus { border-color:var(--green); background:rgba(255,255,255,.09); }
+  .search-icon { position:absolute; left:13px; top:50%; transform:translateY(-50%); color:var(--dim); font-size:15px; pointer-events:none; }
+  .sugg-box {
+    position:absolute; top:calc(100% + 6px); left:0; right:0;
+    background:#1A2332; border:1.5px solid rgba(255,255,255,.12);
+    border-radius:12px; z-index:50; max-height:220px; overflow-y:auto;
+    display:none; box-shadow:0 20px 40px rgba(0,0,0,.5);
   }
-  .btn-entrar:active{transform:scale(.97);}
-  .login-error{
-    margin-top:14px;padding:10px 16px;background:var(--red-dim);
-    border:1px solid rgba(244,63,94,.25);border-radius:10px;
-    font-size:13px;font-weight:600;color:var(--red);display:none;text-align:center;
+  .sugg-item { padding:11px 14px; cursor:pointer; border-bottom:1px solid rgba(255,255,255,.05); display:flex; align-items:center; gap:10px; transition:background .15s; }
+  .sugg-item:last-child { border-bottom:none; }
+  .sugg-item:hover { background:rgba(255,255,255,.06); }
+  .sugg-av { width:36px; height:36px; border-radius:10px; flex-shrink:0; background:rgba(0,201,167,.2); color:var(--green); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; }
+  .sugg-info h5 { font-size:14px; font-weight:600; color:#fff; margin-bottom:1px; }
+  .sugg-info p { font-size:12px; color:var(--dim); }
+  .sugg-empty { padding:16px; text-align:center; color:var(--dim); font-size:13px; }
+
+  /* ── CHIP ESTUDIANTE ── */
+  .student-chip {
+    background:var(--green-dim); border:1px solid rgba(0,201,167,.3);
+    border-radius:12px; padding:12px 14px;
+    display:flex; align-items:center; gap:12px;
   }
-
-  /* ── APP (después de login) ── */
-  #pantallaApp{display:none;}
-  .hero{text-align:center;padding:24px 0 32px;}
-  .hero-badge{
-    display:inline-flex;align-items:center;gap:8px;
-    background:rgba(0,201,167,.15);border:1px solid rgba(0,201,167,.3);
-    border-radius:99px;padding:6px 14px;font-size:12px;font-weight:600;
-    color:var(--green);margin-bottom:16px;
+  .student-av {
+    width:40px; height:40px; border-radius:50%; flex-shrink:0;
+    background:linear-gradient(135deg, var(--green), var(--green-dark));
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Space Grotesk',sans-serif; font-size:14px; font-weight:700; color:#fff;
   }
-  .hero h1{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;color:#fff;}
+  .student-name { font-size:14px; font-weight:600; color:#fff; }
+  .student-dni { font-size:12px; color:var(--green); }
+  .btn-cambiar { margin-left:auto; font-size:12px; color:var(--dim); background:none; border:none; cursor:pointer; font-family:inherit; text-decoration:underline; flex-shrink:0; }
 
-  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:16px;}
+  /* ── SECCIÓN PENDIENTES ── */
+  .section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .section-label { font-size:11px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:var(--dim); }
+  .btn-selall { font-size:12px; font-weight:600; color:var(--green); background:none; border:none; cursor:pointer; font-family:inherit; text-decoration:underline; padding:0; }
 
-  .fg{margin-bottom:16px;}
-  .fg label{display:block;font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--dim);margin-bottom:8px;}
-  .fg input,.fg select{
-    width:100%;padding:13px 15px;background:rgba(255,255,255,.07);
-    border:1.5px solid var(--border);border-radius:12px;font-size:15px;
-    font-family:inherit;color:#fff;outline:none;-webkit-appearance:none;
+  /* ── CHECKBOXES ── */
+  .pend-list { display:flex; flex-direction:column; gap:6px; }
+  .pend-item {
+    background:rgba(255,255,255,.04); border:1px solid var(--border);
+    border-radius:11px; padding:11px 13px;
+    display:flex; align-items:center; gap:10px; cursor:pointer;
+    transition:border-color .15s, background .15s; user-select:none;
   }
-  .fg input:focus,.fg select:focus{border-color:var(--green);background:rgba(255,255,255,.1);}
-  .fg input[readonly]{color:var(--dim);}
-  .fg select option{background:#1E293B;color:#fff;}
-
-  .monto-wrap{position:relative;}
-  .monto-pre{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-weight:800;color:var(--green);font-size:14px;pointer-events:none;}
-  .monto-inp{padding-left:46px !important;}
-
-  .sw{position:relative;}
-  .sb{
-    position:absolute;top:calc(100% + 6px);left:0;right:0;background:#1A2332;
-    border:1.5px solid rgba(255,255,255,.15);border-radius:14px;z-index:100;
-    max-height:220px;overflow-y:auto;display:none;box-shadow:0 20px 40px rgba(0,0,0,.5);
+  .pend-item:active { transform:scale(.99); }
+  .pend-item.sel { background:var(--green-dim); border-color:rgba(0,201,167,.4); }
+  .pend-cb {
+    width:20px; height:20px; border-radius:6px; flex-shrink:0;
+    border:1.5px solid var(--muted);
+    display:flex; align-items:center; justify-content:center;
+    transition:background .15s, border-color .15s;
   }
-  .si{padding:12px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:12px;}
-  .si:last-child{border-bottom:none;}
-  .si:hover,.si:active{background:rgba(255,255,255,.06);}
-  .sa{width:38px;height:38px;border-radius:10px;flex-shrink:0;background:rgba(139,92,246,.2);color:#A78BFA;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;}
-  .si h5{font-size:14px;font-weight:600;color:#fff;margin-bottom:2px;}
-  .si p{font-size:12px;color:var(--dim);}
-  .se{padding:16px;text-align:center;color:var(--dim);font-size:13px;}
+  .pend-item.sel .pend-cb { background:var(--green); border-color:var(--green); }
+  .pend-check { display:none; color:#062b25; font-size:13px; font-weight:700; }
+  .pend-item.sel .pend-check { display:block; }
+  .pend-nombre { font-size:13px; color:var(--text); flex:1; line-height:1.3; }
+  .pend-item.sel .pend-nombre { color:#fff; }
+  .badge { font-size:10px; font-weight:700; padding:2px 7px; border-radius:99px; white-space:nowrap; flex-shrink:0; }
+  .badge-cuota { background:rgba(59,130,246,.15); color:#93C5FD; }
+  .badge-multa { background:var(--amber-dim); color:var(--amber); }
+  .pend-monto { font-size:13px; font-weight:600; color:var(--dim); white-space:nowrap; }
+  .pend-item.sel .pend-monto { color:var(--green); }
 
-  .btn{
-    width:100%;padding:15px;background:var(--green);color:#062b25;border:none;
-    border-radius:13px;font-size:15px;font-weight:800;font-family:inherit;
-    cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px;
-    transition:opacity .2s,transform .15s;
+  .aldia { text-align:center; padding:24px; background:var(--green-dim); border:1px solid rgba(0,201,167,.3); border-radius:12px; color:var(--green); font-weight:700; font-size:14px; }
+
+  /* ── TOTAL ── */
+  .total-box {
+    background:rgba(0,201,167,.08); border:1px solid rgba(0,201,167,.25);
+    border-radius:12px; padding:14px 16px;
+    display:flex; align-items:center; justify-content:space-between;
   }
-  .btn:active{transform:scale(.98);}
-  .btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
-  .sp{width:18px;height:18px;border:2.5px solid rgba(6,43,37,.3);border-radius:50%;border-top-color:#062b25;animation:spin .7s linear infinite;display:none;}
-  .btn.loading .bl{display:none;}
-  .btn.loading .sp{display:block;}
+  .total-left .total-label { font-size:13px; color:var(--dim); }
+  .total-left .total-count { font-size:11px; color:var(--muted); margin-top:2px; }
+  .total-amount { font-family:'Space Grotesk',sans-serif; font-size:24px; font-weight:700; color:var(--green); }
 
-  /* Barra de progreso animada */
-  .progress-bar-wrap{
-    width:100%;height:4px;background:rgba(255,255,255,.1);
-    border-radius:99px;margin-top:12px;overflow:hidden;display:none;
+  /* ── MÉTODO ── */
+  .metodo-wrap { position:relative; }
+  .metodo-select {
+    width:100%; padding:12px 14px;
+    background:rgba(255,255,255,.06); border:1.5px solid var(--border);
+    border-radius:11px; font-size:14px; font-family:inherit; color:#fff;
+    outline:none; -webkit-appearance:none; cursor:pointer;
+    transition:border-color .2s;
   }
-  .progress-bar-fill{
-    height:100%;width:0%;background:var(--green);
-    border-radius:99px;transition:width .4s ease;
+  .metodo-select:focus { border-color:var(--green); }
+  .metodo-select option { background:#1E293B; }
+  .fg label { display:block; font-size:11px; font-weight:700; letter-spacing:.6px; text-transform:uppercase; color:var(--dim); margin-bottom:7px; }
+
+  /* ── BOTÓN CONFIRMAR ── */
+  .btn-confirm {
+    width:100%; padding:16px; border:none; border-radius:14px;
+    font-size:15px; font-weight:700; font-family:inherit; cursor:pointer;
+    background:var(--green); color:#062b25;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    transition:opacity .2s, transform .15s;
+    position:relative; overflow:hidden;
   }
-  .progress-bar-wrap.visible{display:block;}
+  .btn-confirm:active { transform:scale(.98); }
+  .btn-confirm:disabled { opacity:.4; cursor:not-allowed; transform:none; }
+  .btn-confirm .sp { width:18px; height:18px; border:2.5px solid rgba(6,43,37,.3); border-radius:50%; border-top-color:#062b25; animation:spin .7s linear infinite; display:none; }
+  .btn-confirm.loading .bl { display:none; }
+  .btn-confirm.loading .sp { display:block; }
 
-  /* Estado del proceso */
-  .proceso-estado{
-    text-align:center;font-size:12px;font-weight:600;color:var(--dim);
-    margin-top:8px;min-height:18px;letter-spacing:.3px;display:none;
-  }
-  .proceso-estado.visible{display:block;}
+  /* ── BARRA DE PROGRESO ── */
+  .prog-wrap { height:3px; background:rgba(255,255,255,.1); border-radius:99px; margin-top:8px; overflow:hidden; display:none; }
+  .prog-wrap.vis { display:block; }
+  .prog-fill { height:100%; width:0%; background:var(--green); border-radius:99px; transition:width .4s ease; }
+  .prog-estado { text-align:center; font-size:11px; font-weight:600; color:var(--dim); margin-top:5px; min-height:16px; display:none; }
+  .prog-estado.vis { display:block; }
 
-  .msg{display:none;padding:13px 16px;border-radius:11px;margin-bottom:18px;font-size:13px;font-weight:700;text-align:center;}
-  .msg.ok{background:var(--green-dim);color:var(--green);border:1.5px solid rgba(0,201,167,.3);display:block;}
-  .msg.err{background:var(--red-dim);color:var(--red);border:1.5px solid rgba(244,63,94,.3);display:block;}
+  /* ── MENSAJE ── */
+  .msg { display:none; padding:12px 14px; border-radius:11px; font-size:13px; font-weight:600; text-align:center; }
+  .msg.ok { background:var(--green-dim); color:var(--green); border:1px solid rgba(0,201,167,.3); display:block; }
+  .msg.err { background:var(--red-dim); color:var(--red); border:1px solid rgba(244,63,94,.3); display:block; }
 
-  .footer{text-align:center;margin-top:32px;font-size:12px;color:var(--muted);}
-  .btn-salir{background:none;border:none;color:var(--dim);font-size:12px;cursor:pointer;text-decoration:underline;margin-top:24px;display:block;text-align:center;width:100%;font-family:inherit;}
+  /* ── FOOTER ── */
+  .footer { text-align:center; padding:20px; font-size:12px; color:var(--muted); }
+  .btn-salir { background:none; border:none; color:var(--dim); font-size:12px; cursor:pointer; text-decoration:underline; font-family:inherit; }
 
-  @keyframes spin{to{transform:rotate(360deg)}}
-  ::-webkit-scrollbar{width:4px}
-  ::-webkit-scrollbar-thumb{background:var(--muted);border-radius:4px}
+  @keyframes spin { to { transform:rotate(360deg); } }
+  ::-webkit-scrollbar { width:4px; }
+  ::-webkit-scrollbar-thumb { background:var(--muted); border-radius:4px; }
 </style>
 </head>
 <body>
@@ -138,369 +207,396 @@
 
 <div class="wrap">
 
-  <!-- ═══ PANTALLA LOGIN ═══ -->
+  <!-- HEADER -->
+  <div class="app-header">
+    <div class="header-top">
+      <div class="header-icon">💰</div>
+      <div class="header-title">Registrar Pago</div>
+    </div>
+    <div class="header-sub">Tesorería del Aula</div>
+  </div>
+
+  <!-- LOGIN -->
   <div id="pantallaLogin">
-    <div class="login-icon">🔒</div>
-    <div class="login-titulo">Acceso Tesorero</div>
-    <div class="login-sub">Ingresa tu PIN para registrar pagos</div>
+    <span class="pin-label">Ingresa tu PIN de tesorero</span>
     <input type="password" id="pinInput" class="pin-input" maxlength="6" inputmode="numeric" placeholder="••••" autocomplete="off">
     <button class="btn-entrar" id="btnEntrar" onclick="verificarPin()">Entrar</button>
     <div class="login-error" id="loginError"></div>
   </div>
 
-  <!-- ═══ PANTALLA APP ═══ -->
-  <div id="pantallaApp">
-    <div class="hero">
-      <div class="hero-badge">🔓 Sesión de Tesorero</div>
-      <h1>Registrar Pago</h1>
+  <!-- APP -->
+  <div id="pantallaApp" style="display:none;" class="body">
+
+    <div id="msg" class="msg"></div>
+
+    <!-- PASO 1: Buscador -->
+    <div id="paso1" class="card">
+      <div class="fg" style="margin:0;">
+        <label>Buscar estudiante</label>
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="q" class="search-input" style="padding-left:38px" placeholder="Nombre o DNI..." autocomplete="off">
+          <div class="sugg-box" id="sugg"></div>
+        </div>
+      </div>
     </div>
 
-    <div class="card">
-      <div id="msg" class="msg"></div>
-      <form id="form">
-        <div class="fg">
-          <label>Buscar Estudiante</label>
-          <div class="sw">
-            <input type="text" id="q" placeholder="🔍 Escribe nombre o DNI..." autocomplete="off">
-            <input type="hidden" id="estVal">
-            <div id="sugg" class="sb"></div>
-          </div>
-        </div>
+    <!-- PASO 2: Pendientes -->
+    <div id="paso2" style="display:none; display:none; flex-direction:column; gap:12px;">
 
-        <div class="fg">
-          <label>Actividad</label>
-          <div class="sw">
-            <input type="text" id="actQ" placeholder="🔍 Toca para ver actividades..." autocomplete="off" readonly onfocus="mostrarActs()">
-            <input type="hidden" id="actVal">
-            <div id="suggAct" class="sb"></div>
-          </div>
+      <!-- Chip estudiante -->
+      <div class="student-chip">
+        <div class="student-av" id="stuAv"></div>
+        <div>
+          <div class="student-name" id="stuName"></div>
+          <div class="student-dni" id="stuDni"></div>
         </div>
+        <button class="btn-cambiar" onclick="cambiarEst()">Cambiar</button>
+      </div>
 
-        <div class="fg">
-          <label>Monto (S/.)</label>
-          <div class="monto-wrap">
-            <span class="monto-pre">S/.</span>
-            <input type="number" id="monto" class="monto-inp" step="0.10" readonly placeholder="—">
-          </div>
+      <!-- Lista pendientes -->
+      <div>
+        <div class="section-header">
+          <span class="section-label" id="pendLabel">Pendientes</span>
+          <button class="btn-selall" id="btnSelAll">Seleccionar todo</button>
         </div>
+        <div class="pend-list" id="pendList"></div>
+      </div>
 
-        <div class="fg">
-          <label>Método de Pago</label>
-          <select id="metodoPago" required>
+      <!-- Total -->
+      <div class="total-box" id="totalBox">
+        <div class="total-left">
+          <div class="total-label">Total a registrar</div>
+          <div class="total-count" id="totalCount">0 cuotas</div>
+        </div>
+        <div class="total-amount" id="totalAmount">S/. 0.00</div>
+      </div>
+
+      <!-- Método -->
+      <div class="fg" style="margin:0;">
+        <label>Método de pago</label>
+        <div class="metodo-wrap">
+          <select id="metodoPago" class="metodo-select">
             <option value="">Seleccione...</option>
             <option value="Efectivo">💵 Efectivo</option>
             <option value="Yape">📱 Yape</option>
             <option value="Plin">📱 Plin</option>
-            <option value="Transferencia">🏦 Transferencia Bancaria</option>
+            <option value="Transferencia">🏦 Transferencia</option>
             <option value="Otro">📋 Otro</option>
           </select>
         </div>
+      </div>
 
-        <div class="fg">
-          <label>Observaciones (opcional)</label>
-          <input type="text" id="obs" placeholder="Nº operación, código Yape, etc." autocomplete="off">
-        </div>
+      <!-- Observaciones -->
+      <div class="fg" style="margin:0;">
+        <label>Observaciones (opcional)</label>
+        <input type="text" id="obs" class="search-input" style="padding-left:14px" placeholder="Nº operación, código, etc." autocomplete="off">
+      </div>
 
-        <button type="submit" id="btnS" class="btn">
-          <span class="bl">Confirmar Pago</span>
-          <div class="sp"></div>
-        </button>
-        <div class="progress-bar-wrap" id="progressWrap">
-          <div class="progress-bar-fill" id="progressFill"></div>
-        </div>
-        <div class="proceso-estado" id="procesoEstado"></div>
-      </form>
+      <!-- Botón confirmar -->
+      <button id="btnConfirmar" class="btn-confirm" disabled onclick="confirmarPagos()">
+        <span class="bl" id="btnLabel">Confirmar pago</span>
+        <div class="sp"></div>
+      </button>
+      <div class="prog-wrap" id="progWrap"><div class="prog-fill" id="progFill"></div></div>
+      <div class="prog-estado" id="progEstado"></div>
+
     </div>
 
-    <button class="btn-salir" onclick="cerrarSesion()">Cerrar sesión</button>
+    <div class="footer">
+      <button class="btn-salir" onclick="cerrarSesion()">Cerrar sesión</button>
+    </div>
   </div>
 
-  <div class="footer">Sistema de Pagos · Tesorería</div>
 </div>
 
 <script>
-  // ════════════════════════════════════════════════════════════
-  // CONFIGURACIÓN
-  // ════════════════════════════════════════════════════════════
-  var WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbzPSXCRHiMvXmDPexEyOaWlKpz-AshWHqaZ7WP6DsA2XEMvPf72rA9RIRTkk-TMcX0OpA/exec';
+// ── CONFIG ──
+var WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbzPSXCRHiMvXmDPexEyOaWlKpz-AshWHqaZ7WP6DsA2XEMvPf72rA9RIRTkk-TMcX0OpA/exec';
+var PIN_SECRETO = '9071';
 
-  var pinGuardado = '';
+var pinGuardado = '';
+var estSeleccionado = null;
+var pendientesData = [];
+var todoSel = false;
 
-  // ════════════════════════════════════════════════════════════
-  // IDENTIFICADOR DE DISPOSITIVO (para el bloqueo anti fuerza bruta)
-  // ════════════════════════════════════════════════════════════
-  function getDeviceId() {
-    var id = localStorage.getItem('deviceId');
-    if (!id) {
-      id = 'dev_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
-      localStorage.setItem('deviceId', id);
-    }
-    return id;
-  }
+// ── DEVICE ID ──
+function getDeviceId() {
+  var id = localStorage.getItem('deviceId');
+  if (!id) { id = 'dev_' + Math.random().toString(36).substring(2) + Date.now().toString(36); localStorage.setItem('deviceId', id); }
+  return id;
+}
 
-  // ════════════════════════════════════════════════════════════
-  // LOGIN
-  // ════════════════════════════════════════════════════════════
-  function verificarPin() {
-    var pin = document.getElementById('pinInput').value.trim();
-    if (pin.length < 4) {
-      mostrarLoginError('Ingresa tu PIN completo.');
-      return;
-    }
-    pinGuardado = pin;
+// ── INACTIVIDAD ──
+var inactTimer;
+function resetInact() {
+  clearTimeout(inactTimer);
+  inactTimer = setTimeout(function() { cerrarSesion(); mostrarLoginError('Sesión cerrada por inactividad.'); }, 2 * 60 * 1000);
+}
+function startInact() {
+  ['click','keydown','input','touchstart'].forEach(function(e) { document.addEventListener(e, resetInact); });
+  resetInact();
+}
+function stopInact() {
+  clearTimeout(inactTimer);
+  ['click','keydown','input','touchstart'].forEach(function(e) { document.removeEventListener(e, resetInact); });
+}
 
-    var btn = document.getElementById('btnEntrar');
-    btn.disabled = true;
-    btn.textContent = 'Verificando...';
+// ── API ──
+function api(accion, extra) {
+  var body = Object.assign({ pin: pinGuardado, accion: accion, deviceId: getDeviceId() }, extra || {});
+  return fetch(WEBAPP_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify(body) }).then(function(r) { return r.json(); });
+}
 
-    llamarApi('getActividades', {}).then(function(r) {
-      btn.disabled = false;
-      btn.textContent = 'Entrar';
-      if (r.ok) {
-        document.getElementById('pantallaLogin').style.display = 'none';
-        document.getElementById('pantallaApp').style.display = 'block';
-        cachearActividades(r.data);
-        iniciarTimeoutInactividad();
-      } else {
-        mostrarLoginError(r.error || 'PIN incorrecto.');
-      }
-    }).catch(function() {
-      btn.disabled = false;
-      btn.textContent = 'Entrar';
-      mostrarLoginError('Error de conexión. Intenta de nuevo.');
-    });
-  }
-
-  function mostrarLoginError(txt) {
-    var e = document.getElementById('loginError');
-    e.textContent = txt;
-    e.style.display = 'block';
-  }
-
-  document.getElementById('pinInput').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') verificarPin();
-  });
-
-  function cerrarSesion() {
-    pinGuardado = '';
-    limpiarTimeoutInactividad();
-    document.getElementById('pantallaApp').style.display = 'none';
-    document.getElementById('pantallaLogin').style.display = 'flex';
-    document.getElementById('pinInput').value = '';
-    document.getElementById('loginError').style.display = 'none';
-  }
-
-  // ════════════════════════════════════════════════════════════
-  // CIERRE AUTOMÁTICO POR INACTIVIDAD (2 minutos sin tocar nada)
-  // ════════════════════════════════════════════════════════════
-  var TIEMPO_INACTIVIDAD = 2 * 60 * 1000; // 2 minutos
-  var timeoutInactividad = null;
-
-  function iniciarTimeoutInactividad() {
-    resetTimeoutInactividad();
-    ['click', 'keydown', 'input', 'touchstart', 'scroll'].forEach(function(evt) {
-      document.addEventListener(evt, resetTimeoutInactividad);
-    });
-  }
-
-  function resetTimeoutInactividad() {
-    if (timeoutInactividad) clearTimeout(timeoutInactividad);
-    timeoutInactividad = setTimeout(function() {
-      cerrarSesion();
-      mostrarLoginError('Sesión cerrada por inactividad. Ingresa tu PIN de nuevo.');
-    }, TIEMPO_INACTIVIDAD);
-  }
-
-  function limpiarTimeoutInactividad() {
-    if (timeoutInactividad) clearTimeout(timeoutInactividad);
-    ['click', 'keydown', 'input', 'touchstart', 'scroll'].forEach(function(evt) {
-      document.removeEventListener(evt, resetTimeoutInactividad);
-    });
-  }
-
-  // El login ya NO se recuerda entre cargas de página — siempre pide PIN.
-
-  // ════════════════════════════════════════════════════════════
-  // LLAMADAS A LA API (Apps Script doPost)
-  // ════════════════════════════════════════════════════════════
-  function llamarApi(accion, datosExtra) {
-    var body = Object.assign({ pin: pinGuardado, accion: accion, deviceId: getDeviceId() }, datosExtra || {});
-    return fetch(WEBAPP_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' }, // evita preflight CORS
-      body: JSON.stringify(body)
-    }).then(function(r) { return r.json(); });
-  }
-
-  // ════════════════════════════════════════════════════════════
-  // FORMULARIO DE PAGO
-  // ════════════════════════════════════════════════════════════
-  var acts = [];
-
-  function cachearActividades(data) {
-    acts = data;
-    document.getElementById('actQ').removeAttribute('readonly');
-  }
-
-  function mostrarActs() {
-    if (acts.length === 0) return;
-    renderActs(acts);
-  }
-
-  document.getElementById('actQ').addEventListener('input', function() {
-    var q = this.value.toLowerCase();
-    document.getElementById('actVal').value = '';
-    document.getElementById('monto').value = '';
-    if (q === '') { renderActs(acts); return; }
-    var f = acts.filter(function(a) {
-      return a.nombre.toLowerCase().indexOf(q) !== -1 || a.codigo.toLowerCase().indexOf(q) !== -1;
-    });
-    renderActs(f);
-  });
-
-  function renderActs(lista) {
-    var sb = document.getElementById('suggAct');
-    if (lista.length === 0) { sb.innerHTML = '<div class="se">Sin resultados</div>'; sb.style.display = 'block'; return; }
-    var h = '';
-    lista.forEach(function(a) {
-      h += '<div class="si" onclick="pickAct(\'' + a.codigo + '\',\'' + a.nombre.replace(/'/g,"&#39;") + '\',' + a.monto + ')">' +
-           '<div class="sa">🎯</div><div><h5>' + a.nombre + '</h5><p>S/. ' + a.monto.toFixed(2) + ' · Cód: ' + a.codigo + '</p></div></div>';
-    });
-    sb.innerHTML = h;
-    sb.style.display = 'block';
-  }
-
-  function pickAct(cod, nom, mto) {
-    document.getElementById('actVal').value = cod;
-    document.getElementById('actQ').value = '✅ ' + nom;
-    document.getElementById('monto').value = mto.toFixed(2);
-    document.getElementById('suggAct').style.display = 'none';
-  }
-
-  var tmr;
-  document.getElementById('q').addEventListener('input', function() {
-    clearTimeout(tmr);
-    var q = this.value;
-    var sb = document.getElementById('sugg');
-    document.getElementById('estVal').value = '';
-    if (q.length < 2) { sb.style.display = 'none'; return; }
-    tmr = setTimeout(function() {
-      llamarApi('buscarEstudiante', { query: q }).then(function(r) {
-        if (!r.ok) return;
-        var d = r.data;
-        if (d.length === 0) { sb.innerHTML = '<div class="se">Sin resultados</div>'; sb.style.display = 'block'; return; }
-        var h = '';
-        d.forEach(function(e) {
-          var ini = e.nombre.substring(0, 2).toUpperCase();
-          h += '<div class="si" onclick="pickEst(\'' + e.dni + '\',\'' + e.nombre.replace(/'/g,"&#39;") + '\')">' +
-               '<div class="sa">' + ini + '</div><div><h5>' + e.nombre + '</h5><p>DNI: ' + e.dni + '</p></div></div>';
-        });
-        sb.innerHTML = h;
-        sb.style.display = 'block';
-      });
-    }, 300);
-  });
-
-  function pickEst(dni, nom) {
-    document.getElementById('estVal').value = dni + '|' + nom;
-    document.getElementById('q').value = '✅ ' + nom + ' (' + dni + ')';
-    document.getElementById('sugg').style.display = 'none';
-  }
-
-  document.addEventListener('click', function(e) {
-    if (!e.target.closest('.sw')) {
-      document.getElementById('sugg').style.display = 'none';
-      document.getElementById('suggAct').style.display = 'none';
-    }
-  });
-
-  document.getElementById('form').addEventListener('submit', function(e) {
-    e.preventDefault();
-    var ev = document.getElementById('estVal').value;
-    if (!ev) { showMsg('Selecciona un estudiante de la lista.', true); return; }
-    var cod = document.getElementById('actVal').value;
-    if (!cod) { showMsg('Selecciona una actividad de la lista.', true); return; }
-    var met = document.getElementById('metodoPago').value;
-    if (!met) { showMsg('Selecciona el método de pago.', true); return; }
-
-    setLoad(true);
-    var arr = ev.split('|');
-    var actNom = acts.find(function(x) { return x.codigo === cod; }).nombre;
-
-    var datos = {
-      dni: arr[0],
-      nombre: arr[1],
-      codActividad: cod,
-      nomActividad: actNom,
-      monto: document.getElementById('monto').value,
-      metodoPago: met,
-      obs: document.getElementById('obs').value
-    };
-
-    llamarApi('guardarPago', { datos: datos }).then(function(r) {
-      setLoad(false);
-      if (!r.ok) { showMsg(r.error, true); return; }
-      showMsg('✅ Pago registrado (ID: ' + r.id + ')', false);
-      document.getElementById('form').reset();
-      document.getElementById('estVal').value = '';
-      document.getElementById('actVal').value = '';
-    }).catch(function() {
-      setLoad(false);
-      showMsg('Error de conexión. Intenta de nuevo.', true);
-    });
-  });
-
-  var progressTimer = null;
-
-  function setLoad(on, estado) {
-    var b    = document.getElementById('btnS');
-    var wrap = document.getElementById('progressWrap');
-    var fill = document.getElementById('progressFill');
-    var txt  = document.getElementById('procesoEstado');
-
-    b.disabled = on;
-    b.classList.toggle('loading', on);
-
-    if (on) {
-      // Mostrar barra y texto
-      wrap.classList.add('visible');
-      txt.classList.add('visible');
-      txt.textContent = estado || 'Verificando datos...';
-      fill.style.width = '0%';
-
-      // Animar la barra de progreso en etapas
-      var etapas = [
-        { pct: '20%', ms: 200,  txt: 'Verificando datos...' },
-        { pct: '45%', ms: 600,  txt: 'Guardando pago...' },
-        { pct: '70%', ms: 1200, txt: 'Confirmando registro...' },
-        { pct: '90%', ms: 1800, txt: 'Casi listo...' }
-      ];
-      etapas.forEach(function(e) {
-        setTimeout(function() {
-          if (b.disabled) { // solo si todavía está cargando
-            fill.style.width = e.pct;
-            txt.textContent = e.txt;
-          }
-        }, e.ms);
-      });
-
+// ── LOGIN ──
+function verificarPin() {
+  var pin = document.getElementById('pinInput').value.trim();
+  if (pin.length < 4) { mostrarLoginError('Ingresa tu PIN completo.'); return; }
+  pinGuardado = pin;
+  var btn = document.getElementById('btnEntrar');
+  btn.disabled = true; btn.textContent = 'Verificando...';
+  api('getActividades').then(function(r) {
+    btn.disabled = false; btn.textContent = 'Entrar';
+    if (r.ok) {
+      document.getElementById('pantallaLogin').style.display = 'none';
+      document.getElementById('pantallaApp').style.display = 'flex';
+      startInact();
     } else {
-      // Completar la barra al 100% antes de ocultar
-      fill.style.width = '100%';
-      txt.textContent = '✅ Completado';
-      setTimeout(function() {
-        wrap.classList.remove('visible');
-        txt.classList.remove('visible');
-        fill.style.width = '0%';
-      }, 800);
+      mostrarLoginError(r.error || 'PIN incorrecto.');
     }
+  }).catch(function() { btn.disabled = false; btn.textContent = 'Entrar'; mostrarLoginError('Error de conexión.'); });
+}
+function mostrarLoginError(txt) { var e = document.getElementById('loginError'); e.textContent = txt; e.style.display = 'block'; }
+document.getElementById('pinInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') verificarPin(); });
+
+function cerrarSesion() {
+  pinGuardado = ''; stopInact();
+  document.getElementById('pantallaApp').style.display = 'none';
+  document.getElementById('pantallaLogin').style.display = 'flex';
+  document.getElementById('pinInput').value = '';
+  document.getElementById('loginError').style.display = 'none';
+  resetFormulario();
+}
+
+// ── BUSCADOR ──
+var tmr;
+document.getElementById('q').addEventListener('input', function() {
+  clearTimeout(tmr);
+  var q = this.value;
+  var sb = document.getElementById('sugg');
+  if (q.length === 0) { sb.style.display = 'none'; return; }
+  if (q.length < 2) { sb.style.display = 'none'; return; }
+  tmr = setTimeout(function() {
+    api('buscarEstudiante', { query: q }).then(function(r) {
+      if (!r.ok || r.data.length === 0) { sb.innerHTML = '<div class="sugg-empty">Sin resultados</div>'; sb.style.display = 'block'; return; }
+      sb.innerHTML = r.data.map(function(e) {
+        var ini = e.nombre.substring(0, 2).toUpperCase();
+        return '<div class="sugg-item" onclick="pickEst(\'' + e.dni + '\',\'' + e.nombre.replace(/'/g, "&#39;") + '\')">' +
+          '<div class="sugg-av">' + ini + '</div>' +
+          '<div class="sugg-info"><h5>' + e.nombre + '</h5><p>DNI: ' + e.dni + '</p></div></div>';
+      }).join('');
+      sb.style.display = 'block';
+    });
+  }, 300);
+});
+
+document.addEventListener('click', function(e) { if (!e.target.closest('.search-wrap')) document.getElementById('sugg').style.display = 'none'; });
+
+function pickEst(dni, nombre) {
+  estSeleccionado = { dni: dni, nombre: nombre };
+  document.getElementById('q').value = '✅ ' + nombre + ' (' + dni + ')';
+  document.getElementById('sugg').style.display = 'none';
+  document.getElementById('stuAv').textContent = nombre.substring(0, 2).toUpperCase();
+  document.getElementById('stuName').textContent = nombre;
+  document.getElementById('stuDni').textContent = 'DNI: ' + dni;
+  document.getElementById('paso2').style.display = 'flex';
+  document.getElementById('pendList').innerHTML = '<div style="padding:16px;text-align:center;color:var(--dim);font-size:13px;">Cargando...</div>';
+  document.getElementById('btnConfirmar').disabled = true;
+  document.getElementById('metodoPago').value = '';
+  document.getElementById('obs').value = '';
+  todoSel = false;
+  document.getElementById('btnSelAll').textContent = 'Seleccionar todo';
+  cargarPendientes(dni);
+}
+
+function cambiarEst() {
+  resetFormulario();
+  document.getElementById('q').value = '';
+  document.getElementById('q').focus();
+}
+
+function resetFormulario() {
+  estSeleccionado = null; pendientesData = []; todoSel = false;
+  document.getElementById('paso2').style.display = 'none';
+  document.getElementById('pendList').innerHTML = '';
+  document.getElementById('totalAmount').textContent = 'S/. 0.00';
+  document.getElementById('totalCount').textContent = '0 cuotas';
+  document.getElementById('btnConfirmar').disabled = true;
+  document.getElementById('btnLabel').textContent = 'Confirmar pago';
+  document.getElementById('metodoPago').value = '';
+  document.getElementById('obs').value = '';
+  document.getElementById('btnSelAll').textContent = 'Seleccionar todo';
+  showMsg('', '');
+  ocultarProgress();
+}
+
+// ── CARGAR PENDIENTES ──
+function cargarPendientes(dni) {
+  api('getPendientesEstudiante', { dni: dni }).then(function(r) {
+    pendientesData = r.ok ? (r.data || []) : [];
+    renderPendientes();
+  }).catch(function() {
+    pendientesData = [];
+    renderPendientes();
+  });
+}
+
+function renderPendientes() {
+  var list = document.getElementById('pendList');
+  if (pendientesData.length === 0) {
+    list.innerHTML = '<div class="aldia">🎉 Este estudiante está al día. No tiene pagos pendientes.</div>';
+    document.getElementById('btnSelAll').style.display = 'none';
+    document.getElementById('totalBox').style.display = 'none';
+    document.getElementById('pendLabel').textContent = 'Sin pendientes';
+    actualizarTotal();
+    return;
   }
-  function showMsg(txt, err) {
-    var m = document.getElementById('msg');
-    m.className = 'msg ' + (err ? 'err' : 'ok');
-    m.textContent = txt;
-    if (!err) setTimeout(function() { m.style.display = 'none'; }, 4000);
-  }
+  document.getElementById('btnSelAll').style.display = 'block';
+  document.getElementById('totalBox').style.display = 'flex';
+  document.getElementById('pendLabel').textContent = 'Pendientes (' + pendientesData.length + ')';
+  list.innerHTML = pendientesData.map(function(a, i) {
+    var badgeCls = a.tipo === 'Asistencia' ? 'badge-multa' : 'badge-cuota';
+    var badgeTxt = a.tipo === 'Asistencia' ? 'Multa' : 'Cuota';
+    return '<div class="pend-item" id="item' + i + '" onclick="toggleItem(' + i + ')">' +
+      '<div class="pend-cb"><span class="pend-check">✓</span></div>' +
+      '<span class="pend-nombre">' + a.nombre + '</span>' +
+      '<span class="badge ' + badgeCls + '">' + badgeTxt + '</span>' +
+      '<span class="pend-monto">S/. ' + a.monto.toFixed(2) + '</span>' +
+    '</div>';
+  }).join('');
+  actualizarTotal();
+}
+
+function toggleItem(i) {
+  var item = document.getElementById('item' + i);
+  item.classList.toggle('sel');
+  actualizarTotal();
+}
+
+document.getElementById('btnSelAll').addEventListener('click', function() {
+  todoSel = !todoSel;
+  pendientesData.forEach(function(a, i) {
+    var item = document.getElementById('item' + i);
+    if (item) { if (todoSel) item.classList.add('sel'); else item.classList.remove('sel'); }
+  });
+  this.textContent = todoSel ? 'Deseleccionar todo' : 'Seleccionar todo';
+  actualizarTotal();
+});
+
+function actualizarTotal() {
+  var total = 0, count = 0;
+  pendientesData.forEach(function(a, i) {
+    var item = document.getElementById('item' + i);
+    if (item && item.classList.contains('sel')) { total += a.monto; count++; }
+  });
+  document.getElementById('totalAmount').textContent = 'S/. ' + total.toFixed(2);
+  document.getElementById('totalCount').textContent = count + (count === 1 ? ' cuota seleccionada' : ' cuotas seleccionadas');
+  var lbl = count > 0 ? 'Confirmar ' + count + (count === 1 ? ' pago' : ' pagos') : 'Confirmar pago';
+  document.getElementById('btnLabel').textContent = lbl;
+  document.getElementById('btnConfirmar').disabled = count === 0;
+}
+
+// ── CONFIRMAR ──
+function confirmarPagos() {
+  var met = document.getElementById('metodoPago').value;
+  if (!met) { showMsg('Selecciona el método de pago.', true); return; }
+  var pagos = [];
+  pendientesData.forEach(function(a, i) {
+    var item = document.getElementById('item' + i);
+    if (item && item.classList.contains('sel')) {
+      pagos.push({ dni: estSeleccionado.dni, nombre: estSeleccionado.nombre, codActividad: a.codigo, nomActividad: a.nombre, monto: a.monto, metodoPago: met, obs: document.getElementById('obs').value });
+    }
+  });
+  if (pagos.length === 0) { showMsg('Selecciona al menos una actividad.', true); return; }
+
+  var btn = document.getElementById('btnConfirmar');
+  btn.disabled = true;
+  btn.classList.add('loading');
+  mostrarProgress();
+
+  api('guardarPagosBatch', { pagos: pagos }).then(function(r) {
+    btn.classList.remove('loading');
+    completarProgress();
+    setTimeout(function() {
+      ocultarProgress();
+      if (!r.ok) { showMsg(r.error, true); btn.disabled = false; return; }
+      var msg = '✅ ' + r.registrados + ' pago(s) registrado(s)';
+      if (r.detalle) msg += ' · ' + r.detalle;
+      showMsg(msg, false);
+      document.getElementById('metodoPago').value = '';
+      document.getElementById('obs').value = '';
+      todoSel = false;
+      document.getElementById('btnSelAll').textContent = 'Seleccionar todo';
+      cargarPendientes(estSeleccionado.dni);
+    }, 600);
+  }).catch(function() {
+    btn.classList.remove('loading');
+    ocultarProgress();
+    showMsg('Error de conexión. Intenta de nuevo.', true);
+    btn.disabled = false;
+  });
+}
+
+// ── BARRA DE PROGRESO ──
+var progTimer;
+function mostrarProgress() {
+  var wrap = document.getElementById('progWrap');
+  var fill = document.getElementById('progFill');
+  var est  = document.getElementById('progEstado');
+  wrap.classList.add('vis');
+  est.classList.add('vis');
+  fill.style.width = '0%';
+  est.textContent = 'Verificando datos...';
+  var etapas = [
+    { ms: 200,  pct: '25%', txt: 'Verificando datos...' },
+    { ms: 600,  pct: '50%', txt: 'Guardando pagos...' },
+    { ms: 1200, pct: '75%', txt: 'Confirmando registro...' },
+    { ms: 1800, pct: '88%', txt: 'Casi listo...' }
+  ];
+  etapas.forEach(function(e) {
+    setTimeout(function() {
+      if (document.getElementById('btnConfirmar').classList.contains('loading')) {
+        fill.style.width = e.pct;
+        est.textContent = e.txt;
+      }
+    }, e.ms);
+  });
+}
+function completarProgress() {
+  document.getElementById('progFill').style.width = '100%';
+  document.getElementById('progEstado').textContent = '✅ Completado';
+}
+function ocultarProgress() {
+  setTimeout(function() {
+    document.getElementById('progWrap').classList.remove('vis');
+    document.getElementById('progEstado').classList.remove('vis');
+    document.getElementById('progFill').style.width = '0%';
+  }, 400);
+}
+
+// ── MENSAJE ──
+function showMsg(txt, err) {
+  var m = document.getElementById('msg');
+  if (!txt) { m.style.display = 'none'; return; }
+  m.className = 'msg ' + (err ? 'err' : 'ok');
+  m.textContent = txt;
+  if (!err) setTimeout(function() { m.style.display = 'none'; }, 4500);
+}
+
+// ── doPost para getPendientesEstudiante ──
+// Agrega esta acción en tu doPost si no la tienes:
+// } else if (accion === 'getPendientesEstudiante') { resultado = respOk({ data: getPendientesEstudiante(body.dni || '') }); }
+// } else if (accion === 'guardarPagosBatch') { resultado = guardarPagosBatch(body.pagos); }
 </script>
 </body>
 </html>
