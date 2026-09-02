@@ -1,728 +1,498 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DJ Mix · Música Variada</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DJ Mix · Playlist</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap"
-    rel="stylesheet"
-  >
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
 
-  <style>
-    :root {
-      --bg: #080C14;
-      --surface: #0F1724;
-      --border: rgba(255,255,255,0.08);
-      --text: #E2E8F0;
-      --dim: #94A3B8;
-      --muted: #475569;
-      --purple: #8B5CF6;
-      --pink: #EC4899;
-      --cyan: #06B6D4;
-      --green: #00C9A7;
-    }
+<style>
+  :root{
+    --bg:#080C14;
+    --surface:#0F1724;
+    --surface-2:#131E2E;
+    --border:rgba(255,255,255,0.08);
+    --text:#E2E8F0;
+    --dim:#94A3B8;
+    --muted:#475569;
+    --purple:#8B5CF6;
+    --pink:#EC4899;
+    --cyan:#06B6D4;
+    --green:#00C9A7;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    min-height:100vh;
+    background:var(--bg);
+    color:var(--text);
+    font-family:"Inter",sans-serif;
+  }
+  .bg-glow{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;}
+  .glow{position:absolute;border-radius:50%;filter:blur(105px);opacity:0.15;}
+  .glow-1{width:480px;height:480px;top:-160px;left:-120px;background:var(--purple);}
+  .glow-2{width:420px;height:420px;right:-140px;bottom:120px;background:var(--pink);}
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+  .app{
+    display:grid;
+    grid-template-columns:230px 1fr;
+    min-height:100vh;
+    padding-bottom:92px;
+  }
 
-    html {
-      scroll-behavior: smooth;
-    }
+  .sidebar{
+    padding:18px 14px;
+    border-right:1px solid var(--border);
+    background:rgba(15,23,36,0.55);
+  }
+  .inst{
+    display:flex;align-items:center;gap:10px;
+    padding:8px 6px 18px; margin-bottom:14px;
+    border-bottom:1px solid var(--border);
+  }
+  .inst-logo{width:34px;height:34px;flex-shrink:0;object-fit:contain;}
+  .inst-text{color:var(--dim);font-size:10.5px;line-height:1.4;}
+  .inst-text b{color:#fff;display:block;font-size:11.5px;}
 
-    body {
-      min-height: 100vh;
-      overflow-x: hidden;
-      background: var(--bg);
-      color: var(--text);
-      font-family: "Inter", sans-serif;
-    }
+  .side-label{color:var(--muted);font-size:11px;font-weight:700;letter-spacing:0.4px;margin:4px 8px 8px;}
+  .side-item{
+    display:flex;align-items:center;gap:10px;width:100%;
+    padding:9px 10px;border-radius:8px;border:none;
+    background:transparent;color:var(--dim);cursor:pointer;
+    font-family:"Inter",sans-serif;font-size:13.5px;font-weight:600;
+    text-align:left;transition:0.15s ease;
+  }
+  .side-item:hover{background:rgba(255,255,255,0.05);color:var(--text);}
+  .side-item.active{background:rgba(139,92,246,0.16);color:#fff;}
+  .side-item .dot{width:7px;height:7px;border-radius:50%;background:var(--purple);flex-shrink:0;}
+  .side-item.ranking .dot{background:var(--green);}
 
-    .bg-glow {
-      position: fixed;
-      inset: 0;
-      z-index: -1;
-      overflow: hidden;
-      pointer-events: none;
-    }
+  .main{padding:26px 30px;}
+  .main-header{display:flex;align-items:flex-end;gap:18px;margin-bottom:22px;}
+  .cover{
+    width:96px;height:96px;border-radius:12px;object-fit:cover;flex-shrink:0;
+    box-shadow:0 14px 34px rgba(0,0,0,0.4);
+    background:linear-gradient(135deg,var(--purple),var(--pink));
+  }
+  .main-header .kicker{color:var(--dim);font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:4px;}
+  .main-header h1{font-family:"Space Grotesk",sans-serif;font-size:clamp(24px,4vw,32px);color:#fff;font-weight:700;}
+  .main-header p{color:var(--dim);font-size:12.5px;margin-top:4px;}
 
-    .glow {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(105px);
-      opacity: 0.17;
-    }
+  .track{
+    display:flex;align-items:center;gap:13px;width:100%;
+    padding:10px 10px;border-radius:9px;border:1px solid transparent;
+    background:transparent;color:var(--text);cursor:pointer;text-align:left;
+    font-family:"Inter",sans-serif;transition:0.15s ease;
+  }
+  .track:hover{background:rgba(255,255,255,0.05);}
+  .track.playing{border-color:rgba(236,72,153,0.4);background:rgba(236,72,153,0.08);}
+  .track-num{width:22px;flex-shrink:0;text-align:center;font-size:12px;font-weight:700;color:var(--muted);}
+  .track.playing .track-num{color:var(--pink);}
+  .track-thumb{width:44px;height:44px;border-radius:6px;object-fit:cover;flex-shrink:0;background:var(--surface-2);}
+  .track-body{flex:1;min-width:0;}
+  .track-title{font-size:14px;font-weight:600;color:#fff;}
+  .track-stats{font-size:11.5px;color:var(--dim);margin-top:2px;}
+  .track-stats b{color:var(--green);font-weight:700;}
 
-    .glow-1 {
-      width: 480px;
-      height: 480px;
-      top: -160px;
-      left: -120px;
-      background: var(--purple);
-    }
+  .rank-row{display:flex;align-items:center;gap:13px;padding:10px 6px;border-bottom:1px solid var(--border);}
+  .rank-row:last-child{border-bottom:none;}
+  .rank-pos{width:22px;flex-shrink:0;text-align:center;font-family:"Space Grotesk",sans-serif;font-size:15px;font-weight:700;color:var(--green);}
+  .rank-thumb{width:44px;height:44px;border-radius:6px;object-fit:cover;flex-shrink:0;background:var(--surface-2);}
+  .rank-body{flex:1;min-width:0;}
+  .rank-title{font-size:13.5px;font-weight:600;color:#fff;}
+  .rank-meta{font-size:11.5px;color:var(--dim);margin-top:1px;}
+  .rank-empty{color:var(--muted);font-size:12.5px;padding:8px 6px;}
 
-    .glow-2 {
-      width: 450px;
-      height: 450px;
-      right: -140px;
-      bottom: -100px;
-      background: var(--pink);
-    }
+  .hint{
+    margin-top:16px;padding:11px 13px;border-radius:10px;
+    border:1px solid rgba(6,182,212,0.25);background:rgba(6,182,212,0.08);
+    color:#A5E6F2;font-size:12.5px;line-height:1.55;
+  }
 
-    .glow-3 {
-      width: 260px;
-      height: 260px;
-      top: 45%;
-      left: 50%;
-      background: var(--cyan);
-      opacity: 0.08;
-      transform: translate(-50%, -50%);
-    }
+  .video-panel{margin-top:20px;padding:14px;border:1px solid var(--border);border-radius:14px;background:var(--surface);}
+  .video-container{position:relative;width:100%;max-width:520px;padding-top:calc(520px * 0.5625);border-radius:10px;overflow:hidden;background:#000;}
+  @media (max-width:600px){.video-container{padding-top:56.25%;}}
+  #player,#player iframe{position:absolute;inset:0;width:100% !important;height:100% !important;border:0;}
 
-    .wrap {
-      width: min(920px, calc(100% - 32px));
-      margin: 0 auto;
-      padding: 32px 0 60px;
-    }
+  .back{
+    display:inline-flex;margin-top:26px;padding:10px 15px;border-radius:9px;
+    border:1px solid rgba(139,92,246,0.35);background:rgba(139,92,246,0.12);
+    color:#DDD6FE;font-size:13px;font-weight:700;text-decoration:none;transition:0.2s ease;
+  }
+  .back:hover{background:rgba(139,92,246,0.24);}
 
-    .inst-header {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      padding: 16px 20px;
-      margin-bottom: 34px;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      background: rgba(255,255,255,0.04);
-    }
+  .playerbar{
+    position:fixed;left:0;right:0;bottom:0;z-index:10;
+    display:flex;align-items:center;gap:14px;
+    padding:10px 20px;border-top:1px solid var(--border);
+    background:rgba(8,12,20,0.92);backdrop-filter:blur(10px);
+  }
+  .pb-thumb{width:52px;height:52px;border-radius:7px;object-fit:cover;flex-shrink:0;background:var(--surface-2);}
+  .pb-info{min-width:0;width:190px;flex-shrink:0;}
+  .pb-group{font-size:10.5px;color:var(--purple);font-weight:700;}
+  .pb-title{font-size:13px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .pb-counts{font-size:11px;color:var(--dim);margin-top:1px;}
+  .pb-controls{display:flex;gap:8px;margin-left:auto;}
+  .pb-btn{
+    display:flex;align-items:center;justify-content:center;gap:7px;
+    min-height:42px;padding:0 16px;border-radius:999px;border:1px solid transparent;
+    font-family:"Inter",sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:0.15s ease;
+  }
+  .pb-btn:hover{opacity:0.9;}
+  .pb-play{background:linear-gradient(135deg,var(--purple),var(--pink));color:#fff;}
+  .pb-skip{background:rgba(255,255,255,0.07);border-color:var(--border);color:var(--text);}
+  .pb-skip:hover{border-color:var(--pink);color:#FBCFE8;}
 
-    .inst-logo {
-      width: 72px;
-      height: 72px;
-      flex-shrink: 0;
-      object-fit: contain;
-    }
-
-    .inst-info {
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-    }
-
-    .inst-nombre {
-      color: #fff;
-      font-family: "Space Grotesk", sans-serif;
-      font-size: 15px;
-      font-weight: 700;
-      line-height: 1.25;
-    }
-
-    .inst-grupo {
-      color: var(--dim);
-      font-size: 12px;
-      letter-spacing: 0.3px;
-    }
-
-    .hero {
-      padding: 12px 0 32px;
-      text-align: center;
-    }
-
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      margin-bottom: 18px;
-      padding: 7px 14px;
-      border: 1px solid rgba(236,72,153,0.35);
-      border-radius: 999px;
-      background: rgba(236,72,153,0.14);
-      color: #F9A8D4;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.6px;
-      text-transform: uppercase;
-    }
-
-    .hero h1 {
-      margin-bottom: 11px;
-      color: #fff;
-      font-family: "Space Grotesk", sans-serif;
-      font-size: clamp(30px, 6vw, 46px);
-      line-height: 1.1;
-    }
-
-    .hero h1 span {
-      background: linear-gradient(135deg, var(--pink), var(--purple), var(--cyan));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .hero p {
-      color: var(--dim);
-      font-size: 15px;
-      line-height: 1.6;
-    }
-
-    .player-card {
-      padding: 20px;
-      overflow: hidden;
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      background: var(--surface);
-      box-shadow: 0 20px 55px rgba(0,0,0,0.28);
-    }
-
-    .video-container {
-      position: relative;
-      width: 100%;
-      overflow: hidden;
-      padding-top: 56.25%;
-      border-radius: 13px;
-      background: #000;
-    }
-
-    #player,
-    #player iframe {
-      position: absolute;
-      inset: 0;
-      width: 100% !important;
-      height: 100% !important;
-      border: 0;
-    }
-
-    .now-playing {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      margin-top: 16px;
-      padding: 15px 16px;
-      border: 1px solid rgba(236,72,153,0.22);
-      border-radius: 13px;
-      background: rgba(236,72,153,0.09);
-    }
-
-    .music-icon {
-      display: grid;
-      width: 43px;
-      height: 43px;
-      flex-shrink: 0;
-      place-items: center;
-      border-radius: 12px;
-      background: linear-gradient(135deg, var(--pink), var(--purple));
-      font-size: 20px;
-    }
-
-    .now-label {
-      margin-bottom: 3px;
-      color: #F9A8D4;
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 0.7px;
-      text-transform: uppercase;
-    }
-
-    .now-title {
-      color: #fff;
-      font-family: "Space Grotesk", sans-serif;
-      font-size: 15px;
-      font-weight: 700;
-    }
-
-    .controls {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-top: 16px;
-    }
-
-    .btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 7px;
-      min-height: 48px;
-      padding: 12px 14px;
-      border: 1px solid transparent;
-      border-radius: 12px;
-      color: #fff;
-      cursor: pointer;
-      font-family: "Inter", sans-serif;
-      font-size: 13px;
-      font-weight: 800;
-      transition: transform 0.15s ease, opacity 0.15s ease;
-    }
-
-    .btn:hover {
-      opacity: 0.87;
-    }
-
-    .btn:active {
-      transform: scale(0.97);
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, var(--purple), var(--pink));
-    }
-
-    .btn-secondary {
-      border-color: var(--border);
-      background: rgba(255,255,255,0.07);
-    }
-
-    .notice {
-      margin-top: 16px;
-      padding: 12px 14px;
-      border: 1px solid rgba(0,201,167,0.20);
-      border-radius: 12px;
-      background: rgba(0,201,167,0.08);
-      color: #A7F3D0;
-      font-size: 13px;
-      line-height: 1.5;
-    }
-
-    .section-title {
-      margin: 30px 0 13px;
-      color: var(--dim);
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 0.8px;
-      text-transform: uppercase;
-    }
-
-    .playlist {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
-    }
-
-    .track {
-      display: flex;
-      align-items: center;
-      gap: 13px;
-      width: 100%;
-      padding: 16px;
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      background: rgba(15,23,36,0.88);
-      color: var(--text);
-      cursor: pointer;
-      font-family: "Inter", sans-serif;
-      text-align: left;
-      transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
-    }
-
-    .track:hover {
-      border-color: rgba(236,72,153,0.65);
-      background: rgba(236,72,153,0.08);
-      transform: translateY(-3px);
-    }
-
-    .track.active {
-      border-color: var(--pink);
-      background: rgba(236,72,153,0.13);
-    }
-
-    .track-number {
-      display: grid;
-      width: 36px;
-      height: 36px;
-      flex-shrink: 0;
-      place-items: center;
-      border-radius: 10px;
-      background: rgba(139,92,246,0.20);
-      color: #C4B5FD;
-      font-size: 13px;
-      font-weight: 800;
-    }
-
-    .track.active .track-number {
-      background: rgba(236,72,153,0.22);
-      color: #FBCFE8;
-    }
-
-    .track-title {
-      margin-bottom: 4px;
-      color: #fff;
-      font-size: 14px;
-      font-weight: 800;
-    }
-
-    .track-meta {
-      color: var(--dim);
-      font-size: 12px;
-    }
-
-    .back {
-      display: inline-flex;
-      margin-top: 30px;
-      padding: 12px 16px;
-      border: 1px solid rgba(139,92,246,0.35);
-      border-radius: 12px;
-      background: rgba(139,92,246,0.12);
-      color: #DDD6FE;
-      font-size: 14px;
-      font-weight: 700;
-      text-decoration: none;
-      transition: 0.2s ease;
-    }
-
-    .back:hover {
-      background: rgba(139,92,246,0.24);
-      transform: translateY(-2px);
-    }
-
-    .footer {
-      margin-top: 38px;
-      color: var(--muted);
-      font-size: 12px;
-      text-align: center;
-    }
-
-    @media (max-width: 620px) {
-      .wrap {
-        width: min(100% - 24px, 920px);
-        padding-top: 18px;
-      }
-
-      .inst-header {
-        align-items: flex-start;
-        padding: 14px;
-      }
-
-      .inst-logo {
-        width: 56px;
-        height: 56px;
-      }
-
-      .inst-nombre {
-        font-size: 13px;
-      }
-
-      .inst-grupo {
-        font-size: 10px;
-      }
-
-      .player-card {
-        padding: 12px;
-      }
-
-      .controls,
-      .playlist {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
+  @media (max-width:800px){
+    .app{grid-template-columns:1fr;}
+    .sidebar{border-right:none;border-bottom:1px solid var(--border);display:flex;flex-direction:column;}
+    .side-list{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;}
+    .side-item{flex-shrink:0;white-space:nowrap;}
+    .main{padding:20px 16px;}
+    .pb-info{width:auto;flex:1;}
+  }
+</style>
 </head>
-
 <body>
 
-  <div class="bg-glow">
-    <div class="glow glow-1"></div>
-    <div class="glow glow-2"></div>
-    <div class="glow glow-3"></div>
-  </div>
+<div class="bg-glow"><div class="glow glow-1"></div><div class="glow glow-2"></div></div>
 
-  <main class="wrap">
+<div class="app">
 
-    <header class="inst-header">
-      <img
-        src="logoTECNO.svg"
-        alt="Logo de la institución"
-        class="inst-logo"
-      >
-
-      <div class="inst-info">
-        <span class="inst-nombre">
-          Instituto de Educación Superior Tecnológico Público
-        </span>
-
-        <span class="inst-nombre">
-          Manuel Núñez Butón
-        </span>
-
-        <span class="inst-grupo">
-          DESARROLLO DE SISTEMAS DE INFORMACIÓN · IV · 2026
-        </span>
+  <aside class="sidebar">
+    <div class="inst">
+      <img src="logoTECNO.svg" alt="Logo" class="inst-logo">
+      <div class="inst-text">
+        <b>IESTP Manuel Núñez Butón</b>
+        Desarrollo de Sistemas · IV
       </div>
-    </header>
+    </div>
 
-    <section class="hero">
-      <div class="badge">🎧 DJ Mix</div>
+    <div class="side-label">Tus playlists</div>
+    <div class="side-list" id="sideList"></div>
 
-      <h1>Música <span>variada</span></h1>
+    <div class="side-label" style="margin-top:14px;">Estadísticas</div>
+    <button class="side-item ranking" id="rankingTab" onclick="mostrarRanking()">
+      <span class="dot"></span> Lo más escuchado
+    </button>
+  </aside>
 
-      <p>
-        Presiona reproducir cuando quieras escuchar.<br>
-        Al terminar un mix, continuará con el siguiente.
-      </p>
-    </section>
+  <main class="main">
 
-    <section class="player-card">
-
-      <div class="video-container">
-        <div id="player"></div>
-      </div>
-
-      <div class="now-playing">
-        <div class="music-icon">🎵</div>
-
+    <div id="view-playlist">
+      <div class="main-header">
+        <img class="cover" id="coverImg" alt="Portada del grupo">
         <div>
-          <div class="now-label">Seleccionado</div>
-          <div class="now-title" id="nowTitle">Mix 1</div>
+          <div class="kicker">Playlist</div>
+          <h1 id="playlistTitle">Mix Variado</h1>
+          <p id="playlistSub">— temas</p>
         </div>
       </div>
-
-      <div class="controls">
-
-        <button
-          class="btn btn-primary"
-          type="button"
-          onclick="togglePlay()"
-        >
-          <span id="playIcon">▶️</span>
-          <span id="playText">Reproducir</span>
-        </button>
-
-        <button
-          class="btn btn-secondary"
-          type="button"
-          onclick="siguienteMix()"
-        >
-          <span>⏭️</span>
-          <span>Siguiente</span>
-        </button>
-
+      <div id="tracklist"></div>
+      <div class="hint">
+        El contador solo suma "reproducción completa" cuando el video termina solo. Con <strong>Omitir</strong> (barra de abajo) cuenta como omitido y pasa al siguiente tema de la misma playlist. Ambos números son compartidos entre todos los visitantes del sitio.
       </div>
+    </div>
 
-      <div class="notice">
-        🔊 La música no empieza sola. Pulsa <strong>Reproducir</strong>
-        para iniciar el Mix 1 con volumen normal.
+    <div id="view-ranking" style="display:none;">
+      <div class="main-header">
+        <div class="cover" style="display:flex;align-items:center;justify-content:center;font-size:34px;">🏆</div>
+        <div>
+          <div class="kicker">Estadísticas</div>
+          <h1>Lo más escuchado</h1>
+          <p>Entre todas las personas que visitan el sitio</p>
+        </div>
       </div>
+      <div id="rankingList"><div class="rank-empty">Cargando…</div></div>
+    </div>
 
-    </section>
+    <div class="video-panel">
+      <div class="video-container"><div id="player"></div></div>
+    </div>
 
-    <div class="section-title">Tu lista de mixes</div>
-
-    <section class="playlist">
-
-      <button
-        class="track active"
-        id="track0"
-        type="button"
-        onclick="cargarMix(0, true)"
-      >
-        <div class="track-number">01</div>
-
-        <div>
-          <div class="track-title">Mix 1</div>
-          <div class="track-meta">Primer video de tu lista</div>
-        </div>
-      </button>
-
-      <button
-        class="track"
-        id="track1"
-        type="button"
-        onclick="cargarMix(1, true)"
-      >
-        <div class="track-number">02</div>
-
-        <div>
-          <div class="track-title">Mix 2</div>
-          <div class="track-meta">Segundo video de tu lista</div>
-        </div>
-      </button>
-
-    </section>
-
-    <a href="index.html" class="back">
-      ← Volver a consulta de pagos
-    </a>
-
-    <footer class="footer">
-      DJ Mix · Videos reproducidos desde YouTube
-    </footer>
-
+    <a href="index.html" class="back">← Volver a consulta de pagos</a>
   </main>
 
-  <script>
-    /*
-      Tus dos videos de YouTube.
-      Puedes cambiar solo los id si deseas añadir más mixes.
-    */
-    const videos = [
-      {
-        id: "c-c9CXogX9o",
-        titulo: "Mix 1"
-      },
-      {
-        id: "LjBQrpP8jmM",
-        titulo: "Mix 2"
-      }
-    ];
+</div>
 
-    let player;
-    let indiceActual = 0;
-    let listo = false;
-    let reproduciendo = false;
-    let volumen = 70;
+<div class="playerbar">
+  <img class="pb-thumb" id="pbThumb" alt="">
+  <div class="pb-info">
+    <div class="pb-group" id="pbGroup">Grupo</div>
+    <div class="pb-title" id="pbTitle">Selecciona un tema</div>
+    <div class="pb-counts" id="pbCounts">— completas · — omitidas</div>
+  </div>
+  <div class="pb-controls">
+    <button class="pb-btn pb-play" type="button" onclick="togglePlay()">
+      <span id="playIcon">▶</span><span id="playText">Reproducir</span>
+    </button>
+    <button class="pb-btn pb-skip" type="button" onclick="omitirVideo()">⏭ Omitir</button>
+  </div>
+</div>
 
-    /* Cargar API oficial de YouTube */
-    const tag = document.createElement("script");
-    tag.src = "https://www.youtube.com/iframe_api";
+<!-- ===================================================================
+     FIREBASE — pega aquí tu configuración (ver guía aparte paso a paso).
+     Mientras dejes esto sin cambiar, el contador y el ranking no van a
+     funcionar, pero el reproductor sí funciona normal.
+==================================================================== -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { getDatabase, ref, runTransaction, set, onValue } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
 
-    const primerScript = document.getElementsByTagName("script")[0];
-    primerScript.parentNode.insertBefore(tag, primerScript);
+  const firebaseConfig = {
+    apiKey: "TU_API_KEY",
+    authDomain: "TU_PROYECTO.firebaseapp.com",
+    databaseURL: "https://TU_PROYECTO-default-rtdb.firebaseio.com",
+    projectId: "TU_PROYECTO",
+    storageBucket: "TU_PROYECTO.appspot.com",
+    messagingSenderId: "TU_SENDER_ID",
+    appId: "TU_APP_ID"
+  };
 
-    /* YouTube llama esta función al terminar de cargar */
-    function onYouTubeIframeAPIReady() {
-      player = new YT.Player("player", {
-        width: "100%",
-        height: "100%",
-        videoId: videos[0].id,
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  window.__db = { ref, runTransaction, set, onValue, database: db };
+</script>
 
-        playerVars: {
-          autoplay: 0,
-          playsinline: 1,
-          rel: 0,
-          controls: 1
-        },
-
-        events: {
-          onReady: cuandoEsteListo,
-          onStateChange: cambioEstado
-        }
-      });
+<script>
+  /* ===================================================================
+     CATÁLOGO DE MÚSICA
+     Nuevo tema: en YouTube "Compartir > Insertar", pega ese <iframe>
+     completo en "embed". El ID del video se extrae solo.
+     Nuevo grupo (playlist): copia un bloque { id, nombre, videos: [...] }.
+  ==================================================================== */
+  const grupos = [
+    {
+      id: "variados",
+      nombre: "Mix Variado",
+      videos: [
+        { titulo: "Mix 1", embed: `<iframe width="560" height="315" src="https://www.youtube.com/embed/c-c9CXogX9o" title="Mix 1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>` },
+        { titulo: "Mix 2", embed: `<iframe width="560" height="315" src="https://www.youtube.com/embed/LjBQrpP8jmM" title="Mix 2" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>` }
+      ]
     }
+    // Ejemplo de un segundo grupo — descomenta y edita:
+    // {
+    //   id: "instrumental",
+    //   nombre: "Instrumental",
+    //   videos: [
+    //     { titulo: "Nombre del tema", embed: `<iframe ... src="https://www.youtube.com/embed/VIDEO_ID" ...></iframe>` }
+    //   ]
+    // }
+  ];
 
-    function cuandoEsteListo() {
-      listo = true;
+  function extraerVideoId(embedHtml){
+    const m = embedHtml.match(/embed\/([a-zA-Z0-9_-]{6,})/);
+    return m ? m[1] : null;
+  }
+  function thumbUrl(videoId){
+    return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+  }
 
-      /*
-        No usamos loadPlaylist:
-        así no inicia música automáticamente.
-      */
-      player.cueVideoById({
-        videoId: videos[0].id,
-        startSeconds: 0
-      });
+  let player, listo = false, reproduciendo = false;
+  let grupoVista = grupos[0].id;
+  let grupoActual = grupos[0].id;
+  let indiceActual = 0;
+  let conteos = {};
 
-      player.setVolume(volumen);
-      actualizarInterfaz();
-    }
+  const tag = document.createElement("script");
+  tag.src = "https://www.youtube.com/iframe_api";
+  document.getElementsByTagName("script")[0].parentNode.insertBefore(tag, document.getElementsByTagName("script")[0]);
 
-    function cambioEstado(evento) {
-      if (evento.data === YT.PlayerState.PLAYING) {
-        reproduciendo = true;
-        actualizarBoton();
-      }
+  function onYouTubeIframeAPIReady(){
+    const primerVideo = grupos[0].videos[0];
+    player = new YT.Player("player", {
+      width: "100%", height: "100%",
+      videoId: extraerVideoId(primerVideo.embed),
+      playerVars: { autoplay: 0, playsinline: 1, rel: 0, controls: 1 },
+      events: { onReady: alListo, onStateChange: alCambiarEstado }
+    });
+  }
 
-      if (evento.data === YT.PlayerState.PAUSED) {
-        reproduciendo = false;
-        actualizarBoton();
-      }
+  function alListo(){ listo = true; actualizarTodo(); }
 
-      /*
-        Al finalizar un video:
-        Mix 1 -> Mix 2
-        Mix 2 -> Mix 1
-      */
-      if (evento.data === YT.PlayerState.ENDED) {
-        const siguiente = (indiceActual + 1) % videos.length;
-        cargarMix(siguiente, true);
-      }
-    }
+  function alCambiarEstado(evento){
+    if (evento.data === YT.PlayerState.PLAYING){ reproduciendo = true; actualizarBotonPlay(); }
+    if (evento.data === YT.PlayerState.PAUSED){ reproduciendo = false; actualizarBotonPlay(); }
+    if (evento.data === YT.PlayerState.ENDED){ registrar("completadas"); avanzar(false); }
+  }
 
-    /*
-      Carga un mix.
-      reproducir = true inicia el video.
-      reproducir = false solo deja el video listo.
-    */
-    function cargarMix(indice, reproducir) {
-      if (!listo || !player) return;
+  function grupoObj(id){ return grupos.find(g => g.id === id); }
+  function videoReproduciendoObj(){ return grupoObj(grupoActual).videos[indiceActual]; }
 
-      indiceActual = indice;
+  function mostrarPlaylist(id){
+    grupoVista = id;
+    document.getElementById("view-playlist").style.display = "block";
+    document.getElementById("view-ranking").style.display = "none";
+    document.getElementById("rankingTab").classList.remove("active");
+    renderSidebar();
+    renderPlaylistHeader();
+    renderTracklist();
+  }
 
-      if (reproducir) {
-        /*
-          Como se ejecuta desde un clic o desde
-          el final de otro video, mantiene el volumen normal.
-        */
-        player.loadVideoById({
-          videoId: videos[indice].id,
-          startSeconds: 0
+  function mostrarRanking(){
+    document.getElementById("view-playlist").style.display = "none";
+    document.getElementById("view-ranking").style.display = "block";
+    document.getElementById("rankingTab").classList.add("active");
+    renderSidebar();
+    renderRanking();
+  }
+
+  function seleccionarTema(indice){
+    grupoActual = grupoVista;
+    indiceActual = indice;
+    cargarVideo(true);
+  }
+
+  function avanzar(marcarComoOmitida){
+    if (marcarComoOmitida) registrar("omitidas");
+    const videos = grupoObj(grupoActual).videos;
+    indiceActual = (indiceActual + 1) % videos.length;
+    cargarVideo(true);
+  }
+
+  function cargarVideo(reproducir){
+    if (!listo || !player) return;
+    const videoId = extraerVideoId(videoReproduciendoObj().embed);
+    if (reproducir){ player.loadVideoById({ videoId }); player.unMute(); }
+    else { player.cueVideoById({ videoId }); }
+    actualizarTodo();
+  }
+
+  function togglePlay(){
+    if (!listo || !player) return;
+    if (reproduciendo){ player.pauseVideo(); } else { player.unMute(); player.playVideo(); }
+  }
+
+  function omitirVideo(){
+    if (!listo || !player) return;
+    avanzar(true);
+  }
+
+  function registrar(campo){
+    const { ref, runTransaction, set, database } = window.__db;
+    const videoId = extraerVideoId(videoReproduciendoObj().embed);
+    const path = `contadores/${grupoActual}/${videoId}`;
+    runTransaction(ref(database, `${path}/${campo}`), (actual) => (actual || 0) + 1);
+    set(ref(database, `${path}/titulo`), videoReproduciendoObj().titulo);
+    set(ref(database, `${path}/grupoNombre`), grupoObj(grupoActual).nombre);
+  }
+
+  function escucharConteos(){
+    const { ref, onValue, database } = window.__db;
+    onValue(ref(database, "contadores"), (snapshot) => {
+      conteos = snapshot.val() || {};
+      renderTracklist();
+      actualizarBarraInferior();
+      renderRanking();
+    });
+  }
+
+  function renderSidebar(){
+    const cont = document.getElementById("sideList");
+    cont.innerHTML = "";
+    grupos.forEach(g => {
+      const b = document.createElement("button");
+      b.className = "side-item" + (g.id === grupoVista && document.getElementById("view-ranking").style.display === "none" ? " active" : "");
+      b.innerHTML = `<span class="dot"></span> ${g.nombre}`;
+      b.onclick = () => mostrarPlaylist(g.id);
+      cont.appendChild(b);
+    });
+  }
+
+  function renderPlaylistHeader(){
+    const g = grupoObj(grupoVista);
+    document.getElementById("playlistTitle").textContent = g.nombre;
+    document.getElementById("playlistSub").textContent = `${g.videos.length} temas`;
+    document.getElementById("coverImg").src = thumbUrl(extraerVideoId(g.videos[0].embed));
+  }
+
+  function renderTracklist(){
+    const g = grupoObj(grupoVista);
+    const cont = document.getElementById("tracklist");
+    cont.innerHTML = "";
+    g.videos.forEach((v, i) => {
+      const id = extraerVideoId(v.embed);
+      const c = (conteos[g.id] && conteos[g.id][id]) || { completadas: 0, omitidas: 0 };
+      const enReproduccion = (g.id === grupoActual && i === indiceActual);
+      const row = document.createElement("button");
+      row.className = "track" + (enReproduccion ? " playing" : "");
+      row.type = "button";
+      row.onclick = () => seleccionarTema(i);
+      row.innerHTML = `
+        <div class="track-num">${String(i + 1).padStart(2, "0")}</div>
+        <img class="track-thumb" src="${thumbUrl(id)}" alt="">
+        <div class="track-body">
+          <div class="track-title">${v.titulo}</div>
+          <div class="track-stats"><b>${c.completadas}</b> completas · ${c.omitidas} omitidas</div>
+        </div>`;
+      cont.appendChild(row);
+    });
+  }
+
+  function renderRanking(){
+    const filas = [];
+    Object.keys(conteos).forEach(grupoId => {
+      Object.keys(conteos[grupoId]).forEach(videoId => {
+        const d = conteos[grupoId][videoId];
+        filas.push({
+          videoId,
+          titulo: d.titulo || videoId,
+          grupoNombre: d.grupoNombre || grupoId,
+          completadas: d.completadas || 0,
+          omitidas: d.omitidas || 0
         });
+      });
+    });
+    filas.sort((a, b) => b.completadas - a.completadas);
 
-        player.unMute();
-        player.setVolume(volumen);
-      } else {
-        player.cueVideoById({
-          videoId: videos[indice].id,
-          startSeconds: 0
-        });
-      }
-
-      actualizarInterfaz();
+    const cont = document.getElementById("rankingList");
+    if (filas.length === 0){
+      cont.innerHTML = `<div class="rank-empty">Todavía nadie ha terminado un tema completo.</div>`;
+      return;
     }
+    cont.innerHTML = "";
+    filas.slice(0, 10).forEach((f, i) => {
+      const row = document.createElement("div");
+      row.className = "rank-row";
+      row.innerHTML = `
+        <div class="rank-pos">${i + 1}</div>
+        <img class="rank-thumb" src="${thumbUrl(f.videoId)}" alt="">
+        <div class="rank-body">
+          <div class="rank-title">${f.titulo}</div>
+          <div class="rank-meta">${f.grupoNombre} · ${f.completadas} completas · ${f.omitidas} omitidas</div>
+        </div>`;
+      cont.appendChild(row);
+    });
+  }
 
-    /* Botón principal: Reproducir / Pausar */
-    function togglePlay() {
-      if (!listo || !player) return;
+  function actualizarBotonPlay(){
+    document.getElementById("playIcon").textContent = reproduciendo ? "❚❚" : "▶";
+    document.getElementById("playText").textContent = reproduciendo ? "Pausar" : "Reproducir";
+  }
 
-      if (reproduciendo) {
-        player.pauseVideo();
-      } else {
-        /*
-          Esta acción ocurre por clic:
-          activa sonido normal y luego reproduce.
-        */
-        player.unMute();
-        player.setVolume(volumen);
-        player.playVideo();
-      }
-    }
+  function actualizarBarraInferior(){
+    const v = videoReproduciendoObj();
+    const id = extraerVideoId(v.embed);
+    const c = (conteos[grupoActual] && conteos[grupoActual][id]) || { completadas: 0, omitidas: 0 };
+    document.getElementById("pbThumb").src = thumbUrl(id);
+    document.getElementById("pbGroup").textContent = grupoObj(grupoActual).nombre;
+    document.getElementById("pbTitle").textContent = v.titulo;
+    document.getElementById("pbCounts").textContent = `${c.completadas} completas · ${c.omitidas} omitidas`;
+  }
 
-    /* Botón: pasar al siguiente mix */
-    function siguienteMix() {
-      if (!listo || !player) return;
+  function actualizarTodo(){
+    renderSidebar();
+    renderPlaylistHeader();
+    renderTracklist();
+    actualizarBarraInferior();
+    actualizarBotonPlay();
+  }
 
-      const siguiente = (indiceActual + 1) % videos.length;
-      cargarMix(siguiente, true);
-    }
-
-    /* Actualizar títulos y tarjeta activa */
-    function actualizarInterfaz() {
-      document.getElementById("nowTitle").textContent =
-        videos[indiceActual].titulo;
-
-      document.getElementById("track0").classList.toggle(
-        "active",
-        indiceActual === 0
-      );
-
-      document.getElementById("track1").classList.toggle(
-        "active",
-        indiceActual === 1
-      );
-
-      actualizarBoton();
-    }
-
-    /* Actualizar texto del botón */
-    function actualizarBoton() {
-      document.getElementById("playIcon").textContent =
-        reproduciendo ? "⏸️" : "▶️";
-
-      document.getElementById("playText").textContent =
-        reproduciendo ? "Pausar" : "Reproducir";
-    }
-  </script>
+  mostrarPlaylist(grupos[0].id);
+  window.addEventListener("load", escucharConteos);
+</script>
 
 </body>
 </html>
