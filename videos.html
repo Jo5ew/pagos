@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>DJ Mix - Música Variada</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── TOKENS ─────────────────────────────────────────────── */
+    :root {
+      --bg:        #080C14;
+      --surface:   #0F1724;
+      --border:    rgba(255,255,255,0.07);
+      --muted:     #334155;
+      --text:      #E2E8F0;
+      --dim:       #64748B;
+      --green:     #00C9A7;
+      --green-dim: rgba(0,201,167,0.12);
+      --red:       #F43F5E;
+      --red-dim:   rgba(244,63,94,0.12);
+      --amber:     #F59E0B;
+      --blue:      #3B82F6;
+      --purple:    #8B5CF6;
+      --pink:      #EC4899;
+      --cyan:      #06B6D4;
+      --radius:    16px;
+    }
+
+    /* ── RESET ──────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── FONDO ANIMADO ──────────────────────────────────────── */
+    .bg-glow {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      overflow: hidden;
+    }
+    .glow {
+      position: absolute; border-radius: 50%;
+      filter: blur(100px); opacity: 0.15;
+      animation: pulse 8s ease-in-out infinite;
+    }
+    .glow-1 { width: 500px; height: 500px; background: var(--purple); top: -150px; left: -100px; }
+    .glow-2 { width: 400px; height: 400px; background: var(--pink);  bottom: -100px; right: -80px; }
+    .glow-3 { width: 350px; height: 350px; background: var(--cyan);  top: 50%; left: 50%; transform: translate(-50%, -50%); }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.15; transform: scale(1); }
+      50% { opacity: 0.25; transform: scale(1.1); }
+    }
+
+    /* ── LAYOUT ─────────────────────────────────────────────── */
+    .wrap {
+      position: relative; z-index: 1;
+      max-width: 900px; margin: 0 auto;
+      padding: 32px 20px 60px;
+    }
+
+    /* ── ENCABEZADO INSTITUCIONAL ───────────────────────────── */
+    .inst-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 16px 20px;
+      margin-bottom: 32px;
+    }
+    .inst-logo {
+      width: 80px;
+      height: 80px;
+      flex-shrink: 0;
+      object-fit: contain;
+    }
+    .inst-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .inst-nombre {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.2;
+    }
+    .inst-grupo {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--dim);
+      letter-spacing: 0.3px;
+    }
+
+    /* ── HERO ───────────────────────────────────────────────── */
+    .hero {
+      text-align: center;
+      padding: 48px 0 40px;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(236,72,153,0.15);
+      border: 1px solid rgba(236,72,153,0.3);
+      border-radius: 99px;
+      padding: 6px 14px;
+      font-size: 12px; font-weight: 600;
+      color: #F472B6;
+      margin-bottom: 20px;
+      letter-spacing: 0.5px;
+    }
+    .hero h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(28px, 7vw, 38px);
+      font-weight: 700;
+      line-height: 1.15;
+      color: #fff;
+      margin-bottom: 12px;
+    }
+    .hero h1 span {
+      background: linear-gradient(135deg, var(--pink) 0%, var(--purple) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      font-size: 15px;
+      color: var(--dim);
+      line-height: 1.6;
+    }
+
+    /* ── REPRODUCTOR PRINCIPAL ──────────────────────────────── */
+    .player-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      backdrop-filter: blur(12px);
+      margin-bottom: 32px;
+    }
+    .video-container {
+      position: relative;
+      width: 100%;
+      padding-bottom: 56.25%;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #000;
+    }
+    .video-container iframe {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      border: none;
+    }
+    .now-playing {
+      display: flex; align-items: center; gap: 12px;
+      margin-top: 16px;
+      padding: 14px 16px;
+      background: rgba(236,72,153,0.1);
+      border: 1px solid rgba(236,72,153,0.2);
+      border-radius: 12px;
+    }
+    .now-playing .icon { font-size: 24px; }
+    .now-playing .info { flex: 1; }
+    .now-playing .title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 14px; font-weight: 700;
+      color: #fff;
+      margin-bottom: 2px;
+    }
+    .now-playing .artist {
+      font-size: 12px; color: var(--dim);
+    }
+
+    /* ── LISTA DE MIXES ─────────────────────────────────────── */
+    .mixes-section {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .mix-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      cursor: pointer;
+      transition: transform 0.2s, border-color 0.2s, background 0.2s;
+      display: flex; gap: 14px; align-items: center;
+    }
+    .mix-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--pink);
+      background: rgba(236,72,153,0.05);
+    }
+    .mix-card.active {
+      border-color: var(--pink);
+      background: rgba(236,72,153,0.1);
+    }
+    .mix-thumb {
+      width: 80px; height: 80px;
+      border-radius: 10px;
+      flex-shrink: 0;
+      object-fit: cover;
+      background: #1A2332;
+    }
+    .mix-info { flex: 1; }
+    .mix-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 14px; font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+      line-height: 1.3;
+    }
+    .mix-meta {
+      font-size: 12px; color: var(--dim);
+      margin-bottom: 4px;
+    }
+    .mix-duration {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 11px; font-weight: 600;
+      color: var(--pink);
+      background: rgba(236,72,153,0.15);
+      padding: 4px 10px;
+      border-radius: 99px;
+    }
+
+    /* ── CONTROLES ──────────────────────────────────────────── */
+    .controls {
+      display: flex; gap: 12px; margin-top: 20px;
+    }
+    .btn-control {
+      flex: 1;
+      background: var(--purple);
+      border: none;
+      border-radius: 12px;
+      padding: 14px 20px;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: 'Inter', sans-serif;
+      color: #fff;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-control:active { transform: scale(0.97); opacity: 0.85; }
+    .btn-control.secundario {
+      background: rgba(255,255,255,0.08);
+      border: 1.5px solid var(--border);
+    }
+
+    /* ── FOOTER ─────────────────────────────────────────────── */
+    .footer {
+      text-align: center; margin-top: 48px;
+      font-size: 12px; color: var(--muted);
+    }
+
+    /* ── ANIMACIONES ────────────────────────────────────────── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp 0.3s ease forwards; }
+
+    /* ── RESPONSIVE ─────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .wrap { max-width: 100%; padding: 20px 16px 40px; }
+      .mixes-section { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-glow">
+  <div class="glow glow-1"></div>
+  <div class="glow glow-2"></div>
+  <div class="glow glow-3"></div>
+</div>
+
+<div class="wrap">
+
+  <!-- ENCABEZADO INSTITUCIONAL -->
+  <div class="inst-header">
+    <img src="logoTECNO.svg" alt="Logo de la institución" class="inst-logo">
+    <div class="inst-info">
+      <span class="inst-nombre">Instituto de Educación Superior Tecnológico Público</span>
+      <span class="inst-nombre">Manuel Núñez Butón</span>
+      <span class="inst-grupo">DESARROLLO DE SISTEMAS DE INFORMACIÓN · IV · 2026</span>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-badge">🎵 DJ Mix</div>
+    <h1>Música <span>Variada</span></h1>
+    <p>Selecciona un mix y disfruta de la mejor música<br>electrónica, pop, rock y más.</p>
+  </div>
+
+  <!-- REPRODUCTOR -->
+  <div class="player-card fade-up">
+    <div class="video-container">
+      <iframe 
+        id="mainPlayer"
+        src="https://www.youtube.com/embed/jfKfPfyJRdk?enablejsapi=1"
+        title="Reproductor de música"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen
+      ></iframe>
+    </div>
+    <div class="now-playing">
+      <div class="icon">🎧</div>
+      <div class="info">
+        <div class="title" id="nowTitle">Cargando...</div>
+        <div class="artist" id="nowArtist">Selecciona un mix para comenzar</div>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="btn-control" onclick="togglePlay()">
+        <span id="playIcon">⏸️</span>
+        <span id="playText">Pausar</span>
+      </button>
+      <button class="btn-control secundario" onclick="nextMix()">
+        <span>⏭️</span>
+        <span>Siguiente</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- LISTA DE MIXES -->
+  <div class="mixes-section fade-up" id="mixesList"></div>
+
+  <div class="footer">
+    DJ Mix · Música sin parar 🎶
+  </div>
+
+</div>
+
+<script>
+  // ── LISTA DE MIXES (puedes editar esto) ─────────────────────
+  const mixes = [
+    {
+      id: 'jfKfPfyJRdk',
+      title: 'lofi hip hop radio - beats to relax/study to',
+      artist: 'Lofi Girl',
+      duration: '∞',
+      thumb: 'https://i.ytimg.com/vi/jfKfPfyJRdk/hqdefault.jpg'
+    },
+    {
+      id: '5qap5aO4i9A',
+      title: 'lofi hip hop radio - beats to sleep/chill to',
+      artist: 'Lofi Girl',
+      duration: '∞',
+      thumb: 'https://i.ytimg.com/vi/5qap5aO4i9A/hqdefault.jpg'
+    },
+    {
+      id: '4xDzrJKX8Kc',
+      title: 'Synthwave Radio - Beats to Chill/Game To',
+      artist: 'Lofi Girl',
+      duration: '∞',
+      thumb: 'https://i.ytimg.com/vi/4xDzrJKX8Kc/hqdefault.jpg'
+    },
+    {
+      id: 'rU8aH5Jg3DU',
+      title: 'Deep Focus Music - Atmospheric Ambient',
+      artist: 'Music Lab',
+      duration: '3:00:00',
+      thumb: 'https://i.ytimg.com/vi/rU8aH5Jg3DU/hqdefault.jpg'
+    },
+    {
+      id: 'M7FIvfx5J10',
+      title: 'Best of Electronic Music Mix 2025',
+      artist: 'EDM Universe',
+      duration: '1:30:00',
+      thumb: 'https://i.ytimg.com/vi/M7FIvfx5J10/hqdefault.jpg'
+    },
+    {
+      id: 'dH7KJ9L8p5w',
+      title: 'Pop Hits Mix 2025 - Top 40',
+      artist: 'Pop Music',
+      duration: '2:00:00',
+      thumb: 'https://i.ytimg.com/vi/dH7KJ9L8p5w/hqdefault.jpg'
+    },
+    {
+      id: '9R3kT8pL2Qw',
+      title: 'Rock Classics Mix - Greatest Hits',
+      artist: 'Rock Nation',
+      duration: '1:45:00',
+      thumb: 'https://i.ytimg.com/vi/9R3kT8pL2Qw/hqdefault.jpg'
+    },
+    {
+      id: 'Kp7L9s2H8Yw',
+      title: 'Reggaeton Mix 2025 - Perreo Intenso',
+      artist: 'Latino Beats',
+      duration: '1:20:00',
+      thumb: 'https://i.ytimg.com/vi/Kp7L9s2H8Yw/hqdefault.jpg'
+    },
+    {
+      id: 'T9xL4p8K3Rw',
+      title: 'Salsa y Bachata Mix - Clásicos',
+      artist: 'Tropical Vibes',
+      duration: '1:50:00',
+      thumb: 'https://i.ytimg.com/vi/T9xL4p8K3Rw/hqdefault.jpg'
+    },
+    {
+      id: 'W8pL5x9K2Qw',
+      title: 'Techno Underground Mix - Dark Vibes',
+      artist: 'Techno Lab',
+      duration: '2:30:00',
+      thumb: 'https://i.ytimg.com/vi/W8pL5x9K2Qw/hqdefault.jpg'
+    }
+  ];
+
+  let currentIndex = 0;
+  let player;
+  let isPlaying = true;
+
+  // ── CARGAR API DE YOUTUBE ────────────────────────────────────
+  var tag = document.createElement('script');
+  tag.src = "https://www.youtube.com/iframe_api";
+  var firstScriptTag = document.getElementsByTagName('script')[0];
+  firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+  function onYouTubeIframeAPIReady() {
+    player = new YT.Player('mainPlayer', {
+      events: {
+        'onReady': onPlayerReady,
+        'onStateChange': onPlayerStateChange
+      }
+    });
+  }
+
+  function onPlayerReady(event) {
+    loadMix(0);
+    renderMixes();
+  }
+
+  function onPlayerStateChange(event) {
+    isPlaying = (event.data === YT.PlayerState.PLAYING);
+    document.getElementById('playIcon').textContent = isPlaying ? '⏸️' : '▶️';
+    document.getElementById('playText').textContent = isPlaying ? 'Pausar' : 'Reproducir';
+  }
+
+  // ── RENDERIZAR LISTA DE MIXES ───────────────────────────────
+  function renderMixes() {
+    const container = document.getElementById('mixesList');
+    let html = '';
+    mixes.forEach((mix, index) => {
+      html += `
+        <div class="mix-card ${index === currentIndex ? 'active' : ''}" onclick="loadMix(${index})">
+          <img src="${mix.thumb}" alt="${mix.title}" class="mix-thumb" loading="lazy">
+          <div class="mix-info">
+            <div class="mix-title">${mix.title}</div>
+            <div class="mix-meta">${mix.artist}</div>
+            <div class="mix-duration">⏱️ ${mix.duration}</div>
+          </div>
+        </div>
+      `;
+    });
+    container.innerHTML = html;
+  }
+
+  // ── CARGAR MIX ───────────────────────────────────────────────
+  function loadMix(index) {
+    currentIndex = index;
+    const mix = mixes[index];
+    player.loadVideoById(mix.id);
+    document.getElementById('nowTitle').textContent = mix.title;
+    document.getElementById('nowArtist').textContent = mix.artist;
+    renderMixes();
+  }
+
+  // ── CONTROLES ────────────────────────────────────────────────
+  function togglePlay() {
+    if (isPlaying) {
+      player.pauseVideo();
+    } else {
+      player.playVideo();
+    }
+  }
+
+  function nextMix() {
+    currentIndex = (currentIndex + 1) % mixes.length;
+    loadMix(currentIndex);
+  }
+
+  // Auto-play al cargar (puede ser bloqueado por navegadores)
+  setTimeout(() => {
+    if (player && player.playVideo) {
+      player.playVideo();
+    }
+  }, 1000);
+</script>
+
+</body>
+</html>
