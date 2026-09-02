@@ -15,7 +15,6 @@
     :root {
       --bg: #080C14;
       --surface: #0F1724;
-      --surface-2: #151F2D;
       --border: rgba(255,255,255,0.08);
       --text: #E2E8F0;
       --dim: #94A3B8;
@@ -24,7 +23,6 @@
       --pink: #EC4899;
       --cyan: #06B6D4;
       --green: #00C9A7;
-      --red: #F43F5E;
     }
 
     * {
@@ -45,6 +43,7 @@
       font-family: "Inter", sans-serif;
     }
 
+    /* Fondo de colores */
     .bg-glow {
       position: fixed;
       inset: 0;
@@ -92,6 +91,7 @@
       padding: 32px 0 60px;
     }
 
+    /* Cabecera */
     .inst-header {
       display: flex;
       align-items: center;
@@ -130,6 +130,7 @@
       letter-spacing: 0.3px;
     }
 
+    /* Título */
     .hero {
       padding: 12px 0 32px;
       text-align: center;
@@ -171,6 +172,7 @@
       line-height: 1.6;
     }
 
+    /* Reproductor */
     .player-card {
       padding: 20px;
       overflow: hidden;
@@ -189,7 +191,6 @@
       background: #000;
     }
 
-    /* YouTube insertará el iframe aquí */
     #player,
     #player iframe {
       position: absolute;
@@ -237,9 +238,10 @@
       font-weight: 700;
     }
 
+    /* Botones */
     .controls {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(3, 1fr);
       gap: 12px;
       margin-top: 16px;
     }
@@ -248,21 +250,37 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 7px;
       min-height: 48px;
-      padding: 12px 16px;
+      padding: 12px 14px;
       border: 1px solid transparent;
       border-radius: 12px;
       color: #fff;
       cursor: pointer;
       font-family: "Inter", sans-serif;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 800;
       transition: transform 0.15s ease, opacity 0.15s ease, background 0.15s ease;
     }
 
+    .btn:hover {
+      opacity: 0.87;
+    }
+
     .btn:active {
       transform: scale(0.97);
+    }
+
+    .btn-sound {
+      border-color: rgba(0,201,167,0.35);
+      background: rgba(0,201,167,0.12);
+      color: #A7F3D0;
+    }
+
+    .btn-sound.sound-on {
+      border-color: rgba(0,201,167,0.70);
+      background: rgba(0,201,167,0.25);
+      color: #fff;
     }
 
     .btn-primary {
@@ -272,10 +290,6 @@
     .btn-secondary {
       border-color: var(--border);
       background: rgba(255,255,255,0.07);
-    }
-
-    .btn:hover {
-      opacity: 0.87;
     }
 
     .notice {
@@ -289,6 +303,7 @@
       line-height: 1.5;
     }
 
+    /* Playlist */
     .section-title {
       margin: 30px 0 13px;
       color: var(--dim);
@@ -415,6 +430,10 @@
         padding: 12px;
       }
 
+      .controls {
+        grid-template-columns: 1fr;
+      }
+
       .playlist {
         grid-template-columns: 1fr;
       }
@@ -439,7 +458,11 @@
         <span class="inst-nombre">
           Instituto de Educación Superior Tecnológico Público
         </span>
-        <span class="inst-nombre">Manuel Núñez Butón</span>
+
+        <span class="inst-nombre">
+          Manuel Núñez Butón
+        </span>
+
         <span class="inst-grupo">
           DESARROLLO DE SISTEMAS DE INFORMACIÓN · IV · 2026
         </span>
@@ -448,17 +471,19 @@
 
     <section class="hero">
       <div class="badge">🎧 DJ Mix</div>
+
       <h1>Música <span>sin pausa</span></h1>
+
       <p>
-        Elige un mix, pausa la música o pasa al siguiente.<br>
-        La lista se repite automáticamente.
+        Dos mixes que cambian automáticamente.<br>
+        Elige uno, pausa o pasa al siguiente.
       </p>
     </section>
 
     <section class="player-card">
 
       <div class="video-container">
-        <!-- YouTube colocará el reproductor aquí -->
+        <!-- Aquí YouTube colocará el reproductor -->
         <div id="player"></div>
       </div>
 
@@ -467,25 +492,45 @@
 
         <div>
           <div class="now-label">Reproduciendo ahora</div>
-          <div class="now-title" id="nowTitle">Cargando mix...</div>
+          <div class="now-title" id="nowTitle">Cargando Mix 1...</div>
         </div>
       </div>
 
       <div class="controls">
-        <button class="btn btn-primary" type="button" onclick="togglePlay()">
+
+        <button
+          class="btn btn-sound"
+          type="button"
+          id="btnSound"
+          onclick="toggleSound()"
+        >
+          <span id="soundIcon">🔇</span>
+          <span id="soundText">Activar sonido</span>
+        </button>
+
+        <button
+          class="btn btn-primary"
+          type="button"
+          onclick="togglePlay()"
+        >
           <span id="playIcon">⏸️</span>
           <span id="playText">Pausar</span>
         </button>
 
-        <button class="btn btn-secondary" type="button" onclick="siguienteMix()">
+        <button
+          class="btn btn-secondary"
+          type="button"
+          onclick="siguienteMix()"
+        >
           <span>⏭️</span>
           <span>Siguiente</span>
         </button>
+
       </div>
 
       <div class="notice">
-        🔇 Si la música inicia sola, YouTube puede comenzar sin volumen.
-        Activa el sonido desde el reproductor o presiona el ícono de volumen.
+        🔇 El video puede iniciar sin sonido. Presiona
+        <strong>“Activar sonido”</strong> para escuchar la música.
       </div>
 
     </section>
@@ -494,25 +539,39 @@
 
     <section class="playlist">
 
-      <button class="track active" id="track0" type="button" onclick="irAMix(0)">
+      <button
+        class="track active"
+        id="track0"
+        type="button"
+        onclick="irAMix(0)"
+      >
         <div class="track-number">01</div>
+
         <div>
           <div class="track-title">Mix 1</div>
-          <div class="track-meta">Video: c-c9CXogX9o</div>
+          <div class="track-meta">Primer video de tu lista</div>
         </div>
       </button>
 
-      <button class="track" id="track1" type="button" onclick="irAMix(1)">
+      <button
+        class="track"
+        id="track1"
+        type="button"
+        onclick="irAMix(1)"
+      >
         <div class="track-number">02</div>
+
         <div>
           <div class="track-title">Mix 2</div>
-          <div class="track-meta">Video: LjBQrpP8jmM</div>
+          <div class="track-meta">Segundo video de tu lista</div>
         </div>
       </button>
 
     </section>
 
-    <a href="index.html" class="back">← Volver a consulta de pagos</a>
+    <a href="index.html" class="back">
+      ← Volver a consulta de pagos
+    </a>
 
     <footer class="footer">
       DJ Mix · Videos reproducidos desde YouTube
@@ -521,7 +580,12 @@
   </main>
 
   <script>
-    /* Tus dos videos, en el orden exacto que pediste */
+    /* ==========================================================
+       TUS DOS VIDEOS DE YOUTUBE
+       1: https://www.youtube.com/watch?v=c-c9CXogX9o
+       2: https://www.youtube.com/watch?v=LjBQrpP8jmM
+    ========================================================== */
+
     const videos = [
       {
         id: "c-c9CXogX9o",
@@ -538,14 +602,14 @@
     let listo = false;
     let reproduciendo = false;
 
-    /* Carga la API oficial de YouTube */
+    /* Cargar la API oficial de YouTube */
     const tag = document.createElement("script");
     tag.src = "https://www.youtube.com/iframe_api";
 
     const primerScript = document.getElementsByTagName("script")[0];
     primerScript.parentNode.insertBefore(tag, primerScript);
 
-    /* YouTube ejecuta esta función cuando su API termina de cargar */
+    /* Esta función es llamada automáticamente por YouTube */
     function onYouTubeIframeAPIReady() {
       player = new YT.Player("player", {
         videoId: videos[0].id,
@@ -565,12 +629,12 @@
       });
     }
 
-    function cuandoEsteListo(evento) {
+    function cuandoEsteListo() {
       listo = true;
 
       /*
-        Crea la playlist con los DOS IDs.
-        El primer mix es el índice 0 y el segundo es el índice 1.
+        Se carga la lista con tus dos videos.
+        El orden es Mix 1 y luego Mix 2.
       */
       player.loadPlaylist({
         playlist: videos.map(function(video) {
@@ -580,28 +644,33 @@
         startSeconds: 0
       });
 
-      /* Hace que después del Mix 2 regrese al Mix 1 */
+      /*
+        Al acabar Mix 2, vuelve a Mix 1.
+      */
       player.setLoop(true);
+
+      /*
+        Volumen preparado en 70%, pero silenciado.
+        El usuario activa el sonido mediante el botón.
+      */
+      player.setVolume(70);
+      player.mute();
 
       actualizarInterfaz();
 
       /*
-        Intenta iniciar solo. Si el navegador lo bloquea,
-        el usuario podrá reproducirlo con el botón.
+        Intentar iniciar el primer mix.
+        Los navegadores suelen permitir autoplay silenciado.
       */
       setTimeout(function() {
         player.playVideo();
-      }, 800);
+      }, 700);
     }
 
     function cambioEstado(evento) {
       if (evento.data === YT.PlayerState.PLAYING) {
         reproduciendo = true;
 
-        /*
-          Obtiene la posición actual en la playlist:
-          0 = Mix 1, 1 = Mix 2.
-        */
         const posicion = player.getPlaylistIndex();
 
         if (posicion === 0 || posicion === 1) {
@@ -616,18 +685,47 @@
         actualizarBotonPausa();
       }
 
+      /*
+        Si termina un video, pasa al siguiente.
+        Como la playlist tiene loop, Mix 2 vuelve a Mix 1.
+      */
       if (evento.data === YT.PlayerState.ENDED) {
-        /*
-          Normalmente la playlist avanza sola.
-          Esta línea refuerza el paso al siguiente video.
-        */
-        siguienteMix();
+        player.nextVideo();
       }
     }
 
-    /* Botón: Pausar / Reproducir */
+    /* ==========================================================
+       BOTÓN: ACTIVAR / SILENCIAR SONIDO
+    ========================================================== */
+    function toggleSound() {
+      if (!listo || !player) return;
+
+      const estaSilenciado = player.isMuted();
+
+      if (estaSilenciado) {
+        /*
+          Este clic del usuario permite activar el audio.
+        */
+        player.unMute();
+        player.setVolume(70);
+
+        document.getElementById("soundIcon").textContent = "🔊";
+        document.getElementById("soundText").textContent = "Silenciar";
+        document.getElementById("btnSound").classList.add("sound-on");
+      } else {
+        player.mute();
+
+        document.getElementById("soundIcon").textContent = "🔇";
+        document.getElementById("soundText").textContent = "Activar sonido";
+        document.getElementById("btnSound").classList.remove("sound-on");
+      }
+    }
+
+    /* ==========================================================
+       BOTÓN: PAUSAR / REPRODUCIR
+    ========================================================== */
     function togglePlay() {
-      if (!listo) return;
+      if (!listo || !player) return;
 
       if (reproduciendo) {
         player.pauseVideo();
@@ -636,27 +734,33 @@
       }
     }
 
-    /* Botón: Siguiente */
+    /* ==========================================================
+       BOTÓN: SIGUIENTE
+    ========================================================== */
     function siguienteMix() {
-      if (!listo) return;
+      if (!listo || !player) return;
 
       /*
-        nextVideo() pasa de Mix 1 a Mix 2.
-        Como setLoop(true) está activo,
-        desde Mix 2 vuelve automáticamente a Mix 1.
+        Mix 1 -> Mix 2.
+        Mix 2 -> Mix 1 gracias a setLoop(true).
       */
       player.nextVideo();
     }
 
-    /* Al tocar una tarjeta: Mix 1 o Mix 2 */
+    /* ==========================================================
+       TARJETAS: ELEGIR MIX 1 O MIX 2
+    ========================================================== */
     function irAMix(indice) {
-      if (!listo) return;
+      if (!listo || !player) return;
 
       indiceActual = indice;
+
       player.playVideoAt(indice);
+
       actualizarInterfaz();
     }
 
+    /* Actualiza nombre del mix y tarjeta activa */
     function actualizarInterfaz() {
       document.getElementById("nowTitle").textContent =
         videos[indiceActual].titulo;
@@ -674,6 +778,7 @@
       actualizarBotonPausa();
     }
 
+    /* Cambia Pausar <-> Reproducir */
     function actualizarBotonPausa() {
       document.getElementById("playIcon").textContent =
         reproduciendo ? "⏸️" : "▶️";
