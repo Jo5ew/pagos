@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mi Horario</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg:#070A12;
+    --surface:rgba(15,23,36,.82);
+    --surface-solid:#101827;
+    --surface-2:#162235;
+    --surface-3:#1B2A40;
+    --border:rgba(255,255,255,.09);
+    --border-strong:rgba(255,255,255,.15);
+
+    --text:#F1F5F9;
+    --dim:#A7B4C7;
+    --muted:#617089;
+
+    --purple:#8B5CF6;
+    --pink:#EC4899;
+    --cyan:#22D3EE;
+    --green:#2DD4BF;
+    --orange:#F59E0B;
+
+    --shadow:0 20px 50px rgba(0,0,0,.35);
+    --radius-lg:20px;
+    --radius-md:14px;
+  }
+
+  *{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+  }
+
+  html{scroll-behavior:smooth;}
+
+  body{
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 8% 0%, rgba(139,92,246,.14), transparent 28%),
+      radial-gradient(circle at 92% 95%, rgba(34,211,238,.12), transparent 30%),
+      linear-gradient(145deg,#070A12 0%,#09101C 52%,#070A12 100%);
+    color:var(--text);
+    font-family:"Inter",sans-serif;
+  }
+
+  body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    opacity:.22;
+    background-image:
+      linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+    background-size:34px 34px;
+    mask-image:linear-gradient(to bottom,black,transparent 85%);
+  }
+
+  .bg-glow{
+    position:fixed;
+    inset:0;
+    z-index:-1;
+    overflow:hidden;
+    pointer-events:none;
+  }
+
+  .glow{
+    position:absolute;
+    border-radius:50%;
+    filter:blur(100px);
+    opacity:.16;
+  }
+
+  .glow-1{
+    width:500px;
+    height:500px;
+    top:-210px;
+    left:-130px;
+    background:var(--purple);
+  }
+
+  .glow-2{
+    width:450px;
+    height:450px;
+    right:-150px;
+    bottom:-150px;
+    background:var(--cyan);
+  }
+
+  .wrap{
+    width:min(1160px, calc(100% - 32px));
+    margin:0 auto;
+    padding:30px 0 70px;
+  }
+
+  .nav{
+    display:flex;
+    gap:9px;
+    margin-bottom:34px;
+    flex-wrap:wrap;
+  }
+
+  .nav a{
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    padding:9px 15px;
+    border-radius:999px;
+    border:1px solid var(--border);
+    color:var(--dim);
+    background:rgba(15,23,36,.45);
+    backdrop-filter:blur(12px);
+    font-size:12.5px;
+    font-weight:700;
+    text-decoration:none;
+    transition:.2s ease;
+  }
+
+  .nav a:hover{
+    color:#fff;
+    border-color:rgba(139,92,246,.65);
+    background:rgba(139,92,246,.12);
+    transform:translateY(-1px);
+  }
+
+  .nav a.here{
+    color:#fff;
+    border-color:rgba(139,92,246,.55);
+    background:linear-gradient(135deg,rgba(139,92,246,.35),rgba(99,102,241,.18));
+    box-shadow:0 8px 22px rgba(139,92,246,.18);
+  }
+
+  .hero{
+    position:relative;
+    overflow:hidden;
+    padding:30px;
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    background:
+      linear-gradient(135deg, rgba(139,92,246,.15), transparent 42%),
+      rgba(15,23,36,.74);
+    box-shadow:var(--shadow);
+    backdrop-filter:blur(18px);
+  }
+
+  .hero::after{
+    content:"";
+    position:absolute;
+    width:240px;
+    height:240px;
+    right:-85px;
+    top:-115px;
+    border-radius:50%;
+    border:1px solid rgba(255,255,255,.1);
+    box-shadow:
+      0 0 0 28px rgba(255,255,255,.025),
+      0 0 0 56px rgba(255,255,255,.015);
+  }
+
+  .hero .kicker{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    color:var(--cyan);
+    font-size:11px;
+    font-weight:800;
+    letter-spacing:1.1px;
+    text-transform:uppercase;
+    margin-bottom:10px;
+  }
+
+  .hero .kicker::before{
+    content:"";
+    width:7px;
+    height:7px;
+    border-radius:50%;
+    background:var(--cyan);
+    box-shadow:0 0 14px var(--cyan);
+  }
+
+  .hero h1{
+    position:relative;
+    font-family:"Space Grotesk",sans-serif;
+    font-size:clamp(29px,4.5vw,42px);
+    color:#fff;
+    font-weight:700;
+    letter-spacing:-1.5px;
+    margin-bottom:10px;
+  }
+
+  .hero p{
+    position:relative;
+    color:var(--dim);
+    font-size:13.5px;
+    max-width:65ch;
+    line-height:1.7;
+  }
+
+  .hero-stats{
+    position:relative;
+    z-index:1;
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-top:22px;
+  }
+
+  .stat{
+    min-width:112px;
+    padding:10px 13px;
+    border-radius:11px;
+    border:1px solid rgba(255,255,255,.08);
+    background:rgba(3,7,15,.2);
+  }
+
+  .stat-value{
+    display:block;
+    color:#fff;
+    font-family:"Space Grotesk",sans-serif;
+    font-size:18px;
+    font-weight:700;
+    line-height:1.1;
+  }
+
+  .stat-label{
+    display:block;
+    margin-top:4px;
+    color:var(--muted);
+    font-size:10px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.55px;
+  }
+
+  .schedule{
+    position:relative;
+    margin-top:22px;
+    padding:18px;
+    display:grid;
+    grid-template-columns:72px repeat(5, minmax(0,1fr));
+    gap:8px;
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    background:rgba(10,16,28,.72);
+    box-shadow:var(--shadow);
+    backdrop-filter:blur(16px);
+    overflow:hidden;
+  }
+
+  .schedule::before{
+    content:"";
+    position:absolute;
+    top:0;
+    left:0;
+    right:0;
+    height:1px;
+    background:linear-gradient(
+      90deg,
+      transparent,
+      rgba(139,92,246,.65),
+      rgba(34,211,238,.55),
+      transparent
+    );
+  }
+
+  .corner{}
+
+  .day-head{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:39px;
+    color:#C7D2E2;
+    font-size:10.5px;
+    font-weight:800;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    text-align:center;
+    border-radius:10px;
+    background:rgba(255,255,255,.035);
+    border:1px solid rgba(255,255,255,.045);
+  }
+
+  .time-label{
+    display:flex;
+    align-items:flex-start;
+    justify-content:flex-end;
+    padding:10px 9px 0 0;
+    font-size:10px;
+    font-weight:700;
+    color:var(--muted);
+    font-variant-numeric:tabular-nums;
+  }
+
+  .slot{
+    position:relative;
+    overflow:hidden;
+    border-radius:13px;
+    padding:11px 11px 10px 13px;
+    cursor:pointer;
+    border:1px solid rgba(255,255,255,.08);
+    border-left:4px solid var(--course-color,var(--purple));
+    background:
+      linear-gradient(135deg, color-mix(in srgb, var(--course-color) 14%, transparent), transparent 70%),
+      var(--surface);
+    text-align:left;
+    font-family:"Inter",sans-serif;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    gap:4px;
+    width:100%;
+    height:100%;
+    min-height:58px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+    transition:transform .18s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease;
+  }
+
+  .slot::after{
+    content:"";
+    position:absolute;
+    width:75px;
+    height:75px;
+    right:-35px;
+    top:-35px;
+    border-radius:50%;
+    background:var(--course-color,var(--purple));
+    filter:blur(22px);
+    opacity:.12;
+    transition:opacity .2s ease;
+  }
+
+  .slot:hover{
+    z-index:3;
+    transform:translateY(-3px) scale(1.01);
+    border-color:color-mix(in srgb, var(--course-color) 58%, white);
+    background:
+      linear-gradient(135deg, color-mix(in srgb, var(--course-color) 22%, transparent), transparent 70%),
+      var(--surface-2);
+    box-shadow:0 12px 24px rgba(0,0,0,.23);
+  }
+
+  .slot:hover::after{opacity:.26;}
+
+  .slot-time{
+    position:relative;
+    z-index:1;
+    display:inline-flex;
+    width:max-content;
+    padding:3px 6px;
+    border-radius:5px;
+    color:var(--course-color,var(--purple));
+    background:color-mix(in srgb, var(--course-color) 11%, transparent);
+    font-size:9.5px;
+    font-weight:800;
+    letter-spacing:.15px;
+  }
+
+  .slot-title{
+    position:relative;
+    z-index:1;
+    font-size:11.5px;
+    font-weight:700;
+    color:#F8FAFC;
+    line-height:1.36;
+  }
+
+  .slot-tag{
+    position:relative;
+    z-index:1;
+    font-size:9.5px;
+    font-weight:700;
+    color:#93A4BB;
+    text-transform:uppercase;
+    letter-spacing:.4px;
+  }
+
+  .free{
+    border-radius:13px;
+    background:
+      repeating-linear-gradient(
+        135deg,
+        rgba(255,255,255,.018),
+        rgba(255,255,255,.018) 7px,
+        transparent 7px,
+        transparent 14px
+      );
+    border:1px dashed rgba(255,255,255,.08);
+    color:#536179;
+    font-size:10.5px;
+    font-weight:600;
+    letter-spacing:.3px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    height:100%;
+    min-height:42px;
+  }
+
+  .legend{
+    display:flex;
+    flex-wrap:wrap;
+    gap:9px;
+    margin-top:20px;
+    padding:16px 2px 0;
+    border-top:1px solid var(--border);
+  }
+
+  .legend-item{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    padding:7px 10px;
+    border:1px solid rgba(255,255,255,.06);
+    border-radius:999px;
+    color:#B4C0D0;
+    background:rgba(255,255,255,.025);
+    font-size:11px;
+    font-weight:600;
+  }
+
+  .legend-dot{
+    width:9px;
+    height:9px;
+    border-radius:50%;
+    flex-shrink:0;
+    box-shadow:0 0 12px currentColor;
+  }
+
+  .hint{
+    margin-top:17px;
+    padding:13px 15px;
+    border-radius:13px;
+    border:1px solid rgba(45,212,191,.22);
+    background:linear-gradient(90deg,rgba(45,212,191,.11),rgba(45,212,191,.035));
+    color:#C2F5E9;
+    font-size:12.5px;
+    line-height:1.65;
+  }
+
+  .hint code{
+    padding:2px 5px;
+    border-radius:5px;
+    color:#99F6E4;
+    background:rgba(0,0,0,.22);
+    font-size:11.5px;
+  }
+
+  .overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(3,7,15,.68);
+    z-index:20;
+    display:none;
+    backdrop-filter:blur(4px);
+  }
+
+  .overlay.show{display:block;}
+
+  .popup{
+    position:fixed;
+    z-index:21;
+    width:min(320px, calc(100vw - 24px));
+    max-width:320px;
+    padding:18px;
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:16px;
+    background:
+      radial-gradient(circle at top right, rgba(139,92,246,.2), transparent 48%),
+      #121D2D;
+    box-shadow:0 24px 70px rgba(0,0,0,.55);
+    display:none;
+  }
+
+  .popup.show{
+    display:block;
+    animation:popupIn .18s ease-out;
+  }
+
+  @keyframes popupIn{
+    from{opacity:0;transform:translateY(6px) scale(.97);}
+    to{opacity:1;transform:translateY(0) scale(1);}
+  }
+
+  .popup-tag{
+    display:inline-flex;
+    padding:4px 7px;
+    border-radius:6px;
+    background:rgba(45,212,191,.12);
+    color:#74F2DC;
+    font-size:9.5px;
+    font-weight:800;
+    letter-spacing:.7px;
+    text-transform:uppercase;
+    margin-bottom:8px;
+  }
+
+  .popup-course{
+    font-family:"Space Grotesk",sans-serif;
+    font-size:16px;
+    line-height:1.25;
+    font-weight:700;
+    color:#fff;
+    padding-right:20px;
+    margin-bottom:13px;
+  }
+
+  .popup-row{
+    display:flex;
+    gap:8px;
+    padding-top:8px;
+    margin-top:8px;
+    border-top:1px solid rgba(255,255,255,.07);
+    font-size:12px;
+    line-height:1.4;
+    color:var(--dim);
+  }
+
+  .popup-row b{
+    color:#E7EDF6;
+    font-weight:600;
+  }
+
+  .popup-close{
+    position:absolute;
+    top:10px;
+    right:11px;
+    width:27px;
+    height:27px;
+    border:none;
+    border-radius:8px;
+    background:rgba(255,255,255,.06);
+    color:#9DAABD;
+    font-size:14px;
+    cursor:pointer;
+    transition:.18s ease;
+  }
+
+  .popup-close:hover{
+    color:#fff;
+    background:rgba(236,72,153,.18);
+  }
+
+  .back{
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    margin-top:28px;
+    padding:11px 16px;
+    border-radius:10px;
+    border:1px solid rgba(139,92,246,.36);
+    background:rgba(139,92,246,.12);
+    color:#DDD6FE;
+    font-size:12.5px;
+    font-weight:800;
+    text-decoration:none;
+    transition:.2s ease;
+  }
+
+  .back:hover{
+    background:rgba(139,92,246,.24);
+    transform:translateX(-2px);
+  }
+
+  @media (max-width:760px){
+    .wrap{
+      width:min(100% - 20px, 1160px);
+      padding-top:18px;
+    }
+
+    .hero{padding:23px 20px;}
+
+    .schedule{
+      grid-template-columns:42px repeat(5, minmax(105px,1fr));
+      padding:10px;
+      gap:6px;
+      overflow-x:auto;
+    }
+
+    .schedule::-webkit-scrollbar{height:6px;}
+    .schedule::-webkit-scrollbar-thumb{
+      background:rgba(139,92,246,.45);
+      border-radius:999px;
+    }
+
+    .day-head{
+      min-height:35px;
+      font-size:9px;
+    }
+
+    .time-label{
+      padding-right:5px;
+      font-size:9px;
+    }
+
+    .slot{
+      min-height:64px;
+      padding:9px;
+    }
+
+    .slot-title{font-size:10px;}
+    .slot-time{font-size:8.5px;}
+    .slot-tag{font-size:8.5px;}
+
+    .legend-item{
+      font-size:10px;
+      padding:6px 9px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-glow"><div class="glow glow-1"></div><div class="glow glow-2"></div></div>
+
+<main class="wrap">
+
+  <nav class="nav">
+    <a href="index.html">Pagos</a>
+    <a href="videos.html">DJ Mix</a>
+    <a href="horario.html" class="here">Horario</a>
+  </nav>
+
+  <section class="hero">
+    <div class="kicker">Mi horario</div>
+    <h1>Clases de la semana</h1>
+    <p>VII y VIII semestre en una sola tabla, con el día completo desde las 7:30. Toca un curso para ver el docente, el aula y el horario completo.</p>
+
+    <div class="hero-stats">
+      <div class="stat">
+        <span class="stat-value" id="totalCursos">—</span>
+        <span class="stat-label">Cursos activos</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value" id="totalCreditos">—</span>
+        <span class="stat-label">Créditos</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">VII–VIII</span>
+        <span class="stat-label">Semestres</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="schedule" id="schedule"></div>
+
+  <div class="legend" id="legend"></div>
+
+  <div class="hint">
+    Cada color es un curso distinto. Para uno nuevo, agrega un objeto a la lista <code>cursos</code> del código — la tabla arma sola las filas de horas y marca "Libre" donde no haya clase.
+  </div>
+
+  <a href="index.html" class="back">← Volver a consulta de pagos</a>
+
+</main>
+
+<div class="overlay" id="overlay" onclick="cerrarPopup()"></div>
+<div class="popup" id="popup">
+  <button class="popup-close" onclick="cerrarPopup()">✕</button>
+  <div class="popup-tag" id="popTag">—</div>
+  <div class="popup-course" id="popCourse">Curso</div>
+  <div class="popup-row">👤 <b id="popDocente">—</b></div>
+  <div class="popup-row">🕐 <span id="popHorario">—</span></div>
+  <div class="popup-row">📍 <span id="popAula">—</span></div>
+  <div class="popup-row">👥 <span id="popGrupo">—</span></div>
+</div>
+
+<script>
+  /* ===================================================================
+     DATOS DE HORARIO — VII y VIII semestre en una sola tabla.
+     Para un curso nuevo: copia un objeto de "cursos" y llena "horario"
+     con un objeto por día que tenga clase.
+     Días válidos: LUN, MAR, MIER, JUE, VIE. Horas en formato 24h "HH:MM".
+     La tabla arma sus propias filas de hora a partir de estos datos,
+     así que cada día arranca a la misma hora y lo que no tiene clase
+     sale como "Libre" — no hace falta tocar nada más.
+  ==================================================================== */
+  const cursos = [
+    {
+      curso: "Ordenamiento Territorial",
+      semestre: "VII", grupo: "A", turno: "Mañana", aula: "PC32", creditos: 3,
+      docente: "Jhordy Neffy Benites Cruz", color: "#8B5CF6",
+      horario: [
+        { dia: "JUE", inicio: "09:10", fin: "10:50" },
+        { dia: "VIE", inicio: "07:30", fin: "09:10" }
+      ]
+    },
+    {
+      curso: "Sanidad y Protección Forestal",
+      semestre: "VII", grupo: "B", turno: "Mañana", aula: "PC32", creditos: 4,
+      docente: "Maria Rosa Urquizo Ruiz", color: "#EC4899",
+      horario: [
+        { dia: "MAR", inicio: "07:30", fin: "10:00" },
+        { dia: "JUE", inicio: "10:50", fin: "12:30" }
+      ]
+    },
+    {
+      curso: "Tecnologías de Control de la Contaminación del Agua y Aire",
+      semestre: "VIII", grupo: "A", turno: "Tarde", aula: "PC32", creditos: 4,
+      docente: "Eliana Mullisaca Contreras", color: "#22D3EE",
+      horario: [
+        { dia: "MAR", inicio: "12:30", fin: "14:10" },
+        { dia: "JUE", inicio: "12:30", fin: "15:00" }
+      ]
+    },
+    {
+      curso: "Sistemas Agroforestales",
+      semestre: "VIII", grupo: "A", turno: "Tarde", aula: "PC32", creditos: 3,
+      docente: "Madeleyne Gutierrez Aroapaza", color: "#2DD4BF",
+      horario: [
+        { dia: "LUN", inicio: "14:10", fin: "15:50" },
+        { dia: "VIE", inicio: "12:30", fin: "14:10" }
+      ]
+    },
+    {
+      curso: "Gestión de Residuos Sólidos",
+      semestre: "VIII", grupo: "A", turno: "Tarde", aula: "PC32", creditos: 4,
+      docente: "Ebed David Paredes Rodriguez", color: "#F59E0B",
+      horario: [
+        { dia: "LUN", inicio: "12:30", fin: "14:10" },
+        { dia: "MIER", inicio: "12:30", fin: "15:00" }
+      ]
+    },
+    {
+      curso: "Evaluación de Impacto Ambiental",
+      semestre: "VIII", grupo: "A", turno: "Tarde", aula: "PC32", creditos: 4,
+      docente: "Cedar Julio Larico Mamani", color: "#3B82F6",
+      horario: [
+        { dia: "MAR", inicio: "14:10", fin: "15:50" },
+        { dia: "JUE", inicio: "15:00", fin: "17:30" }
+      ]
+    }
+  ];
+
+  const DIAS = [
+    { key: "LUN", label: "Lunes" },
+    { key: "MAR", label: "Martes" },
+    { key: "MIER", label: "Miércoles" },
+    { key: "JUE", label: "Jueves" },
+    { key: "VIE", label: "Viernes" }
+  ];
+
+  function toMin(t){ const [h,m] = t.split(":").map(Number); return h*60+m; }
+  function toTime(m){ const h = Math.floor(m/60), mm = m%60; return String(h).padStart(2,"0")+":"+String(mm).padStart(2,"0"); }
+
+  /* 1. Junta todos los horarios de todos los cursos en una sola lista plana */
+  const clases = [];
+  cursos.forEach(c => {
+    c.horario.forEach(h => {
+      clases.push({ ...h, curso: c.curso, docente: c.docente, aula: c.aula, grupo: c.grupo, turno: c.turno, semestre: c.semestre, color: c.color });
+    });
+  });
+
+  /* 2. Construye los límites de hora (filas) a partir de todos los inicio/fin usados */
+  const limites = [...new Set(clases.flatMap(c => [toMin(c.inicio), toMin(c.fin)]))].sort((a,b) => a-b);
+  const filas = []; // [{inicio, fin}]
+  for (let i = 0; i < limites.length - 1; i++){
+    filas.push({ inicio: limites[i], fin: limites[i+1] });
+  }
+
+  /* 3. Para cada día, arma un valor por fila (la clase que la cubre, o null si está libre) */
+  function matrizDia(diaKey){
+    return filas.map(f => clases.find(c => c.dia === diaKey && toMin(c.inicio) <= f.inicio && toMin(c.fin) >= f.fin) || null);
+  }
+
+  /* 4. Agrupa filas consecutivas iguales (misma clase, o ambas libres) en un solo bloque con rowspan */
+  function agrupar(valores){
+    const grupos = [];
+    let i = 0;
+    while (i < valores.length){
+      const v = valores[i];
+      let j = i + 1;
+      while (j < valores.length && valores[j] === v) j++;
+      grupos.push({ desde: i, hasta: j - 1, valor: v });
+      i = j;
+    }
+    return grupos;
+  }
+
+  function renderSchedule(){
+    const sched = document.getElementById("schedule");
+    sched.innerHTML = "";
+
+    // fila 0: esquina + encabezados de día
+    const corner = document.createElement("div");
+    corner.className = "corner";
+    corner.style.gridColumn = "1";
+    corner.style.gridRow = "1";
+    sched.appendChild(corner);
+
+    DIAS.forEach((d, idx) => {
+      const head = document.createElement("div");
+      head.className = "day-head";
+      head.textContent = d.label;
+      head.style.gridColumn = String(idx + 2);
+      head.style.gridRow = "1";
+      sched.appendChild(head);
+    });
+
+    sched.style.gridTemplateRows = `auto repeat(${filas.length}, minmax(42px, auto))`;
+
+    // etiquetas de hora (una por fila)
+    filas.forEach((f, i) => {
+      const label = document.createElement("div");
+      label.className = "time-label";
+      label.textContent = toTime(f.inicio);
+      label.style.gridColumn = "1";
+      label.style.gridRow = String(i + 2);
+      sched.appendChild(label);
+    });
+
+    // celdas por día, agrupando filas consecutivas iguales
+    DIAS.forEach((d, dayIdx) => {
+      const valores = matrizDia(d.key);
+      const grupos = agrupar(valores);
+      grupos.forEach(g => {
+        const rowStart = g.desde + 2;
+        const rowSpan = g.hasta - g.desde + 1;
+        const cell = document.createElement(g.valor ? "button" : "div");
+        cell.style.gridColumn = String(dayIdx + 2);
+        cell.style.gridRow = `${rowStart} / span ${rowSpan}`;
+
+        if (g.valor){
+          const b = g.valor;
+          cell.type = "button";
+          cell.className = "slot";
+          cell.style.setProperty("--course-color", b.color);
+          cell.innerHTML = `
+            <div class="slot-time">${b.inicio} – ${b.fin}</div>
+            <div class="slot-title">${b.curso}</div>
+            <div class="slot-tag">${b.semestre} semestre</div>`;
+          cell.onclick = (ev) => abrirPopup(ev, b);
+        } else {
+          cell.className = "free";
+          cell.textContent = "Libre";
+        }
+        sched.appendChild(cell);
+      });
+    });
+  }
+
+  function renderLegend(){
+    const cont = document.getElementById("legend");
+    cont.innerHTML = "";
+    cursos.forEach(c => {
+      const item = document.createElement("div");
+      item.className = "legend-item";
+      item.innerHTML = `<span class="legend-dot" style="background:${c.color}"></span> ${c.curso} <span style="color:var(--muted)">· ${c.semestre}</span>`;
+      cont.appendChild(item);
+    });
+  }
+
+  function renderStats(){
+    document.getElementById("totalCursos").textContent = cursos.length;
+    document.getElementById("totalCreditos").textContent =
+      cursos.reduce((total, curso) => total + curso.creditos, 0);
+  }
+
+  function abrirPopup(ev, b){
+    document.getElementById("popTag").textContent = `${b.semestre} semestre`;
+    document.getElementById("popCourse").textContent = b.curso;
+    document.getElementById("popDocente").textContent = b.docente;
+    document.getElementById("popHorario").textContent = `${b.inicio} – ${b.fin}`;
+    document.getElementById("popAula").textContent = `${b.aula} · Turno ${b.turno}`;
+    document.getElementById("popGrupo").textContent = `Grupo ${b.grupo}`;
+
+    const popup = document.getElementById("popup");
+    const overlay = document.getElementById("overlay");
+    const rect = ev.currentTarget.getBoundingClientRect();
+
+    popup.classList.add("show");
+    overlay.classList.add("show");
+
+    let left = rect.left;
+    let top = rect.bottom + 8;
+    if (left + 280 > window.innerWidth) left = window.innerWidth - 292;
+    if (top + 160 > window.innerHeight) top = rect.top - 168;
+
+    popup.style.left = Math.max(8, left) + "px";
+    popup.style.top = Math.max(8, top) + "px";
+  }
+
+  function cerrarPopup(){
+    document.getElementById("popup").classList.remove("show");
+    document.getElementById("overlay").classList.remove("show");
+  }
+
+  renderStats();
+  renderSchedule();
+  renderLegend();
+</script>
+
+</body>
+</html>
