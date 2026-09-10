@@ -9,11 +9,11 @@
     :root {
       --bg: #080C14; --surface: #0F1724; --border: rgba(255,255,255,0.08);
       --text: #E2E8F0; --dim: #64748B; --green: #00C9A7;
-      --purple: #8B5CF6; --purple-dim: rgba(139,92,246,0.15); --red: #F43F5E;
+      --purple: #8B5CF6; --purple-dim: rgba(139,92,246,0.2); --red: #F43F5E;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 20px 16px 60px; }
-    .wrap { max-width: 500px; margin: 0 auto; }
+    .wrap { max-width: 600px; margin: 0 auto; }
 
     .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 16px; }
     .field { margin-bottom: 14px; position: relative; }
@@ -25,22 +25,38 @@
     .sug-item { padding: 10px 14px; font-size: 13px; cursor: pointer; border-bottom: 1px solid var(--border); }
     .sug-item:hover { background: var(--purple-dim); color: #fff; }
 
-    button.btn-main { width: 100%; background: var(--purple); color: #fff; border: none; padding: 14px; border-radius: 12px; font-weight: 700; font-size: 15px; cursor: pointer; margin-top: 10px; }
-    button.btn-main:disabled { opacity: 0.5; cursor: not-allowed; }
+    /* Contenedor flexible de 2 columnas */
+    .grid-dos-col { display: grid; grid-template-columns: 1fr; gap: 16px; margin-top: 14px; }
+    @media(min-width: 480px) {
+      .grid-dos-col { grid-template-columns: 1fr 1fr; }
+    }
 
-    /* Estilos de Cajas de Boletos Interactivas */
-    .boletos-grid { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    /* Cajas de Boletos Interactivas */
+    .boletos-grid { display: flex; flex-direction: column; gap: 8px; }
     .boleto-box { 
       background: rgba(255,255,255,0.05); border: 1px solid var(--border); 
-      color: var(--dim); padding: 8px 14px; border-radius: 8px; font-weight: 700; 
+      color: var(--dim); padding: 10px 14px; border-radius: 8px; font-weight: 700; 
       font-size: 14px; cursor: pointer; user-select: none; transition: 0.2s;
+      display: flex; justify-content: space-between; align-items: center;
     }
     .boleto-box.selected { 
       background: var(--purple-dim); border-color: var(--purple); color: #A78BFA; 
     }
+    .boleto-box.entregado { 
+      background: rgba(0, 201, 167, 0.1); border-color: var(--green); color: var(--green); 
+      cursor: not-allowed; opacity: 0.8;
+    }
 
-    .cam-box { border: 2px dashed var(--border); border-radius: 12px; padding: 16px; text-align: center; cursor: pointer; margin-top: 10px; }
-    .cam-box img { width: 100%; max-height: 220px; object-fit: contain; border-radius: 8px; display: none; margin-top: 8px; }
+    /* Modulo Camara */
+    .cam-box { border: 2px dashed var(--border); border-radius: 12px; padding: 16px; text-align: center; cursor: pointer; height: 100%; min-height: 130px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+    .cam-box img { width: 100%; max-height: 140px; object-fit: contain; border-radius: 8px; display: none; margin-top: 8px; }
+
+    /* Cuadro Resumen */
+    .resumen-box { background: rgba(255,255,255,0.03); border: 1px dashed var(--purple); border-radius: 10px; padding: 12px; margin: 16px 0 12px; font-size: 13px; }
+    .resumen-box span { color: #A78BFA; font-weight: 700; }
+
+    button.btn-main { width: 100%; background: var(--purple); color: #fff; border: none; padding: 14px; border-radius: 12px; font-weight: 700; font-size: 15px; cursor: pointer; }
+    button.btn-main:disabled { opacity: 0.5; cursor: not-allowed; }
     .msg { text-align: center; font-size: 13px; color: var(--dim); margin-top: 10px; }
   </style>
 </head>
@@ -48,7 +64,6 @@
 
 <div class="wrap">
 
-  <!-- 1. BUSCADOR -->
   <div class="card">
     <div class="field">
       <label>Buscar Estudiante / Boleto</label>
@@ -58,7 +73,6 @@
     <button class="btn-main" onclick="buscarBoleto()">Buscar Alumno</button>
   </div>
 
-  <!-- 2. RESULTADO CON SELECCIÓN Y REGISTRO DIRECTO -->
   <div id="resultadoBoleto"></div>
 
 </div>
@@ -120,55 +134,92 @@
     var hallados = dbCache.filter(row => row.join(' ').toLowerCase().includes(q));
 
     if (hallados.length === 0) {
-      resDiv.innerHTML = '<p class="msg" style="color:var(--red)">No se encontraron registros de este alumno.</p>';
+      resDiv.innerHTML = '<p class="msg" style="color:var(--red)">No se encontraron registros.</p>';
       return;
     }
 
-    var item = hallados[0]; // Tomar el registro principal hallado
+    var item = hallados[0];
     alumnoEncontrado = {
       salon: item[1] || '',
       nombre: item[2] || '',
       celular: item[3] || ''
     };
 
+    // Verificar si la fila ya incluye una URL de foto en las columnas finales
+    var yaRegistradoPrevio = item.some(val => val.startsWith('http'));
     var boletos = item.filter((val, idx) => idx >= 4 && val.trim() !== '' && !val.startsWith('http'));
 
     resDiv.innerHTML = `
       <div class="card">
         <h3 style="color:#fff; font-size:18px; margin-bottom:4px;">${alumnoEncontrado.nombre}</h3>
-        <p style="font-size:13px; color:var(--dim); margin-bottom:12px;">📍 Salón: ${alumnoEncontrado.salon} ${alumnoEncontrado.celular ? '· 📱 Cel: ' + alumnoEncontrado.celular : ''}</p>
+        <p style="font-size:13px; color:var(--dim); margin-bottom:8px;">📍 Salón: ${alumnoEncontrado.salon} ${alumnoEncontrado.celular ? '· 📱 Cel: ' + alumnoEncontrado.celular : ''}</p>
         
-        <label>Toca los boletos que vas a entregar:</label>
-        <div class="boletos-grid">
-          ${boletos.map(b => `<div class="boleto-box" onclick="toggleBoleto(this, '${b}')">🎟️ N° ${b}</div>`).join('')}
+        <div class="grid-dos-col">
+          <div>
+            <label>Boletos asignados:</label>
+            <div class="boletos-grid">
+              ${boletos.map(b => {
+                if (yaRegistradoPrevio) {
+                  return `<div class="boleto-box entregado">🎟️ N° ${b} <span>✓ Ya entregado</span></div>`;
+                } else {
+                  return `<div class="boleto-box" onclick="toggleBoleto(this, '${b}')">🎟️ N° ${b} <span>Tocar</span></div>`;
+                }
+              }).join('')}
+            </div>
+          </div>
+
+          <div>
+            <label>Foto de Evidencia:</label>
+            <div class="cam-box" onclick="document.getElementById('fotoInput').click()">
+              <span id="camText">📷 Tomar Foto</span>
+              <img id="imgPreview" alt="Vista previa">
+            </div>
+            <input type="file" id="fotoInput" accept="image/*" capture="environment" style="display:none;" onchange="previewImage(event)">
+          </div>
         </div>
 
         <div class="field" style="margin-top:16px;">
           <label>PIN de Responsable</label>
-          <input type="password" id="pinEntrega" placeholder="Ingresa tu PIN para confirmar">
+          <input type="password" id="pinEntrega" placeholder="Ingresa tu PIN">
         </div>
 
-        <div class="field">
-          <label>Foto de Evidencia / Entrega</label>
-          <div class="cam-box" onclick="document.getElementById('fotoInput').click()">
-            <span id="camText">📷 Tomar Foto de Entrega</span>
-            <img id="imgPreview" alt="Foto tomada">
-          </div>
-          <input type="file" id="fotoInput" accept="image/*" capture="environment" style="display:none;" onchange="previewImage(event)">
+        <!-- RESUMEN EN TIEMPO REAL -->
+        <div class="resumen-box" id="resumenEntrega">
+          📋 <b>Resumen:</b> Selecciona los boletos para ver el detalle.
         </div>
 
-        <button class="btn-main" id="btnConfirmar" onclick="confirmarEntrega()">Registrar Entrega con Foto</button>
+        <button class="btn-main" id="btnConfirmar" ${yaRegistradoPrevio ? 'disabled' : ''} onclick="confirmarEntrega()">
+          ${yaRegistradoPrevio ? 'Entrega Completada Anteriormente' : 'Registrar Entrega con Foto'}
+        </button>
         <p id="msgProceso" class="msg"></p>
       </div>
     `;
+    
+    actualizarResumen();
   }
 
   function toggleBoleto(elem, boleto) {
     elem.classList.toggle('selected');
+    var statusSpan = elem.querySelector('span');
+    
     if (elem.classList.contains('selected')) {
       boletosSeleccionados.push(boleto);
+      if(statusSpan) statusSpan.innerText = "✓ Listo";
     } else {
       boletosSeleccionados = boletosSeleccionados.filter(b => b !== boleto);
+      if(statusSpan) statusSpan.innerText = "Tocar";
+    }
+    actualizarResumen();
+  }
+
+  function actualizarResumen() {
+    var box = document.getElementById('resumenEntrega');
+    if (!box) return;
+
+    if (boletosSeleccionados.length === 0) {
+      box.innerHTML = "📋 <b>Resumen:</b> No has seleccionado ningún boleto aún.";
+    } else {
+      box.innerHTML = `📋 <b>Resumen de entrega:</b> Alumno <span>${alumnoEncontrado.nombre}</span> recojerá <span>${boletosSeleccionados.length}</span> boleto(s): <span>[ N° ${boletosSeleccionados.join(', N° ')} ]</span>.`;
     }
   }
 
@@ -200,7 +251,7 @@
 
     if (boletosSeleccionados.length === 0) {
       msg.style.color = "var(--red)";
-      msg.innerText = "Selecciona al menos un boleto de la lista tocando las cajas.";
+      msg.innerText = "Selecciona al menos un boleto de la lista.";
       return;
     }
 
@@ -226,7 +277,7 @@
     .then(res => {
       if (res.ok) {
         msg.style.color = "var(--green)";
-        msg.innerText = "¡Entrega registrada por " + res.registradoPor + "!";
+        msg.innerText = "¡Entrega registrada exitosamente por " + res.registradoPor + "!";
         setTimeout(() => {
           document.getElementById('resultadoBoleto').innerHTML = '';
           document.getElementById('numBoleto').value = '';
