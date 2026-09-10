@@ -16,7 +16,6 @@
     body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 24px 16px 60px; }
     .wrap { max-width: 500px; margin: 0 auto; }
 
-    /* TABS NAV */
     .nav-tabs { display: flex; gap: 8px; background: rgba(255,255,255,0.03); padding: 6px; border-radius: 14px; border: 1px solid var(--border); margin-bottom: 20px; }
     .tab-btn { flex: 1; padding: 10px; border: none; background: transparent; color: var(--dim); font-weight: 700; border-radius: 10px; cursor: pointer; transition: 0.2s; }
     .tab-btn.active { background: var(--purple); color: #fff; }
@@ -24,25 +23,21 @@
     .tab-content { display: none; }
     .tab-content.active { display: block; }
 
-    /* CARDS & INPUTS */
     .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
     .field { margin-bottom: 14px; position: relative; }
     label { display: block; font-size: 12px; font-weight: 700; color: var(--dim); margin-bottom: 6px; text-transform: uppercase; }
-    input, select { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.05); color: #fff; font-size: 14px; outline: none; }
+    input { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.05); color: #fff; font-size: 14px; outline: none; }
     input:focus { border-color: var(--purple); }
 
-    /* SUGERENCIAS DROPDOWN */
     .suggestions { position: absolute; top: 100%; left: 0; right: 0; background: #162032; border: 1px solid var(--border); border-radius: 10px; max-height: 180px; overflow-y: auto; z-index: 20; display: none; }
     .sug-item { padding: 10px 14px; font-size: 13px; cursor: pointer; border-bottom: 1px solid var(--border); }
     .sug-item:hover { background: var(--purple-dim); color: #fff; }
 
     button.btn-main { width: 100%; background: var(--purple); color: #fff; border: none; padding: 14px; border-radius: 12px; font-weight: 700; font-size: 15px; cursor: pointer; }
     
-    /* CAMARA / PREVIEW */
     .cam-box { border: 2px dashed var(--border); border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; margin-bottom: 16px; }
     .cam-box img { width: 100%; max-height: 250px; object-fit: contain; border-radius: 8px; display: none; margin-top: 10px; }
 
-    /* RESULTADOS */
     .res-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 16px; }
     .boletos-grid { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
     .boleto-box { background: var(--purple-dim); border: 1px solid rgba(139,92,246,0.3); color: #A78BFA; padding: 6px 12px; border-radius: 8px; font-weight: 700; font-size: 14px; }
@@ -72,29 +67,33 @@
     <div id="resultadoBoleto"></div>
   </div>
 
-  <!-- PESTAÑA 2: REGISTRAR BOLETOS Y FOTO -->
+  <!-- PESTAÑA 2: REGISTRAR BOLETOS CON PIN Y CAMARA -->
   <div id="tab-registro" class="tab-content">
     <div class="card">
       <form id="formRegistro" onsubmit="guardarRegistro(event)">
         <div class="field">
-          <label>Alumno / Nombre Completo</label>
-          <input type="text" id="regAlumno" required placeholder="Ej. MAITA TINTAYA, Liz">
+          <label>PIN de Responsable</label>
+          <input type="password" id="regPin" required placeholder="Ingresa tu PIN">
         </div>
         <div class="field">
-          <label>Salón / Curso</label>
+          <label>Salón / Sección</label>
           <input type="text" id="regSalon" required placeholder="Ej. 1ro A">
         </div>
         <div class="field">
-          <label>Celular / Teléfono</label>
+          <label>Apellidos y Nombres</label>
+          <input type="text" id="regAlumno" required placeholder="Ej. MAITA TINTAYA, Liz">
+        </div>
+        <div class="field">
+          <label>Celular</label>
           <input type="text" id="regCelular" placeholder="Ej. 922633067">
         </div>
         <div class="field">
-          <label>Boletos (separados por coma)</label>
+          <label>Boletos (hasta 5 separados por coma)</label>
           <input type="text" id="regBoletos" required placeholder="Ej. 14101, 14102, 14103">
         </div>
 
         <div class="field">
-          <label>Evidencia de Foto</label>
+          <label>Foto de Evidencia</label>
           <div class="cam-box" onclick="document.getElementById('regFoto').click()">
             <span id="camText">📷 Tomar Foto / Subir Imagen</span>
             <img id="imgPreview" alt="Vista previa">
@@ -102,7 +101,7 @@
           <input type="file" id="regFoto" accept="image/*" capture="environment" style="display:none;" onchange="previewImage(event)">
         </div>
 
-        <button type="submit" class="btn-main" id="btnGuardar">Guardar Registro</button>
+        <button type="submit" class="btn-main" id="btnGuardar">Registrar Entrega</button>
         <p id="msgRegistro" class="msg"></p>
       </form>
     </div>
@@ -111,14 +110,12 @@
 </div>
 
 <script>
-  // PEGA AQUÍ LA URL DE TU WEB APP DE APPS SCRIPT
-  var APPS_SCRIPT_URL = 'PEGA_AQUI_TU_URL_DE_APPS_SCRIPT';
+  var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxfmx0kpj82WMvpplf_gRzZ7Yje_sr7ZyCsIGQHfIYCMkUsvD37c-sZMUn6fWxMROS8dw/exec';
   var SHEET_ID = '1rSx_jr7Kp-pymtf5wWMiyJUJnJPZ_kILcwWR06wOAjo';
   
   var dbCache = [];
   var fotoBase64Data = "";
 
-  // Cargar datos en segundo plano para autocompletar
   window.onload = function() {
     cargarBaseDatos();
   };
@@ -146,7 +143,6 @@
     });
   }
 
-  // SUGERENCIAS EN TIEMPO REAL
   function filtrarSugerencias() {
     var input = document.getElementById('numBoleto').value.trim().toLowerCase();
     var box = document.getElementById('sugerenciasBox');
@@ -207,7 +203,7 @@
 
       html += `
         <div class="res-card">
-          <div style="display:flex; justify-size:space-between; margin-bottom:8px;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
             <span style="color:var(--green); font-weight:700; font-size:12px;">✓ Entregado</span>
             <span style="font-size:12px; color:var(--dim);">${fecha}</span>
           </div>
@@ -227,7 +223,6 @@
     resDiv.innerHTML = html;
   }
 
-  // MANEJO DE FOTO
   function previewImage(event) {
     var file = event.target.files[0];
     if (!file) return;
@@ -243,18 +238,20 @@
     reader.readAsDataURL(file);
   }
 
-  // GUARDAR REGISTRO VÍA APPS SCRIPT
   function guardarRegistro(e) {
     e.preventDefault();
     var btn = document.getElementById('btnGuardar');
     var msg = document.getElementById('msgRegistro');
 
     btn.disabled = true;
+    msg.style.color = "var(--dim)";
     msg.innerText = "Guardando e subiendo foto...";
 
     var payload = {
-      alumno: document.getElementById('regAlumno').value,
+      accion: "registrarEntrega",
+      pin: document.getElementById('regPin').value,
       salon: document.getElementById('regSalon').value,
+      nombre: document.getElementById('regAlumno').value,
       celular: document.getElementById('regCelular').value,
       boletos: document.getElementById('regBoletos').value.split(',').map(s => s.trim()),
       fotoBase64: fotoBase64Data
@@ -266,21 +263,21 @@
     })
     .then(r => r.json())
     .then(res => {
-      if (res.status === 'success') {
+      if (res.ok) {
         msg.style.color = 'var(--green)';
-        msg.innerText = "¡Registro guardado con éxito!";
+        msg.innerText = "¡Registro exitoso guardado por " + res.registradoPor + "!";
         document.getElementById('formRegistro').reset();
         document.getElementById('imgPreview').style.display = 'none';
         document.getElementById('camText').style.display = 'inline';
         fotoBase64Data = "";
-        cargarBaseDatos(); // Recargar caché
+        cargarBaseDatos();
       } else {
-        throw new Error(res.message);
+        throw new Error(res.error);
       }
     })
     .catch(err => {
       msg.style.color = 'var(--red)';
-      msg.innerText = "Error al guardar. Verifica la URL de Apps Script.";
+      msg.innerText = "Error: " + err.message;
     })
     .finally(() => { btn.disabled = false; });
   }
