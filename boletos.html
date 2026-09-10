@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Consulta de Boletos</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg: #080C14; --surface: #0F1724; --purple: #8B5CF6; --text: #E2E8F0; --dim: #64748B; --green: #00C9A7; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 20px; max-width: 500px; margin: 0 auto; }
+    .card { background: var(--surface); padding: 24px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); margin-top: 20px; }
+    h1 { font-family: 'Space Grotesk', sans-serif; color: #fff; text-align: center; font-size: 24px; margin-bottom: 20px; }
+    .input-group { display: flex; gap: 10px; margin-bottom: 16px; }
+    input { flex: 1; padding: 12px 16px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: #fff; outline: none; }
+    button { background: var(--purple); color: #fff; border: none; padding: 12px 20px; border-radius: 10px; font-weight: 700; cursor: pointer; }
+    .res-card { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 16px; border: 1px solid rgba(255,255,255,0.08); margin-top: 12px; }
+    .tag { display: inline-block; background: rgba(0,201,167,0.15); color: var(--green); padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+    img.evidencia { width: 100%; border-radius: 8px; margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+  <h1>🎟️ Consulta de Boletos</h1>
+
+  <div class="card">
+    <div class="input-group">
+      <input type="text" id="numBoleto" placeholder="Escribe N° de boleto o alumno...">
+      <button onclick="buscarBoleto()">Buscar</button>
+    </div>
+    <div id="resultadoBoleto"></div>
+  </div>
+
+<script>
+  var SHEET_ID = '1ObB4TZOgCkTyN0iPhrbgZZJNqNw2A81yEoAUfs7kT-8';
+  var HOJA_BOLETOS = 'BD_Boletos'; // Nombre de tu pestaña de boletos
+
+  function buscarBoleto() {
+    var q = document.getElementById('numBoleto').value.trim().toLowerCase();
+    var resDiv = document.getElementById('resultadoBoleto');
+    if (!q) return;
+
+    resDiv.innerHTML = '<p style="color:var(--dim); text-align:center;">Cargando...</p>';
+
+    var url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent(HOJA_BOLETOS);
+
+    fetch(url)
+      .then(r => r.text())
+      .then(txt => {
+        var json = JSON.parse(txt.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);/)[1]);
+        var cols = json.table.cols.map(c => c.label);
+        var rows = json.table.rows.map(r => {
+          var obj = {};
+          r.c.forEach((cell, i) => { obj[cols[i]] = cell ? cell.v : ''; });
+          return obj;
+        });
+
+        // Filtrar por coincidencia en cualquier campo (Boleto, Alumno, Salón)
+        var hallados = rows.filter(r => JSON.stringify(r).toLowerCase().includes(q));
+
+        if (hallados.length === 0) {
+          resDiv.innerHTML = '<p style="color:#F43F5E; text-align:center;">No se encontraron registros de entrega.</p>';
+          return;
+        }
+
+        var html = '';
+        hallados.forEach(item => {
+          html += `
+            <div class="res-card">
+              <span class="tag">Entregado</span>
+              <h3 style="margin: 8px 0 4px; color:#fff;">${item['Alumno'] || item['Nombre'] || 'Estudiante'}</h3>
+              <p style="font-size:13px; color:var(--dim);"><b>Salón:</b> ${item['Salón'] || '-'}</p>
+              <p style="font-size:13px; color:var(--dim);"><b>Boletos:</b> ${item['Boletos'] || item['Boleto'] || '-'}</p>
+              <p style="font-size:13px; color:var(--dim);"><b>Fecha:</b> ${item['Fecha'] || '-'}</p>
+              ${item['Foto'] ? `<a href="${item['Foto']}" target="_blank" style="color:var(--purple); font-size:12px; display:block; margin-top:8px;">📷 Ver Evidencia de Foto</a>` : ''}
+            </div>
+          `;
+        });
+        resDiv.innerHTML = html;
+      })
+      .catch(() => {
+        resDiv.innerHTML = '<p style="color:#F43F5E; text-align:center;">Error al consultar la base de datos.</p>';
+      });
+  }
+</script>
+</body>
+</html>
