@@ -27,23 +27,38 @@
 
     .grid-dos-col { display: grid; grid-template-columns: 1fr; gap: 16px; margin-top: 14px; }
     @media(min-width: 480px) {
-      .grid-dos-col { grid-template-columns: 1.2fr 1fr; }
+      .grid-dos-col { grid-template-columns: 1.1fr 0.9fr; }
     }
 
+    /* Tarjetas de Boletos con Edición Dinámica */
     .boletos-grid { display: flex; flex-direction: column; gap: 8px; }
+    .boleto-card {
+      background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+      border-radius: 10px; padding: 8px 12px; display: flex; flex-direction: column; gap: 6px;
+    }
+    .boleto-row { display: flex; justify-content: space-between; align-items: center; }
     .boleto-box { 
-      background: rgba(255,255,255,0.05); border: 1px solid var(--border); 
-      color: var(--dim); padding: 10px 14px; border-radius: 8px; font-weight: 700; 
-      font-size: 14px; cursor: pointer; user-select: none; transition: 0.2s;
+      flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--border); 
+      color: var(--dim); padding: 10px 12px; border-radius: 8px; font-weight: 700; 
+      font-size: 13px; cursor: pointer; user-select: none; transition: 0.2s;
       display: flex; justify-content: space-between; align-items: center;
     }
     .boleto-box.selected { 
       background: var(--purple-dim); border-color: var(--purple); color: #A78BFA; 
     }
+    .btn-edit-num { background: transparent; border: none; color: var(--dim); font-size: 11px; cursor: pointer; text-decoration: underline; margin-left: 8px; }
+    .btn-edit-num:hover { color: #fff; }
 
-    /* Módulo Foto de Evidencia */
-    .cam-box { border: 2px dashed var(--border); border-radius: 12px; padding: 12px; text-align: center; cursor: pointer; min-height: 140px; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(0,0,0,0.2); }
-    .cam-box img { width: 100%; max-height: 160px; object-fit: contain; border-radius: 8px; }
+    /* Módulo Cámara FULL SIZE (Ocupa todo el contenedor) */
+    .cam-box { 
+      border: 2px dashed var(--border); border-radius: 12px; height: 100%; min-height: 180px; 
+      position: relative; overflow: hidden; cursor: pointer; display: flex; flex-direction: column; 
+      justify-content: center; align-items: center; background: rgba(0,0,0,0.3); 
+    }
+    .cam-box img { 
+      width: 100%; height: 100%; object-fit: cover; position: absolute; top:0; left:0; border-radius: 10px; 
+    }
+    .cam-box span { z-index: 2; font-size: 12px; font-weight: 600; color: var(--dim); text-align: center; padding: 8px; background: rgba(8,12,20,0.7); border-radius: 6px; }
 
     /* Estilo de Boleta / Pre-Registro */
     .ticket-box { background: #162032; border: 1px dashed var(--purple); border-radius: 12px; padding: 16px; margin: 16px 0; display: none; }
@@ -79,9 +94,10 @@
   var SHEET_ID = '1rSx_jr7Kp-pymtf5wWMiyJUJnJPZ_kILcwWR06wOAjo';
   
   var dbCache = [];
-  var fotoBase64Data = "";
+  var fotoPrincipalBase64 = "";
+  var fotoExtraBase64 = "";
   var alumnoEncontrado = null;
-  var boletosSeleccionados = [];
+  var boletosData = []; 
 
   window.onload = function() { cargarBaseDatos(); };
 
@@ -133,8 +149,8 @@
     var q = document.getElementById('numBoleto').value.trim().toLowerCase();
     var resDiv = document.getElementById('resultadoBoleto');
     document.getElementById('sugerenciasBox').style.display = 'none';
-    fotoBase64Data = "";
-    boletosSeleccionados = [];
+    fotoPrincipalBase64 = "";
+    fotoExtraBase64 = "";
     if (!q) return;
 
     var hallados = dbCache.filter(row => row.join(' ').toLowerCase().includes(q));
@@ -153,7 +169,16 @@
 
     var fotoUrlHoja = item.find(val => val.startsWith('http')) || '';
     var fotoDirecta = obtenerUrlDirecta(fotoUrlHoja);
-    var boletos = item.filter((val, idx) => idx >= 4 && val.trim() !== '' && !val.startsWith('http'));
+    
+    // Mapeo dinámico de boletos (permite mutación de números si no coinciden)
+    var rawBoletos = item.filter((val, idx) => idx >= 4 && val.trim() !== '' && !val.startsWith('http'));
+    boletosData = rawBoletos.map((num, idx) => ({ id: idx, numero: num, seleccionado: false }));
+
+    renderFormulario(fotoDirecta);
+  }
+
+  function renderFormulario(fotoDirecta) {
+    var resDiv = document.getElementById('resultadoBoleto');
 
     resDiv.innerHTML = `
       <div class="card" id="formBloque">
@@ -163,35 +188,47 @@
         <div class="grid-dos-col">
           <div>
             <label>Toca los boletos a entregar:</label>
-            <div class="boletos-grid">
-              ${boletos.map(b => `<div class="boleto-box" onclick="toggleBoleto(this, '${b}')">🎟️ N° ${b} <span>Tocar</span></div>`).join('')}
+            <div class="boletos-grid" id="boletosListContainer">
+              ${renderBoletosHTML()}
             </div>
           </div>
 
           <div>
-            <label>Evidencia / Foto de entrega:</label>
+            <label>Evidencia Principal:</label>
             <div class="cam-box" onclick="document.getElementById('fotoInput').click()">
-              ${fotoDirecta && !fotoBase64Data ? 
-                `<img id="imgPreview" src="${fotoDirecta}" style="display:block;">` : 
-                `<span id="camText">📷 Tomar / Cambiar Foto</span><img id="imgPreview" style="display:none;">`
+              ${fotoDirecta && !fotoPrincipalBase64 ? 
+                `<img id="imgPreview" src="${fotoDirecta}"><span>📷 Cambiar Foto</span>` : 
+                `<img id="imgPreview" src="${fotoPrincipalBase64}" style="${fotoPrincipalBase64 ? '' : 'display:none;'}">
+                 <span id="camText">${fotoPrincipalBase64 ? '📷 Cambiar Foto' : '📷 Tomar / Subir Foto'}</span>`
               }
             </div>
-            <input type="file" id="fotoInput" accept="image/*" capture="environment" style="display:none;" onchange="previewImage(event)">
+            <input type="file" id="fotoInput" accept="image/*" capture="environment" style="display:none;" onchange="previewImage(event, 'principal')">
           </div>
         </div>
 
+        <!-- FOTO EXTRA ADICIONAL -->
         <div class="field" style="margin-top:16px;">
+          <label>Foto Adjunta Adicional (Opcional - Vouchers / Comprobantes):</label>
+          <div class="cam-box" style="min-height:90px;" onclick="document.getElementById('fotoExtraInput').click()">
+            <img id="imgExtraPreview" src="${fotoExtraBase64}" style="${fotoExtraBase64 ? '' : 'display:none;'}">
+            <span id="camExtraText">${fotoExtraBase64 ? '📎 Adjunto Cargado (Toca para cambiar)' : '📎 Adjuntar Segunda Foto / Voucher'}</span>
+          </div>
+          <input type="file" id="fotoExtraInput" accept="image/*" capture="environment" style="display:none;" onchange="previewImage(event, 'extra')">
+        </div>
+
+        <div class="field" style="margin-top:14px;">
           <label>PIN de Responsable</label>
           <input type="password" id="pinEntrega" placeholder="Ingresa tu PIN de autorización">
         </div>
 
-        <!-- BOLETA DE RESUMEN PREVIO -->
+        <!-- BOLETA DE PRE-REGISTRO -->
         <div class="ticket-box" id="boletaPrevia">
           <div class="ticket-header">🧾 Resumen de Pre-Entrega</div>
           <div class="ticket-row"><span>Estudiante:</span> <b id="tNombre"></b></div>
           <div class="ticket-row"><span>Salón:</span> <b id="tSalon"></b></div>
           <div class="ticket-row"><span>Boletos:</span> <b id="tBoletos" style="color:var(--green);"></b></div>
-          <div class="ticket-row"><span>Evidencia Adjunta:</span> <b id="tFoto"></b></div>
+          <div class="ticket-row"><span>Evidencia Principal:</span> <b id="tFotoMain"></b></div>
+          <div class="ticket-row"><span>Evidencia Extra:</span> <b id="tFotoExtra"></b></div>
         </div>
 
         <div id="btnAcciones">
@@ -202,31 +239,60 @@
     `;
   }
 
-  function toggleBoleto(elem, boleto) {
-    elem.classList.toggle('selected');
-    var statusSpan = elem.querySelector('span');
-    
-    if (elem.classList.contains('selected')) {
-      boletosSeleccionados.push(boleto);
-      if(statusSpan) statusSpan.innerText = "✓ Seleccionado";
-    } else {
-      boletosSeleccionados = boletosSeleccionados.filter(b => b !== boleto);
-      if(statusSpan) statusSpan.innerText = "Tocar";
+  function renderBoletosHTML() {
+    return boletosData.map(b => `
+      <div class="boleto-card">
+        <div class="boleto-row">
+          <div class="boleto-box ${b.seleccionado ? 'selected' : ''}" onclick="toggleBoleto(${b.id})">
+            <span>🎟️ N° ${b.numero}</span>
+            <span style="font-size:11px;">${b.seleccionado ? '✓ Seleccionado' : 'Tocar'}</span>
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <button class="btn-edit-num" onclick="editarNumeroBoleto(${b.id})">✏️ ¿El número no coincide? Corregir</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function toggleBoleto(id) {
+    var item = boletosData.find(b => b.id === id);
+    if (item) {
+      item.seleccionado = !item.seleccionado;
+      document.getElementById('boletosListContainer').innerHTML = renderBoletosHTML();
     }
   }
 
-  function previewImage(event) {
+  function editarNumeroBoleto(id) {
+    var item = boletosData.find(b => b.id === id);
+    if (!item) return;
+
+    var nuevoNum = prompt("Ingresa el número real del boleto físico:", item.numero);
+    if (nuevoNum !== null && nuevoNum.trim() !== "") {
+      item.numero = nuevoNum.trim();
+      document.getElementById('boletosListContainer').innerHTML = renderBoletosHTML();
+    }
+  }
+
+  function previewImage(event, tipo) {
     var file = event.target.files[0];
     if (!file) return;
 
     var reader = new FileReader();
     reader.onload = function(e) {
-      fotoBase64Data = e.target.result;
-      var img = document.getElementById('imgPreview');
-      img.src = fotoBase64Data;
-      img.style.display = 'block';
-      var txt = document.getElementById('camText');
-      if(txt) txt.style.display = 'none';
+      if (tipo === 'principal') {
+        fotoPrincipalBase64 = e.target.result;
+        var img = document.getElementById('imgPreview');
+        img.src = fotoPrincipalBase64;
+        img.style.display = 'block';
+        document.getElementById('camText').innerText = "📷 Cambiar Foto";
+      } else {
+        fotoExtraBase64 = e.target.result;
+        var imgExtra = document.getElementById('imgExtraPreview');
+        imgExtra.src = fotoExtraBase64;
+        imgExtra.style.display = 'block';
+        document.getElementById('camExtraText').innerText = "📎 Adjunto Cargado (Toca para cambiar)";
+      }
     };
     reader.readAsDataURL(file);
   }
@@ -234,8 +300,9 @@
   function generarPreRegistro() {
     var pin = document.getElementById('pinEntrega').value.trim();
     var msg = document.getElementById('msgProceso');
+    var elegidos = boletosData.filter(b => b.seleccionado).map(b => b.numero);
 
-    if (boletosSeleccionados.length === 0) {
+    if (elegidos.length === 0) {
       msg.style.color = "var(--red)";
       msg.innerText = "Marca al menos un boleto para continuar.";
       return;
@@ -249,8 +316,9 @@
     msg.innerText = "";
     document.getElementById('tNombre').innerText = alumnoEncontrado.nombre;
     document.getElementById('tSalon').innerText = alumnoEncontrado.salon;
-    document.getElementById('tBoletos').innerText = "N° " + boletosSeleccionados.join(', N° ');
-    document.getElementById('tFoto').innerText = fotoBase64Data ? "Sí (Nueva)" : "Conserva/Sin foto";
+    document.getElementById('tBoletos').innerText = "N° " + elegidos.join(', N° ');
+    document.getElementById('tFotoMain').innerText = fotoPrincipalBase64 ? "Sí (Adjuntada)" : "Existente en Servidor / Sin foto";
+    document.getElementById('tFotoExtra').innerText = fotoExtraBase64 ? "Sí (Adjuntada)" : "No adjuntada";
 
     document.getElementById('boletaPrevia').style.display = "block";
 
@@ -273,9 +341,10 @@
   function confirmarEntregaFinal() {
     var pin = document.getElementById('pinEntrega').value.trim();
     var msg = document.getElementById('msgProceso');
+    var elegidos = boletosData.filter(b => b.seleccionado).map(b => b.numero);
 
     msg.style.color = "var(--dim)";
-    msg.innerText = "Enviando datos al servidor...";
+    msg.innerText = "Guardando datos y archivos de evidencia...";
 
     var payload = {
       accion: "registrarEntrega",
@@ -283,8 +352,9 @@
       salon: alumnoEncontrado.salon,
       nombre: alumnoEncontrado.nombre,
       celular: alumnoEncontrado.celular,
-      boletos: boletosSeleccionados,
-      fotoBase64: fotoBase64Data
+      boletos: elegidos,
+      fotoBase64: fotoPrincipalBase64,
+      fotoExtraBase64: fotoExtraBase64
     };
 
     fetch(APPS_SCRIPT_URL, {
@@ -295,7 +365,7 @@
     .then(res => {
       if (res.ok) {
         msg.style.color = "var(--green)";
-        msg.innerText = "¡Entrega registrada por " + res.registradoPor + "!";
+        msg.innerText = "¡Entrega registrada exitosamente por " + res.registradoPor + "!";
         setTimeout(() => {
           document.getElementById('resultadoBoleto').innerHTML = '';
           document.getElementById('numBoleto').value = '';
