@@ -3,220 +3,181 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-  <title>Consulta de Boletos y Entregas</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <title>Gestión de Boletos</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
   <style>
-    /* ── TOKENS ─────────────────────────────────────────────── */
     :root {
-      --bg:        #080C14;
-      --surface:   #0F1724;
-      --border:    rgba(255,255,255,0.08);
-      --muted:     #334155;
-      --text:      #E2E8F0;
-      --dim:       #64748B;
-      --green:     #00C9A7;
-      --green-dim: rgba(0,201,167,0.12);
-      --red:       #F43F5E;
-      --amber:     #F59E0B;
-      --purple:    #8B5CF6;
-      --purple-dim:rgba(139,92,246,0.15);
-      --radius:    16px;
+      --bg: #080C14; --surface: #0F1724; --border: rgba(255,255,255,0.08);
+      --text: #E2E8F0; --dim: #64748B; --green: #00C9A7;
+      --green-dim: rgba(0,201,167,0.12); --purple: #8B5CF6;
+      --purple-dim: rgba(139,92,246,0.15); --red: #F43F5E;
     }
-
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Inter', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      padding: 32px 16px 60px;
-    }
-
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 24px 16px 60px; }
     .wrap { max-width: 500px; margin: 0 auto; }
 
-    /* ── HERO ───────────────────────────────────────────────── */
-    .hero { text-align: center; margin-bottom: 24px; }
-    .hero h1 {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 28px; font-weight: 700; color: #fff;
-      margin-bottom: 6px;
-    }
-    .hero p { font-size: 14px; color: var(--dim); }
+    /* TABS NAV */
+    .nav-tabs { display: flex; gap: 8px; background: rgba(255,255,255,0.03); padding: 6px; border-radius: 14px; border: 1px solid var(--border); margin-bottom: 20px; }
+    .tab-btn { flex: 1; padding: 10px; border: none; background: transparent; color: var(--dim); font-weight: 700; border-radius: 10px; cursor: pointer; transition: 0.2s; }
+    .tab-btn.active { background: var(--purple); color: #fff; }
 
-    /* ── CARD PRINCIPAL ─────────────────────────────────────── */
-    .card-search {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 20px;
-      margin-bottom: 24px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-    }
-    .input-group { display: flex; gap: 10px; }
-    input {
-      flex: 1;
-      padding: 14px 16px;
-      border-radius: 12px;
-      border: 1.5px solid var(--border);
-      background: rgba(255,255,255,0.05);
-      color: #fff;
-      font-size: 15px;
-      outline: none;
-      transition: border-color 0.2s;
-    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* CARDS & INPUTS */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
+    .field { margin-bottom: 14px; position: relative; }
+    label { display: block; font-size: 12px; font-weight: 700; color: var(--dim); margin-bottom: 6px; text-transform: uppercase; }
+    input, select { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.05); color: #fff; font-size: 14px; outline: none; }
     input:focus { border-color: var(--purple); }
-    button {
-      background: var(--purple);
-      color: #fff;
-      border: none;
-      padding: 14px 20px;
-      border-radius: 12px;
-      font-weight: 700;
-      font-size: 15px;
-      cursor: pointer;
-      transition: transform 0.1s, opacity 0.2s;
-    }
-    button:active { transform: scale(0.97); }
 
-    /* ── TARJETA DE RESULTADO ───────────────────────────────── */
-    .res-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 20px;
-      margin-bottom: 20px;
-      animation: fadeUp 0.3s ease forwards;
-    }
-    .res-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-    .tag-status {
-      background: var(--green-dim);
-      color: var(--green);
-      border: 1px solid rgba(0,201,167,0.3);
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 700;
-    }
-    .res-title {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 18px;
-      font-weight: 700;
-      color: #fff;
-      margin-bottom: 8px;
-    }
-    .res-meta {
-      font-size: 13px;
-      color: var(--dim);
-      margin-bottom: 16px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
+    /* SUGERENCIAS DROPDOWN */
+    .suggestions { position: absolute; top: 100%; left: 0; right: 0; background: #162032; border: 1px solid var(--border); border-radius: 10px; max-height: 180px; overflow-y: auto; z-index: 20; display: none; }
+    .sug-item { padding: 10px 14px; font-size: 13px; cursor: pointer; border-bottom: 1px solid var(--border); }
+    .sug-item:hover { background: var(--purple-dim); color: #fff; }
 
-    /* ── CAJAS DE BOLETOS ────────────────────────────────────── */
-    .boletos-label {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      color: var(--dim);
-      margin-bottom: 8px;
-    }
-    .boletos-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 20px;
-    }
-    .boleto-box {
-      background: var(--purple-dim);
-      border: 1px solid rgba(139,92,246,0.3);
-      color: #A78BFA;
-      padding: 8px 14px;
-      border-radius: 10px;
-      font-family: 'Space Grotesk', sans-serif;
-      font-weight: 700;
-      font-size: 15px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
+    button.btn-main { width: 100%; background: var(--purple); color: #fff; border: none; padding: 14px; border-radius: 12px; font-weight: 700; font-size: 15px; cursor: pointer; }
+    
+    /* CAMARA / PREVIEW */
+    .cam-box { border: 2px dashed var(--border); border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; margin-bottom: 16px; }
+    .cam-box img { width: 100%; max-height: 250px; object-fit: contain; border-radius: 8px; display: none; margin-top: 10px; }
 
-    /* ── CONTENEDOR DE FOTO EN GRANDE ───────────────────────── */
-    .foto-container {
-      width: 100%;
-      background: #000;
-      border-radius: 12px;
-      overflow: hidden;
-      border: 1px solid var(--border);
-      margin-top: 12px;
-      text-align: center;
-    }
-    .foto-img {
-      width: 100%;
-      max-height: 400px;
-      object-fit: contain;
-      display: block;
-    }
-    .btn-drive {
-      display: block;
-      text-align: center;
-      padding: 10px;
-      background: rgba(255,255,255,0.04);
-      color: var(--dim);
-      text-decoration: none;
-      font-size: 12px;
-      font-weight: 600;
-      border-top: 1px solid var(--border);
-      transition: background 0.2s, color 0.2s;
-    }
-    .btn-drive:hover { background: rgba(255,255,255,0.08); color: #fff; }
-
-    /* ── MENSAJES ───────────────────────────────────────────── */
-    .msg { text-align: center; font-size: 14px; color: var(--dim); margin-top: 10px; }
-    .msg.error { color: var(--red); }
-
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(10px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
+    /* RESULTADOS */
+    .res-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+    .boletos-grid { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    .boleto-box { background: var(--purple-dim); border: 1px solid rgba(139,92,246,0.3); color: #A78BFA; padding: 6px 12px; border-radius: 8px; font-weight: 700; font-size: 14px; }
+    .foto-preview { width: 100%; max-height: 350px; object-fit: contain; border-radius: 10px; margin-top: 10px; border: 1px solid var(--border); }
+    .msg { text-align: center; font-size: 13px; color: var(--dim); margin-top: 10px; }
   </style>
 </head>
 <body>
 
 <div class="wrap">
-  <div class="hero">
-    <h1>🎟️ Entrega de Boletos</h1>
-    <p>Consulta por alumno, salón o N° de boleto</p>
+  
+  <div class="nav-tabs">
+    <button class="tab-btn active" onclick="switchTab('consulta')">🔍 Consultar</button>
+    <button class="tab-btn" onclick="switchTab('registro')">➕ Registrar</button>
   </div>
 
-  <div class="card-search">
-    <div class="input-group">
-      <input type="text" id="numBoleto" placeholder="Escribe para buscar..." onkeydown="if(event.key==='Enter') buscarBoleto()">
-      <button onclick="buscarBoleto()">Buscar</button>
+  <!-- PESTAÑA 1: CONSULTAR CON SUGERENCIAS -->
+  <div id="tab-consulta" class="tab-content active">
+    <div class="card">
+      <div class="field">
+        <label>Buscar Boleto / Alumno</label>
+        <input type="text" id="numBoleto" placeholder="Escribe un nombre o N°..." oninput="filtrarSugerencias()" autocomplete="off">
+        <div id="sugerenciasBox" class="suggestions"></div>
+      </div>
+      <button class="btn-main" onclick="buscarBoleto()">Buscar</button>
+    </div>
+    <div id="resultadoBoleto"></div>
+  </div>
+
+  <!-- PESTAÑA 2: REGISTRAR BOLETOS Y FOTO -->
+  <div id="tab-registro" class="tab-content">
+    <div class="card">
+      <form id="formRegistro" onsubmit="guardarRegistro(event)">
+        <div class="field">
+          <label>Alumno / Nombre Completo</label>
+          <input type="text" id="regAlumno" required placeholder="Ej. MAITA TINTAYA, Liz">
+        </div>
+        <div class="field">
+          <label>Salón / Curso</label>
+          <input type="text" id="regSalon" required placeholder="Ej. 1ro A">
+        </div>
+        <div class="field">
+          <label>Celular / Teléfono</label>
+          <input type="text" id="regCelular" placeholder="Ej. 922633067">
+        </div>
+        <div class="field">
+          <label>Boletos (separados por coma)</label>
+          <input type="text" id="regBoletos" required placeholder="Ej. 14101, 14102, 14103">
+        </div>
+
+        <div class="field">
+          <label>Evidencia de Foto</label>
+          <div class="cam-box" onclick="document.getElementById('regFoto').click()">
+            <span id="camText">📷 Tomar Foto / Subir Imagen</span>
+            <img id="imgPreview" alt="Vista previa">
+          </div>
+          <input type="file" id="regFoto" accept="image/*" capture="environment" style="display:none;" onchange="previewImage(event)">
+        </div>
+
+        <button type="submit" class="btn-main" id="btnGuardar">Guardar Registro</button>
+        <p id="msgRegistro" class="msg"></p>
+      </form>
     </div>
   </div>
 
-  <div id="resultadoBoleto"></div>
 </div>
 
 <script>
+  // PEGA AQUÍ LA URL DE TU WEB APP DE APPS SCRIPT
+  var APPS_SCRIPT_URL = 'PEGA_AQUI_TU_URL_DE_APPS_SCRIPT';
   var SHEET_ID = '1rSx_jr7Kp-pymtf5wWMiyJUJnJPZ_kILcwWR06wOAjo';
+  
+  var dbCache = [];
+  var fotoBase64Data = "";
 
-  // Convierte enlace de Google Drive en URL directa para mostrar imagen <img>
+  // Cargar datos en segundo plano para autocompletar
+  window.onload = function() {
+    cargarBaseDatos();
+  };
+
+  function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    
+    if (tab === 'consulta') {
+      document.querySelectorAll('.tab-btn')[0].classList.add('active');
+      document.getElementById('tab-consulta').classList.add('active');
+    } else {
+      document.querySelectorAll('.tab-btn')[1].classList.add('active');
+      document.getElementById('tab-registro').classList.add('active');
+    }
+  }
+
+  function cargarBaseDatos() {
+    var url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json';
+    fetch(url).then(r => r.text()).then(txt => {
+      var json = JSON.parse(txt.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);/)[1]);
+      if (json.table && json.table.rows) {
+        dbCache = json.table.rows.map(r => r.c ? r.c.map(cell => cell ? (cell.v !== null ? cell.v.toString() : '') : '') : []);
+      }
+    });
+  }
+
+  // SUGERENCIAS EN TIEMPO REAL
+  function filtrarSugerencias() {
+    var input = document.getElementById('numBoleto').value.trim().toLowerCase();
+    var box = document.getElementById('sugerenciasBox');
+    if (input.length < 2) { box.style.display = 'none'; return; }
+
+    var coincidencias = [];
+    dbCache.forEach(row => {
+      var texto = row.join(' ').toLowerCase();
+      if (texto.includes(input)) {
+        var nombre = row[2] || row[1] || row[0];
+        if (nombre && !coincidencias.includes(nombre)) coincidencias.push(nombre);
+      }
+    });
+
+    if (coincidencias.length === 0) { box.style.display = 'none'; return; }
+
+    box.innerHTML = coincidencias.slice(0, 5).map(item => `<div class="sug-item" onclick="seleccionarSugerencia('${item}')">${item}</div>`).join('');
+    box.style.display = 'block';
+  }
+
+  function seleccionarSugerencia(val) {
+    document.getElementById('numBoleto').value = val;
+    document.getElementById('sugerenciasBox').style.display = 'none';
+    buscarBoleto();
+  }
+
   function obtenerUrlImagenDirecta(url) {
     if (!url) return '';
     if (url.includes('drive.google.com')) {
       var idMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
-      if (idMatch && idMatch[1]) {
-        return 'https://lh3.googleusercontent.com/d/' + idMatch[1];
-      }
+      if (idMatch && idMatch[1]) return 'https://lh3.googleusercontent.com/d/' + idMatch[1];
     }
     return url;
   }
@@ -224,94 +185,104 @@
   function buscarBoleto() {
     var q = document.getElementById('numBoleto').value.trim().toLowerCase();
     var resDiv = document.getElementById('resultadoBoleto');
-    if (!q) {
-      resDiv.innerHTML = '<p class="msg error">Escribe un parámetro de búsqueda.</p>';
+    document.getElementById('sugerenciasBox').style.display = 'none';
+    if (!q) return;
+
+    var hallados = dbCache.filter(row => row.join(' ').toLowerCase().includes(q));
+
+    if (hallados.length === 0) {
+      resDiv.innerHTML = '<p class="msg" style="color:var(--red)">No se encontraron registros.</p>';
       return;
     }
 
-    resDiv.innerHTML = '<p class="msg">Buscando en la base de datos...</p>';
+    var html = '';
+    hallados.forEach(item => {
+      var fecha = item[0] || '';
+      var salon = item[1] || '-';
+      var alumno = item[2] || 'Registro';
+      var cel = item[3] || '';
+      var fotoOriginal = item.find(val => val.startsWith('http')) || '';
+      var fotoDirecta = obtenerUrlImagenDirecta(fotoOriginal);
+      var boletos = item.filter((val, idx) => idx >= 4 && val.trim() !== '' && !val.startsWith('http'));
 
-    var url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json';
-
-    fetch(url)
-      .then(r => r.text())
-      .then(txt => {
-        var json = JSON.parse(txt.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);/)[1]);
-        var rows = json.table.rows;
-
-        if (!rows || rows.length === 0) {
-          resDiv.innerHTML = '<p class="msg error">No hay registros almacenados.</p>';
-          return;
-        }
-
-        var hallados = [];
-
-        rows.forEach(r => {
-          if (!r.c) return;
-          var valores = r.c.map(cell => cell ? (cell.v !== null && cell.v !== undefined ? cell.v.toString() : '') : '');
-          var filaTexto = valores.join(' ').toLowerCase();
-
-          if (filaTexto.includes(q)) {
-            hallados.push(valores);
-          }
-        });
-
-        if (hallados.length === 0) {
-          resDiv.innerHTML = '<p class="msg error">No se encontraron entregas de boletos para "' + q + '".</p>';
-          return;
-        }
-
-        var html = '';
-        hallados.forEach(item => {
-          // Extraer campos (Timestamp, Salón, Alumno, Teléfono, Boletos..., Foto)
-          var fecha  = item[0] || 'Sin fecha';
-          var salon  = item[1] || 'Sin salón';
-          var alumno = item[2] || 'Estudiante';
-          var cel    = item[3] || '';
+      html += `
+        <div class="res-card">
+          <div style="display:flex; justify-size:space-between; margin-bottom:8px;">
+            <span style="color:var(--green); font-weight:700; font-size:12px;">✓ Entregado</span>
+            <span style="font-size:12px; color:var(--dim);">${fecha}</span>
+          </div>
+          <h3 style="color:#fff; font-size:18px; margin-bottom:4px;">${alumno}</h3>
+          <p style="font-size:13px; color:var(--dim);">📍 Salón: ${salon} ${cel ? '· 📱 Cel: '+cel : ''}</p>
           
-          // Buscar la foto
-          var fotoOriginal = item.find(val => val.startsWith('http')) || '';
-          var fotoDirecta  = obtenerUrlImagenDirecta(fotoOriginal);
-
-          // Extraer números de boletos (columnas del medio que sean números/códigos)
-          var boletos = item.filter((val, idx) => idx >= 4 && val.trim() !== '' && !val.startsWith('http'));
-
-          html += `
-            <div class="res-card">
-              <div class="res-header">
-                <span class="tag-status">✓ Entregado</span>
-                <span style="font-size:12px; color:var(--dim);">${fecha.substring(0,10)}</span>
-              </div>
-
-              <div class="res-title">${alumno}</div>
-              <div class="res-meta">
-                <span>📍 <b>Salón:</b> ${salon}</span>
-                ${cel ? `<span>📱 <b>Cel:</b> ${cel}</span>` : ''}
-              </div>
-
-              ${boletos.length > 0 ? `
-                <div class="boletos-label">Boletos Asignados (${boletos.length})</div>
-                <div class="boletos-grid">
-                  ${boletos.map(b => `<div class="boleto-box">🎟️ N° ${b}</div>`).join('')}
-                </div>
-              ` : ''}
-
-              ${fotoDirecta ? `
-                <div class="boletos-label">Evidencia de Entrega</div>
-                <div class="foto-container">
-                  <img src="${fotoDirecta}" class="foto-img" alt="Evidencia" onerror="this.onerror=null; this.src='${fotoOriginal}';">
-                  <a href="${fotoOriginal}" target="_blank" class="btn-drive">🔗 Abrir en Google Drive</a>
-                </div>
-              ` : ''}
+          ${boletos.length > 0 ? `
+            <div class="boletos-grid">
+              ${boletos.map(b => `<div class="boleto-box">🎟️ N° ${b}</div>`).join('')}
             </div>
-          `;
-        });
+          ` : ''}
 
-        resDiv.innerHTML = html;
-      })
-      .catch(err => {
-        resDiv.innerHTML = '<p class="msg error">Error al conectar con la base de datos de Google Sheets.</p>';
-      });
+          ${fotoDirecta ? `<img src="${fotoDirecta}" class="foto-preview">` : ''}
+        </div>
+      `;
+    });
+    resDiv.innerHTML = html;
+  }
+
+  // MANEJO DE FOTO
+  function previewImage(event) {
+    var file = event.target.files[0];
+    if (!file) return;
+
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      fotoBase64Data = e.target.result;
+      var img = document.getElementById('imgPreview');
+      img.src = fotoBase64Data;
+      img.style.display = 'block';
+      document.getElementById('camText').style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // GUARDAR REGISTRO VÍA APPS SCRIPT
+  function guardarRegistro(e) {
+    e.preventDefault();
+    var btn = document.getElementById('btnGuardar');
+    var msg = document.getElementById('msgRegistro');
+
+    btn.disabled = true;
+    msg.innerText = "Guardando e subiendo foto...";
+
+    var payload = {
+      alumno: document.getElementById('regAlumno').value,
+      salon: document.getElementById('regSalon').value,
+      celular: document.getElementById('regCelular').value,
+      boletos: document.getElementById('regBoletos').value.split(',').map(s => s.trim()),
+      fotoBase64: fotoBase64Data
+    };
+
+    fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(res => {
+      if (res.status === 'success') {
+        msg.style.color = 'var(--green)';
+        msg.innerText = "¡Registro guardado con éxito!";
+        document.getElementById('formRegistro').reset();
+        document.getElementById('imgPreview').style.display = 'none';
+        document.getElementById('camText').style.display = 'inline';
+        fotoBase64Data = "";
+        cargarBaseDatos(); // Recargar caché
+      } else {
+        throw new Error(res.message);
+      }
+    })
+    .catch(err => {
+      msg.style.color = 'var(--red)';
+      msg.innerText = "Error al guardar. Verifica la URL de Apps Script.";
+    })
+    .finally(() => { btn.disabled = false; });
   }
 </script>
 </body>
