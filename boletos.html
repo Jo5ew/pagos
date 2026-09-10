@@ -25,13 +25,11 @@
     .sug-item { padding: 10px 14px; font-size: 13px; cursor: pointer; border-bottom: 1px solid var(--border); }
     .sug-item:hover { background: var(--purple-dim); color: #fff; }
 
-    /* Contenedor flexible de 2 columnas */
     .grid-dos-col { display: grid; grid-template-columns: 1fr; gap: 16px; margin-top: 14px; }
     @media(min-width: 480px) {
-      .grid-dos-col { grid-template-columns: 1fr 1fr; }
+      .grid-dos-col { grid-template-columns: 1.2fr 1fr; }
     }
 
-    /* Cajas de Boletos Interactivas */
     .boletos-grid { display: flex; flex-direction: column; gap: 8px; }
     .boleto-box { 
       background: rgba(255,255,255,0.05); border: 1px solid var(--border); 
@@ -42,21 +40,20 @@
     .boleto-box.selected { 
       background: var(--purple-dim); border-color: var(--purple); color: #A78BFA; 
     }
-    .boleto-box.entregado { 
-      background: rgba(0, 201, 167, 0.1); border-color: var(--green); color: var(--green); 
-      cursor: not-allowed; opacity: 0.8;
-    }
 
-    /* Modulo Camara */
-    .cam-box { border: 2px dashed var(--border); border-radius: 12px; padding: 16px; text-align: center; cursor: pointer; height: 100%; min-height: 130px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-    .cam-box img { width: 100%; max-height: 140px; object-fit: contain; border-radius: 8px; display: none; margin-top: 8px; }
+    /* Módulo Foto de Evidencia */
+    .cam-box { border: 2px dashed var(--border); border-radius: 12px; padding: 12px; text-align: center; cursor: pointer; min-height: 140px; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(0,0,0,0.2); }
+    .cam-box img { width: 100%; max-height: 160px; object-fit: contain; border-radius: 8px; }
 
-    /* Cuadro Resumen */
-    .resumen-box { background: rgba(255,255,255,0.03); border: 1px dashed var(--purple); border-radius: 10px; padding: 12px; margin: 16px 0 12px; font-size: 13px; }
-    .resumen-box span { color: #A78BFA; font-weight: 700; }
+    /* Estilo de Boleta / Pre-Registro */
+    .ticket-box { background: #162032; border: 1px dashed var(--purple); border-radius: 12px; padding: 16px; margin: 16px 0; display: none; }
+    .ticket-header { font-size: 13px; font-weight: 700; color: #A78BFA; text-transform: uppercase; border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 10px; }
+    .ticket-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; color: var(--text); }
 
+    .btn-group { display: flex; gap: 8px; margin-top: 10px; }
     button.btn-main { width: 100%; background: var(--purple); color: #fff; border: none; padding: 14px; border-radius: 12px; font-weight: 700; font-size: 15px; cursor: pointer; }
-    button.btn-main:disabled { opacity: 0.5; cursor: not-allowed; }
+    button.btn-sec { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid var(--border); padding: 14px; border-radius: 12px; font-weight: 700; font-size: 14px; cursor: pointer; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
     .msg { text-align: center; font-size: 13px; color: var(--dim); margin-top: 10px; }
   </style>
 </head>
@@ -123,6 +120,15 @@
     buscarBoleto();
   }
 
+  function obtenerUrlDirecta(url) {
+    if (!url) return '';
+    if (url.includes('drive.google.com')) {
+      var m = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
+      if (m && m[1]) return 'https://lh3.googleusercontent.com/d/' + m[1];
+    }
+    return url;
+  }
+
   function buscarBoleto() {
     var q = document.getElementById('numBoleto').value.trim().toLowerCase();
     var resDiv = document.getElementById('resultadoBoleto');
@@ -145,34 +151,30 @@
       celular: item[3] || ''
     };
 
-    // Verificar si la fila ya incluye una URL de foto en las columnas finales
-    var yaRegistradoPrevio = item.some(val => val.startsWith('http'));
+    var fotoUrlHoja = item.find(val => val.startsWith('http')) || '';
+    var fotoDirecta = obtenerUrlDirecta(fotoUrlHoja);
     var boletos = item.filter((val, idx) => idx >= 4 && val.trim() !== '' && !val.startsWith('http'));
 
     resDiv.innerHTML = `
-      <div class="card">
+      <div class="card" id="formBloque">
         <h3 style="color:#fff; font-size:18px; margin-bottom:4px;">${alumnoEncontrado.nombre}</h3>
         <p style="font-size:13px; color:var(--dim); margin-bottom:8px;">📍 Salón: ${alumnoEncontrado.salon} ${alumnoEncontrado.celular ? '· 📱 Cel: ' + alumnoEncontrado.celular : ''}</p>
         
         <div class="grid-dos-col">
           <div>
-            <label>Boletos asignados:</label>
+            <label>Toca los boletos a entregar:</label>
             <div class="boletos-grid">
-              ${boletos.map(b => {
-                if (yaRegistradoPrevio) {
-                  return `<div class="boleto-box entregado">🎟️ N° ${b} <span>✓ Ya entregado</span></div>`;
-                } else {
-                  return `<div class="boleto-box" onclick="toggleBoleto(this, '${b}')">🎟️ N° ${b} <span>Tocar</span></div>`;
-                }
-              }).join('')}
+              ${boletos.map(b => `<div class="boleto-box" onclick="toggleBoleto(this, '${b}')">🎟️ N° ${b} <span>Tocar</span></div>`).join('')}
             </div>
           </div>
 
           <div>
-            <label>Foto de Evidencia:</label>
+            <label>Evidencia / Foto de entrega:</label>
             <div class="cam-box" onclick="document.getElementById('fotoInput').click()">
-              <span id="camText">📷 Tomar Foto</span>
-              <img id="imgPreview" alt="Vista previa">
+              ${fotoDirecta && !fotoBase64Data ? 
+                `<img id="imgPreview" src="${fotoDirecta}" style="display:block;">` : 
+                `<span id="camText">📷 Tomar / Cambiar Foto</span><img id="imgPreview" style="display:none;">`
+              }
             </div>
             <input type="file" id="fotoInput" accept="image/*" capture="environment" style="display:none;" onchange="previewImage(event)">
           </div>
@@ -180,22 +182,24 @@
 
         <div class="field" style="margin-top:16px;">
           <label>PIN de Responsable</label>
-          <input type="password" id="pinEntrega" placeholder="Ingresa tu PIN">
+          <input type="password" id="pinEntrega" placeholder="Ingresa tu PIN de autorización">
         </div>
 
-        <!-- RESUMEN EN TIEMPO REAL -->
-        <div class="resumen-box" id="resumenEntrega">
-          📋 <b>Resumen:</b> Selecciona los boletos para ver el detalle.
+        <!-- BOLETA DE RESUMEN PREVIO -->
+        <div class="ticket-box" id="boletaPrevia">
+          <div class="ticket-header">🧾 Resumen de Pre-Entrega</div>
+          <div class="ticket-row"><span>Estudiante:</span> <b id="tNombre"></b></div>
+          <div class="ticket-row"><span>Salón:</span> <b id="tSalon"></b></div>
+          <div class="ticket-row"><span>Boletos:</span> <b id="tBoletos" style="color:var(--green);"></b></div>
+          <div class="ticket-row"><span>Evidencia Adjunta:</span> <b id="tFoto"></b></div>
         </div>
 
-        <button class="btn-main" id="btnConfirmar" ${yaRegistradoPrevio ? 'disabled' : ''} onclick="confirmarEntrega()">
-          ${yaRegistradoPrevio ? 'Entrega Completada Anteriormente' : 'Registrar Entrega con Foto'}
-        </button>
+        <div id="btnAcciones">
+          <button class="btn-main" onclick="generarPreRegistro()">Generar Pre-Registro</button>
+        </div>
         <p id="msgProceso" class="msg"></p>
       </div>
     `;
-    
-    actualizarResumen();
   }
 
   function toggleBoleto(elem, boleto) {
@@ -204,22 +208,10 @@
     
     if (elem.classList.contains('selected')) {
       boletosSeleccionados.push(boleto);
-      if(statusSpan) statusSpan.innerText = "✓ Listo";
+      if(statusSpan) statusSpan.innerText = "✓ Seleccionado";
     } else {
       boletosSeleccionados = boletosSeleccionados.filter(b => b !== boleto);
       if(statusSpan) statusSpan.innerText = "Tocar";
-    }
-    actualizarResumen();
-  }
-
-  function actualizarResumen() {
-    var box = document.getElementById('resumenEntrega');
-    if (!box) return;
-
-    if (boletosSeleccionados.length === 0) {
-      box.innerHTML = "📋 <b>Resumen:</b> No has seleccionado ningún boleto aún.";
-    } else {
-      box.innerHTML = `📋 <b>Resumen de entrega:</b> Alumno <span>${alumnoEncontrado.nombre}</span> recojerá <span>${boletosSeleccionados.length}</span> boleto(s): <span>[ N° ${boletosSeleccionados.join(', N° ')} ]</span>.`;
     }
   }
 
@@ -233,31 +225,57 @@
       var img = document.getElementById('imgPreview');
       img.src = fotoBase64Data;
       img.style.display = 'block';
-      document.getElementById('camText').style.display = 'none';
+      var txt = document.getElementById('camText');
+      if(txt) txt.style.display = 'none';
     };
     reader.readAsDataURL(file);
   }
 
-  function confirmarEntrega() {
+  function generarPreRegistro() {
     var pin = document.getElementById('pinEntrega').value.trim();
     var msg = document.getElementById('msgProceso');
-    var btn = document.getElementById('btnConfirmar');
 
+    if (boletosSeleccionados.length === 0) {
+      msg.style.color = "var(--red)";
+      msg.innerText = "Marca al menos un boleto para continuar.";
+      return;
+    }
     if (!pin) {
       msg.style.color = "var(--red)";
       msg.innerText = "Ingresa tu PIN de responsable.";
       return;
     }
 
-    if (boletosSeleccionados.length === 0) {
-      msg.style.color = "var(--red)";
-      msg.innerText = "Selecciona al menos un boleto de la lista.";
-      return;
-    }
+    msg.innerText = "";
+    document.getElementById('tNombre').innerText = alumnoEncontrado.nombre;
+    document.getElementById('tSalon').innerText = alumnoEncontrado.salon;
+    document.getElementById('tBoletos').innerText = "N° " + boletosSeleccionados.join(', N° ');
+    document.getElementById('tFoto').innerText = fotoBase64Data ? "Sí (Nueva)" : "Conserva/Sin foto";
 
-    btn.disabled = true;
+    document.getElementById('boletaPrevia').style.display = "block";
+
+    document.getElementById('btnAcciones').innerHTML = `
+      <div class="btn-group">
+        <button class="btn-sec" onclick="corregirDatos()">✏️ Corregir Datos</button>
+        <button class="btn-main" onclick="confirmarEntregaFinal()">Confirmar y Registrar</button>
+      </div>
+    `;
+  }
+
+  function corregirDatos() {
+    document.getElementById('boletaPrevia').style.display = "none";
+    document.getElementById('btnAcciones').innerHTML = `
+      <button class="btn-main" onclick="generarPreRegistro()">Generar Pre-Registro</button>
+    `;
+    document.getElementById('msgProceso').innerText = "";
+  }
+
+  function confirmarEntregaFinal() {
+    var pin = document.getElementById('pinEntrega').value.trim();
+    var msg = document.getElementById('msgProceso');
+
     msg.style.color = "var(--dim)";
-    msg.innerText = "Guardando entrega...";
+    msg.innerText = "Enviando datos al servidor...";
 
     var payload = {
       accion: "registrarEntrega",
@@ -277,7 +295,7 @@
     .then(res => {
       if (res.ok) {
         msg.style.color = "var(--green)";
-        msg.innerText = "¡Entrega registrada exitosamente por " + res.registradoPor + "!";
+        msg.innerText = "¡Entrega registrada por " + res.registradoPor + "!";
         setTimeout(() => {
           document.getElementById('resultadoBoleto').innerHTML = '';
           document.getElementById('numBoleto').value = '';
@@ -290,7 +308,6 @@
     .catch(err => {
       msg.style.color = "var(--red)";
       msg.innerText = "Error: " + err.message;
-      btn.disabled = false;
     });
   }
 </script>
