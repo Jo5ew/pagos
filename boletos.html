@@ -30,7 +30,7 @@
       .grid-dos-col { grid-template-columns: 1.1fr 0.9fr; }
     }
 
-    /* Tarjetas de Boletos con Edición Dinámica */
+    /* Boletos */
     .boletos-grid { display: flex; flex-direction: column; gap: 8px; }
     .boleto-card {
       background: rgba(255,255,255,0.03); border: 1px solid var(--border);
@@ -48,17 +48,32 @@
     }
     .btn-edit-num { background: transparent; border: none; color: var(--dim); font-size: 11px; cursor: pointer; text-decoration: underline; margin-left: 8px; }
     .btn-edit-num:hover { color: #fff; }
+    
+    .btn-add-boleto {
+      width: 100%; background: rgba(255,255,255,0.05); border: 1px dashed var(--purple);
+      color: #A78BFA; padding: 10px; border-radius: 8px; font-weight: 600; font-size: 12px;
+      cursor: pointer; margin-top: 6px; transition: 0.2s;
+    }
+    .btn-add-boleto:hover { background: var(--purple-dim); }
 
-    /* Módulo Cámara FULL SIZE (Ocupa todo el contenedor) */
+    /* Módulo Foto con Botón Abajo */
+    .photo-container { display: flex; flex-direction: column; gap: 8px; height: 100%; }
     .cam-box { 
-      border: 2px dashed var(--border); border-radius: 12px; height: 100%; min-height: 180px; 
-      position: relative; overflow: hidden; cursor: pointer; display: flex; flex-direction: column; 
-      justify-content: center; align-items: center; background: rgba(0,0,0,0.3); 
+      border: 2px dashed var(--border); border-radius: 12px; width: 100%; height: 180px; 
+      position: relative; overflow: hidden; display: flex; justify-content: center; 
+      align-items: center; background: rgba(0,0,0,0.3); 
     }
     .cam-box img { 
-      width: 100%; height: 100%; object-fit: cover; position: absolute; top:0; left:0; border-radius: 10px; 
+      width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; 
     }
-    .cam-box span { z-index: 2; font-size: 12px; font-weight: 600; color: var(--dim); text-align: center; padding: 8px; background: rgba(8,12,20,0.7); border-radius: 6px; }
+    .cam-box .empty-text { font-size: 12px; color: var(--dim); text-align: center; }
+
+    .btn-foto-trigger {
+      width: 100%; background: rgba(255,255,255,0.08); border: 1px solid var(--border);
+      color: var(--text); padding: 10px; border-radius: 8px; font-size: 12px; font-weight: 600;
+      cursor: pointer; text-align: center; transition: 0.2s;
+    }
+    .btn-foto-trigger:hover { background: rgba(255,255,255,0.15); }
 
     /* Estilo de Boleta / Pre-Registro */
     .ticket-box { background: #162032; border: 1px dashed var(--purple); border-radius: 12px; padding: 16px; margin: 16px 0; display: none; }
@@ -170,7 +185,6 @@
     var fotoUrlHoja = item.find(val => val.startsWith('http')) || '';
     var fotoDirecta = obtenerUrlDirecta(fotoUrlHoja);
     
-    // Mapeo dinámico de boletos (permite mutación de números si no coinciden)
     var rawBoletos = item.filter((val, idx) => idx >= 4 && val.trim() !== '' && !val.startsWith('http'));
     boletosData = rawBoletos.map((num, idx) => ({ id: idx, numero: num, seleccionado: false }));
 
@@ -191,17 +205,21 @@
             <div class="boletos-grid" id="boletosListContainer">
               ${renderBoletosHTML()}
             </div>
+            <button class="btn-add-boleto" onclick="agregarNuevoBoleto()">➕ Agregar otro número de boleto</button>
           </div>
 
-          <div>
-            <label>Evidencia Principal:</label>
-            <div class="cam-box" onclick="document.getElementById('fotoInput').click()">
+          <div class="photo-container">
+            <label>Evidencia / Foto de Entrega:</label>
+            <div class="cam-box">
               ${fotoDirecta && !fotoPrincipalBase64 ? 
-                `<img id="imgPreview" src="${fotoDirecta}"><span>📷 Cambiar Foto</span>` : 
+                `<img id="imgPreview" src="${fotoDirecta}">` : 
                 `<img id="imgPreview" src="${fotoPrincipalBase64}" style="${fotoPrincipalBase64 ? '' : 'display:none;'}">
-                 <span id="camText">${fotoPrincipalBase64 ? '📷 Cambiar Foto' : '📷 Tomar / Subir Foto'}</span>`
+                 <span id="camText" class="empty-text" style="${fotoPrincipalBase64 ? 'display:none;' : ''}">Sin imagen seleccionada</span>`
               }
             </div>
+            <button class="btn-foto-trigger" onclick="document.getElementById('fotoInput').click()">
+              📷 Tomar / Cambiar Foto
+            </button>
             <input type="file" id="fotoInput" accept="image/*" capture="environment" style="display:none;" onchange="previewImage(event, 'principal')">
           </div>
         </div>
@@ -209,10 +227,13 @@
         <!-- FOTO EXTRA ADICIONAL -->
         <div class="field" style="margin-top:16px;">
           <label>Foto Adjunta Adicional (Opcional - Vouchers / Comprobantes):</label>
-          <div class="cam-box" style="min-height:90px;" onclick="document.getElementById('fotoExtraInput').click()">
+          <div class="cam-box" style="height:100px;">
             <img id="imgExtraPreview" src="${fotoExtraBase64}" style="${fotoExtraBase64 ? '' : 'display:none;'}">
-            <span id="camExtraText">${fotoExtraBase64 ? '📎 Adjunto Cargado (Toca para cambiar)' : '📎 Adjuntar Segunda Foto / Voucher'}</span>
+            <span id="camExtraText" class="empty-text" style="${fotoExtraBase64 ? 'display:none;' : ''}">Sin imagen adicional</span>
           </div>
+          <button class="btn-foto-trigger" style="margin-top:8px;" onclick="document.getElementById('fotoExtraInput').click()">
+            📎 Adjuntar Segunda Foto / Voucher
+          </button>
           <input type="file" id="fotoExtraInput" accept="image/*" capture="environment" style="display:none;" onchange="previewImage(event, 'extra')">
         </div>
 
@@ -274,6 +295,15 @@
     }
   }
 
+  function agregarNuevoBoleto() {
+    var nuevoNum = prompt("Ingresa el número del nuevo boleto a agregar:");
+    if (nuevoNum !== null && nuevoNum.trim() !== "") {
+      var nuevoId = boletosData.length > 0 ? Math.max(...boletosData.map(b => b.id)) + 1 : 0;
+      boletosData.push({ id: nuevoId, numero: nuevoNum.trim(), seleccionado: true });
+      document.getElementById('boletosListContainer').innerHTML = renderBoletosHTML();
+    }
+  }
+
   function previewImage(event, tipo) {
     var file = event.target.files[0];
     if (!file) return;
@@ -285,13 +315,15 @@
         var img = document.getElementById('imgPreview');
         img.src = fotoPrincipalBase64;
         img.style.display = 'block';
-        document.getElementById('camText').innerText = "📷 Cambiar Foto";
+        var txt = document.getElementById('camText');
+        if(txt) txt.style.display = 'none';
       } else {
         fotoExtraBase64 = e.target.result;
         var imgExtra = document.getElementById('imgExtraPreview');
         imgExtra.src = fotoExtraBase64;
         imgExtra.style.display = 'block';
-        document.getElementById('camExtraText').innerText = "📎 Adjunto Cargado (Toca para cambiar)";
+        var txtExtra = document.getElementById('camExtraText');
+        if(txtExtra) txtExtra.style.display = 'none';
       }
     };
     reader.readAsDataURL(file);
@@ -317,7 +349,7 @@
     document.getElementById('tNombre').innerText = alumnoEncontrado.nombre;
     document.getElementById('tSalon').innerText = alumnoEncontrado.salon;
     document.getElementById('tBoletos').innerText = "N° " + elegidos.join(', N° ');
-    document.getElementById('tFotoMain').innerText = fotoPrincipalBase64 ? "Sí (Adjuntada)" : "Existente en Servidor / Sin foto";
+    document.getElementById('tFotoMain').innerText = fotoPrincipalBase64 ? "Sí (Nueva)" : "Conserva/Existente";
     document.getElementById('tFotoExtra').innerText = fotoExtraBase64 ? "Sí (Adjuntada)" : "No adjuntada";
 
     document.getElementById('boletaPrevia').style.display = "block";
@@ -365,7 +397,7 @@
     .then(res => {
       if (res.ok) {
         msg.style.color = "var(--green)";
-        msg.innerText = "¡Entrega registrada exitosamente por " + res.registradoPor + "!";
+        msg.innerText = "¡Entrega registrada por " + res.registradoPor + "!";
         setTimeout(() => {
           document.getElementById('resultadoBoleto').innerHTML = '';
           document.getElementById('numBoleto').value = '';
