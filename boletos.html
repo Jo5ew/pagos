@@ -99,7 +99,7 @@
 <body>
 
 <div class="wrap">
-  <h1>🎟️ Consulta de Boletos gaa</h1>
+  <h1>🎟️ Consulta de Boletos y Entregas</h1>
 
   <div class="card">
     <div class="input-group">
@@ -111,19 +111,19 @@
 </div>
 
 <script>
-  var SHEET_ID = '1ObB4TZOgCkTyN0iPhrbgZZJNqNw2A81yEoAUfs7kT-8';
+  // ID CORREGIDO DE TU GOOGLE SHEET REAL
+  var SHEET_ID = '1rSx_jr7Kp-pymtf5wWMiyJUJnJPZ_kILcwWR06wOAjo';
 
   function buscarBoleto() {
     var q = document.getElementById('numBoleto').value.trim().toLowerCase();
     var resDiv = document.getElementById('resultadoBoleto');
     if (!q) {
-      resDiv.innerHTML = '<p class="msg error">Ingresa un término de búsqueda.</p>';
+      resDiv.innerHTML = '<p class="msg error">Ingresa un nombre, número de boleto o datos a buscar.</p>';
       return;
     }
 
-    resDiv.innerHTML = '<p class="msg">Consultando base de datos...</p>';
+    resDiv.innerHTML = '<p class="msg">Consultando tu base de datos...</p>';
 
-    // Consultar vía Google Visualization API
     var url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json';
 
     fetch(url)
@@ -133,7 +133,7 @@
         var rows = json.table.rows;
 
         if (!rows || rows.length === 0) {
-          resDiv.innerHTML = '<p class="msg error">No hay registros en la hoja.</p>';
+          resDiv.innerHTML = '<p class="msg error">No hay ningún registro guardado en la hoja aún.</p>';
           return;
         }
 
@@ -150,29 +150,28 @@
         });
 
         if (hallados.length === 0) {
-          resDiv.innerHTML = '<p class="msg error">No se encontraron registros de entrega con ese dato.</p>';
+          resDiv.innerHTML = '<p class="msg error">No se encontraron entregas de boletos para "' + q + '".</p>';
           return;
         }
 
         var html = '';
         hallados.forEach(item => {
-          // Extraer información disponible de las columnas
           var info = item.filter(val => val.trim() !== '' && !val.startsWith('http'));
           var fotoUrl = item.find(val => val.startsWith('http'));
 
           html += `
             <div class="res-card">
-              <span class="tag">Registro Encontrado</span>
-              <h3 style="margin: 10px 0 6px; color:#fff;">${info[2] || info[1] || 'Estudiante'}</h3>
-              <p style="font-size:13px; color:var(--dim); margin-bottom:4px;"><b>Datos del registro:</b> ${info.join(' · ')}</p>
-              ${fotoUrl ? `<a href="${fotoUrl}" target="_blank" class="btn-foto">📷 Ver Evidencia en Drive</a>` : ''}
+              <span class="tag">Boleto / Entrega Encontrada</span>
+              <h3 style="margin: 10px 0 6px; color:#fff;">${info[2] || info[1] || info[0] || 'Registro'}</h3>
+              <p style="font-size:13px; color:var(--dim); margin-bottom:4px;"><b>Detalles:</b> ${info.join(' · ')}</p>
+              ${fotoUrl ? `<a href="${fotoUrl}" target="_blank" class="btn-foto">📷 Ver Foto en Google Drive</a>` : ''}
             </div>
           `;
         });
         resDiv.innerHTML = html;
       })
       .catch(err => {
-        resDiv.innerHTML = '<p class="msg error">Error de conexión. Asegúrate de que el documento de Google Sheets esté compartido como público.</p>';
+        resDiv.innerHTML = '<p class="msg error">Asegúrate de que tu Google Sheet tenga el acceso abierto como "Cualquier persona con el enlace".</p>';
       });
   }
 </script>
