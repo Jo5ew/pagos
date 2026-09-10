@@ -260,7 +260,7 @@
       margin-bottom: 8px;
       display: flex; align-items: center; justify-content: space-between; gap: 12px;
     }
-    .act-item.pagado  { border-color: rgba(0,201,167,0.2);  background: rgba(0,201,167,0.05); }
+    .act-item.pagado   { border-color: rgba(0,201,167,0.2);  background: rgba(0,201,167,0.05); }
     .act-item.pendiente { border-color: rgba(244,63,94,0.2); background: rgba(244,63,94,0.05); }
     .act-left { display: flex; align-items: center; gap: 12px; }
     .act-icon {
@@ -295,35 +295,33 @@
 
     /* Footer */
     .footer {
-  text-align: center;
-  margin-top: 48px;
-  font-size: 12px;
-  color: var(--muted);
-}
+      text-align: center;
+      margin-top: 48px;
+      font-size: 12px;
+      color: var(--muted);
+    }
 
-.music-secret {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  margin-left: 5px;
-  border-radius: 50%;
-  color: rgba(100,116,139,0.42);
-  font-size: 11px;
-  text-decoration: none;
-  vertical-align: middle;
-  transition: 0.2s ease;
-}
+    .music-secret {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      margin-left: 5px;
+      border-radius: 50%;
+      color: rgba(100,116,139,0.42);
+      font-size: 11px;
+      text-decoration: none;
+      vertical-align: middle;
+      transition: 0.2s ease;
+    }
 
-.music-secret:hover,
-.music-secret:focus {
-  color: #A78BFA;
-  background: rgba(139,92,246,0.12);
-  outline: none;
-}
-
-
+    .music-secret:hover,
+    .music-secret:focus {
+      color: #A78BFA;
+      background: rgba(139,92,246,0.12);
+      outline: none;
+    }
 
     /* ── DEUDA TOTAL (banner destacado, ancho completo) ─────── */
     .total-debe {
@@ -369,7 +367,6 @@
       .wrap { max-width: 920px; }
     }
 
-
     /* ── INSIGNIA PERSONALIZADA ─────────────────────────────── */
     .insignia {
       display: flex; align-items: center; gap: 14px;
@@ -379,7 +376,6 @@
     .insignia.ambar { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.25); }
     .insignia-emoji { font-size: 30px; flex-shrink: 0; }
     .insignia-texto { font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 700; color: #fff; }
-
 
     /* ── ENCABEZADO INSTITUCIONAL ───────────────────────────── */
     .inst-header {
@@ -393,8 +389,8 @@
       margin-bottom: 32px;
     }
     .inst-logo {
-      width: 80px;       /* ← cambia este valor para hacer el logo más grande o más pequeño */
-      height: 80px;      /* ← mismo aquí, mantenlos iguales para que no se deforme */
+      width: 80px;
+      height: 80px;
       flex-shrink: 0;
       object-fit: contain;
     }
@@ -405,13 +401,13 @@
     }
     .inst-nombre {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 15px;   /* ← tamaño del nombre de la institución */
+      font-size: 15px;
       font-weight: 700;
       color: #fff;
       line-height: 1.2;
     }
     .inst-grupo {
-      font-size: 12px;   /* ← tamaño del texto de grupo/semestre */
+      font-size: 12px;
       font-weight: 500;
       color: var(--dim);
       letter-spacing: 0.3px;
@@ -440,8 +436,6 @@
 <div class="wrap">
 
   <!-- ENCABEZADO INSTITUCIONAL -->
-  <!-- Para cambiar el logo: reemplaza "TU_LOGO.svg" por el nombre real de tu archivo SVG -->
-  <!-- Sube el archivo SVG al mismo repo de GitHub Pages donde están tus HTML -->
   <div class="inst-header">
     <img
       src="logoTECNO.svg"
@@ -450,7 +444,7 @@
     >
     <div class="inst-info">
       <span class="inst-nombre">Instituto de Educación Superior Tecnológico Público</span>
-      <span class="inst-nombre">Manuel Núñez Butón</span>
+      <span class="inst-nombre">Manuel Núñez Butrón</span>
       
       <span class="inst-grupo">DESARROLLO DE SISTEMAS DE INFORMACIÓN · IV · 2026</span>
     </div>
@@ -490,29 +484,28 @@
   <div id="resultado"></div>
 
   <div class="footer">
-  Sistema de Pagos 
+    Sistema de Pagos 
 
-  <a
-    href="videos.html"
-    class="music-secret"
-    title="Música"
-    aria-label="Abrir música variada"
-  >
-     <img
-    src="musica.gif"
-    alt=""
-    class="music-gif"
-  >
-  </a>
-</div>
+    <a
+      href="videos.html"
+      class="music-secret"
+      title="Música"
+      aria-label="Abrir música variada"
+    >
+       <img
+        src="musica.gif"
+        alt=""
+        class="music-gif"
+      >
+    </a>
+  </div>
 </div>
 
 <script>
   // ── CONFIGURACIÓN ────────────────────────────────────────────
-  // IMPORTANTE: reemplaza este ID con el de tu Google Sheet principal
   var SHEET_ID = '1ObB4TZOgCkTyN0iPhrbgZZJNqNw2A81yEoAUfs7kT-8';
 
-  var GID_ESTUDIANTES = 0;   // ← cambia si el gid es diferente
+  var GID_ESTUDIANTES = 0;
   var GID_ACTIVIDADES = 0;
   var GID_PAGOS       = 0;
 
@@ -522,7 +515,7 @@
   var HOJA_PAG  = 'BD_Pagos';
   var HOJA_ASI  = 'BD_Asistencias';
 
-  // ── PARSEO DE FECHAS (Google a veces las manda como Date(2026,5,30)) ──
+  // ── PARSEO DE FECHAS ──
   function parseFechaLegible(val) {
     if (!val) return '';
     var str = val.toString();
@@ -534,9 +527,7 @@
     return str.substring(0, 10);
   }
 
-  // ── REGLA COMPARTIDA: ¿este estudiante ya "cumplió" con esta actividad? ──
-  // Cobro normal      → cumplió si pagó.
-  // Tipo "Asistencia"  → cumplió si pagó (regularizó la multa) O si asistió.
+  // ── REGLA COMPARTIDA ──
   function estaCumplido(dni, actividad) {
     var cod  = actividad['Código'].toString();
     var tipo = (actividad['Tipo'] || 'Cobro').toString();
@@ -555,7 +546,6 @@
     return fetch(url)
       .then(function(r) { return r.text(); })
       .then(function(txt) {
-        // Google devuelve /*O_o*/\ngoogle.visualization.Query.setResponse({...});
         var json = JSON.parse(txt.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);/)[1]);
         var cols = json.table.cols.map(function(c) { return c.label; });
         var rows = (json.table.rows || []).map(function(r) {
@@ -578,7 +568,7 @@
       fetchSheet(HOJA_EST),
       fetchSheet(HOJA_ACT),
       fetchSheet(HOJA_PAG),
-      fetchSheet(HOJA_ASI).catch(function() { return []; }) // si la hoja no existe aún, no rompe la página
+      fetchSheet(HOJA_ASI).catch(function() { return []; })
     ]).then(function(res) {
       dataEst = res[0].filter(function(r) { return r['DNI'] && r['DNI'].toString().trim() !== ''; });
       dataAct = res[1].filter(function(r) { return r['Código'] && r['Código'].toString().trim() !== ''; });
@@ -649,7 +639,6 @@
     limpiarError();
 
     var fn = function() {
-      // Buscar por DNI exacto primero, luego por nombre
       var q2 = q.toLowerCase();
       var est = dataEst.find(function(e) { return e['DNI'].toString().toLowerCase() === q2; }) ||
                 dataEst.find(function(e) { return e['Nombre'].toString().toLowerCase().indexOf(q2) !== -1; });
@@ -673,17 +662,18 @@
     var nombre = est['Nombre'].toString();
     var ini    = nombre.substring(0, 2).toUpperCase();
 
-    // Registrar la consulta silenciosamente
-fetch('https://script.google.com/macros/s/AKfycbzPSXCRHiMvXmDPexEyOaWlKpz-AshWHqaZ7WP6DsA2XEMvPf72rA9RIRTkk-TMcX0OpA/exec', {
-  method: 'POST',
-  headers: { 'Content-Type': 'text/plain' },
-  body: JSON.stringify({ pin: '2580', accion: 'registrarConsulta', dni: dni, nombre: nombre })
-});
+    // Registrar la consulta silenciosamente con la URL actualizada del Apps Script
+    fetch('https://script.google.com/macros/s/AKfycbwfStZrvxZ5YWjtTV8WCK-iG9GNaICPoorPV4Lfb8qKEfP4jg5LMoNLdMHI2yRD4NTOPw/exec', {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ pin: '2580', accion: 'registrarConsulta', dni: dni, nombre: nombre })
+    });
+
     // Pagos de este estudiante
     var misPagos = dataPag.filter(function(p) { return p['DNI'].toString() === dni; });
     var codsPagados = misPagos.map(function(p) { return p['Código Act.'].toString(); });
 
-    // Actividades pagadas, asistidas (exentas) y pendientes
+    // Actividades pagadas, asistidas y pendientes
     var pagadas    = [];
     var asistidas  = [];
     var pendientes = [];
@@ -716,7 +706,7 @@ fetch('https://script.google.com/macros/s/AKfycbzPSXCRHiMvXmDPexEyOaWlKpz-AshWHq
       '</div>' +
     '</div>';
 
-    // Insignia personalizada según su avance
+    // Insignia personalizada
     var totalAct = pagadas.length + asistidas.length + pendientes.length;
     if (totalAct > 0) {
       var pctPersonal = Math.round(((pagadas.length + asistidas.length) / totalAct) * 100);
@@ -748,7 +738,7 @@ fetch('https://script.google.com/macros/s/AKfycbzPSXCRHiMvXmDPexEyOaWlKpz-AshWHq
       '</div>' +
     '</div>';
 
-    // Pendientes (columna izquierda)
+    // Pendientes
     var totalDebe = pendientes.reduce(function(sum, a) {
       return sum + (parseFloat((a['Monto'] || '0').toString().replace(/,/g,'')) || 0);
     }, 0);
@@ -777,7 +767,7 @@ fetch('https://script.google.com/macros/s/AKfycbzPSXCRHiMvXmDPexEyOaWlKpz-AshWHq
       '</div>';
     }
 
-    // Cumplidos: pagados + asistidos (columna derecha)
+    // Cumplidos
     var htmlPag = '';
     if (pagadas.length > 0 || asistidas.length > 0) {
       htmlPag += '<div class="sec-title">✅ Ya cumpliste</div>';
@@ -845,7 +835,7 @@ fetch('https://script.google.com/macros/s/AKfycbzPSXCRHiMvXmDPexEyOaWlKpz-AshWHq
     document.getElementById('msgError').style.display = 'none';
   }
 
-  // Precarga de datos en segundo plano al abrir la página
+  // Precarga de datos al abrir la página
   cargarDatos();
 </script>
 </body>
