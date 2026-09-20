@@ -662,12 +662,20 @@
     var nombre = est['Nombre'].toString();
     var ini    = nombre.substring(0, 2).toUpperCase();
 
-    // Registrar la consulta silenciosamente con la URL actualizada del Apps Script
+    // Registrar la consulta silenciosamente
     fetch('https://script.google.com/macros/s/AKfycbwfStZrvxZ5YWjtTV8WCK-iG9GNaICPoorPV4Lfb8qKEfP4jg5LMoNLdMHI2yRD4NTOPw/exec', {
       method: 'POST',
+      mode: 'no-cors', // Evita que el navegador bloquee la petición por seguridad (CORS)
       headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ pin: '2580', accion: 'registrarConsulta', dni: dni, nombre: nombre })
-    });
+      body: JSON.stringify({ 
+        pin: '2580', 
+        accion: 'registrarConsulta', 
+        dni: dni, 
+        nombre: nombre,
+        // Generamos un ID aleatorio para evitar el bloqueo general de la V10
+        deviceId: 'web_' + Math.random().toString(36).substring(2, 10) 
+      })
+    }).catch(function(e) { console.log('Error al registrar consulta silenciosa:', e); });
 
     // Pagos de este estudiante
     var misPagos = dataPag.filter(function(p) { return p['DNI'].toString() === dni; });
