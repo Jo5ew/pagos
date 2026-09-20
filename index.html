@@ -661,9 +661,8 @@
     var dni    = est['DNI'].toString();
     var nombre = est['Nombre'].toString();
     var ini    = nombre.substring(0, 2).toUpperCase();
-
-    // Registrar la consulta silenciosamente
-    fetch('https://script.google.com/macros/s/AKfycbwfStZrvxZ5YWjtTV8WCK-iG9GNaICPoorPV4Lfb8qKEfP4jg5LMoNLdMHI2yRD4NTOPw/exec', {
+// Registrar la consulta silenciosamente
+    fetch('https://script.google.com/macros/s/AKfycbzhFDAZmzyZLRbbJjWC3NyKEO0WYlw3S2KsO27-DLHU9AGRueEqmDHyYIJA-sZpaJ_Reg/exec', {
       method: 'POST',
       mode: 'no-cors', // Evita que el navegador bloquee la petición por seguridad (CORS)
       headers: { 'Content-Type': 'text/plain' },
