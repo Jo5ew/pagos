@@ -1,1254 +1,657 @@
-// ═══════════════════════════════════════════════════════════════════════════
-//  SISTEMA DE PAGOS PRO + TESORERÍA — VERSIÓN 10.0 FINAL (Con Pagos Variables)
-// ═══════════════════════════════════════════════════════════════════════════
-
-var TIMEZONE = 'America/Lima';
-
-var ESTRUCTURAS = {
-  'BD_Estudiantes':   ['DNI', 'Nombre', 'Teléfono', 'Estado', 'Email Google'],
-  'BD_Actividades':   ['Código', 'Nombre', 'Monto (S/.)', 'Descripción', 'Tipo', 'Fecha Límite Registro'],
-  'BD_Pagos':         ['ID', 'Fecha', 'DNI', 'Nombre', 'Código Act.', 'Actividad', 'Monto (S/.)', 'Método Pago', 'Observaciones'],
-  'BD_Egresos':       ['ID', 'Fecha', 'Hora', 'Concepto', 'Monto (S/.)', 'Categoría', 'Responsable', 'Observaciones'],
-  'BD_IngresosExtra': ['ID', 'Fecha', 'Hora', 'Concepto', 'Monto (S/.)', 'Categoría', 'Responsable', 'Origen', 'Observaciones'],
-  'BD_Asistencias':   ['ID', 'Fecha', 'Hora', 'Código Actividad', 'DNI', 'Nombre', 'Registrado Por'],
-  'BD_SesionesQR':    ['Token', 'Código Actividad', 'Generado', 'Expira', 'Activo'],
-  'BD_Consultas':     ['ID', 'Fecha', 'Hora', 'DNI', 'Nombre']
-};
-
-// ═══════════════════════════════════════════════════════════════════════════
-// SEGURIDAD
-// ═══════════════════════════════════════════════════════════════════════════
-var PIN_SECRETO    = '9071';
-var PIN_ASISTENCIA = '2580';
-var MAX_INTENTOS_FALLIDOS = 5;
-var MINUTOS_BLOQUEO       = 5;
-var ACCIONES_ASISTENCIA_PUBLICA = ['buscarEstudiante', 'registrarAsistenciaQR', 'registrarConsulta'];
-
-// ═══════════════════════════════════════════════════════════════════════════
-// INICIALIZACIÓN Y UTILIDADES BASE
-// ═══════════════════════════════════════════════════════════════════════════
-function onOpen() {
-  SpreadsheetApp.getUi().createMenu('🚀 PANEL CONTROL')
-    .addItem('📝 Registrar Pago de Estudiante', 'abrirPago')
-    .addItem('📱 Generar QR de Asistencia',     'abrirGenerarQR')
-    .addItem('💰 Registrar Ingreso Extra',       'abrirIngresoExtra')
-    .addItem('💸 Registrar Egreso',              'abrirEgreso')
-    .addSeparator()
-    .addItem('✅ Tomar Asistencia (manual)',     'abrirAsistencia')
-    .addItem('👥 Estudiantes',                   'abrirEstudiantes')
-    .addItem('📂 Actividades',                   'abrirActividades')
-    .addSeparator()
-    .addItem('🌍 Vista Pública (forzar)',        'generarVistaPublica')
-    .addItem('📊 Reporte Financiero (forzar)',   'actualizarReporte')
-    .addItem('📱 Recordatorios WhatsApp',        'abrirRecordatorios')
-    .addSeparator()
-    .addItem('⚙️ Instalar Triggers Automáticos', 'instalarTriggers')
-    .addItem('👻 Caza Fantasmas (Escanear)',     'cazarFantasmas')
-    .addToUi();
-}
-
-function cazarFantasmas() {
-  var ui = SpreadsheetApp.getUi();
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var log = [];
-  var idMaldito = '1ObB4TZOgCkTyN0iPhrbgZZJNqNw2A81yEoAUfs7kT-8';
-  var sheets = ss.getSheets();
-  for (var i = 0; i < sheets.length; i++) {
-    var sh = sheets[i];
-    var data = sh.getDataRange().getValues();
-    var formulas = sh.getDataRange().getFormulas();
-    for (var r = 0; r < data.length; r++) {
-      for (var c = 0; c < data[r].length; c++) {
-        var val  = (data[r][c] || '').toString();
-        var form = (formulas[r][c] || '').toString();
-        if (val.indexOf(idMaldito) !== -1 || form.indexOf(idMaldito) !== -1 || form.toUpperCase().indexOf('IMPORTRANGE') !== -1) {
-          log.push('🚨 Peligro en pestaña: "' + sh.getName() + '", celda: ' + sh.getRange(r+1, c+1).getA1Notation());
-        }
-      }
-    }
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Registrar Pago</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080C14; --surface: #0F1724; --border: rgba(255,255,255,0.08);
+    --muted: #334155; --text: #E2E8F0; --dim: #64748B;
+    --green: #00C9A7; --green-dark: #00796B; --green-dim: rgba(0,201,167,0.12);
+    --red: #F43F5E; --red-dim: rgba(244,63,94,0.12);
+    --amber: #F59E0B; --amber-dim: rgba(245,158,11,0.12);
+    --purple: #8B5CF6; --blue: #3B82F6;
+    --radius: 14px;
   }
-  if (log.length > 0) { ui.alert("👻 ¡ENCONTRÉ EL PROBLEMA!\n\n" + log.join("\n")); }
-  else { ui.alert("✅ Escaneo profundo completado. No se encontró nada sospechoso."); }
-}
+  *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
 
-function getSs() {
-  return SpreadsheetApp.openById('1ObB4TZOgCkTyN0iPhrbgZZJNqNw2A81yEoAUfs7kT-8');
-}
-
-function getOrCreateSheet(nombre) {
-  var ss = getSs();
-  var sh = ss.getSheetByName(nombre);
-  if (!sh) {
-    sh = ss.insertSheet(nombre);
-    var headers = ESTRUCTURAS[nombre];
-    if (headers) {
-      sh.appendRow(headers);
-      sh.getRange(1, 1, 1, headers.length)
-        .setBackground('#2D005A').setFontColor('#FFFFFF').setFontWeight('bold');
-      sh.setFrozenRows(1);
-    }
+  /* ── FONDO ANIMADO ── */
+  @keyframes gradientShift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
   }
-  return sh;
-}
+  @keyframes float1 { 0%,100%{transform:translate(0,0) scale(1);} 33%{transform:translate(40px,-60px) scale(1.1);} 66%{transform:translate(-30px,30px) scale(0.95);} }
+  @keyframes float2 { 0%,100%{transform:translate(0,0) scale(1);} 33%{transform:translate(-50px,40px) scale(1.05);} 66%{transform:translate(60px,-20px) scale(1.1);} }
+  @keyframes float3 { 0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(30px,50px) scale(0.9);} }
 
-function getCleanData(nombre) {
-  var cache = CacheService.getScriptCache();
-  var cacheKey = 'bd_' + nombre;
-  var cached = cache.get(cacheKey);
-  if (cached) {
-    try { return JSON.parse(cached); } catch(e) {}
+  .bg-glow { position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden; background:var(--bg); }
+  .glow { position:absolute; border-radius:50%; filter:blur(120px); opacity:.18; }
+  .glow-1 { width:60vw; height:60vw; max-width:400px; max-height:400px; background:var(--green); top:-10%; left:-10%; animation:float1 8s ease-in-out infinite; }
+  .glow-2 { width:50vw; height:50vw; max-width:350px; max-height:350px; background:var(--blue); bottom:-5%; right:-10%; animation:float2 10s ease-in-out infinite; }
+  .glow-3 { width:40vw; height:40vw; max-width:280px; max-height:280px; background:var(--purple); top:40%; left:40%; animation:float3 12s ease-in-out infinite; opacity:.10; }
+
+  /* ── LAYOUT FULL WIDTH ── */
+  .wrap { position:relative; z-index:1; width:100%; max-width:100%; margin:0; padding:0 0 80px; min-height:100vh; display:flex; flex-direction:column; }
+
+  /* ── HEADER ── */
+  .app-header {
+    background:linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
+    padding:env(safe-area-inset-top, 48px) 20px 24px;
+    padding-top: max(48px, env(safe-area-inset-top, 48px));
+    position:sticky; top:0; z-index:10;
+    width:100%;
   }
-  var sh = getSs().getSheetByName(nombre);
-  if (!sh) return [];
-  var lastRow = sh.getLastRow();
-  if (lastRow <= 1) return [];
-  var numCols = ESTRUCTURAS[nombre] ? ESTRUCTURAS[nombre].length : sh.getLastColumn();
-  if (numCols <= 0) return [];
-  var values = [];
-  try {
-    values = sh.getRange(1, 1, lastRow, numCols).getDisplayValues();
-  } catch(e) {
-    Logger.log('getCleanData error en "' + nombre + '": ' + e.message);
-    throw new Error('Error al leer datos de la pestaña ' + nombre + ': ' + e.message);
+  .header-top { display:flex; align-items:center; gap:12px; margin-bottom:4px; }
+  .header-icon { width:38px; height:38px; border-radius:12px; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:20px; }
+  .header-title { font-family:'Space Grotesk',sans-serif; font-size:20px; font-weight:700; color:#fff; }
+  .header-sub { font-size:12px; color:rgba(255,255,255,0.7); margin-left:50px; }
+
+  /* ── BODY ── */
+  .body { padding:16px; display:flex; flex-direction:column; gap:12px; flex:1; width:100%; }
+
+  /* ── LOGIN ── */
+  #pantallaLogin { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:70vh; gap:16px; padding:24px; width:100%; }
+  .pin-label { font-size:14px; color:var(--dim); }
+  .pin-input {
+    width:200px; padding:18px; text-align:center;
+    font-size:28px; font-weight:700; letter-spacing:12px;
+    background:rgba(255,255,255,0.05); border:1.5px solid var(--border);
+    border-radius:14px; color:#fff; outline:none;
+    font-family:'Space Grotesk',sans-serif; -webkit-appearance:none;
   }
-  if (values.length <= 1) return [];
-  var result = values.slice(1).filter(function(f) { return f[0] && f[0].toString().trim() !== ''; });
-  try { cache.put(cacheKey, JSON.stringify(result), 300); } catch(e) {}
-  return result;
-}
-
-function invalidarCache(nombre) {
-  try { CacheService.getScriptCache().remove('bd_' + nombre); } catch(e) {}
-}
-
-function generarID(sh) {
-  var lastRow = sh.getLastRow();
-  return lastRow < 2 ? 1 : (parseInt(sh.getRange(lastRow, 1).getValue()) || 0) + 1;
-}
-
-function formatoFecha() { return Utilities.formatDate(new Date(), TIMEZONE, 'dd/MM/yyyy'); }
-function formatoHora()  { return Utilities.formatDate(new Date(), TIMEZONE, 'HH:mm'); }
-function formatSoles(num) { if (num < 0) return '-S/. ' + Math.abs(num).toFixed(2); return 'S/. ' + num.toFixed(2); }
-function norm(txt) { return (txt || '').toString().trim().toLowerCase(); }
-function existeEnColumna(nombre, colIndex, valor) { return getCleanData(nombre).some(function(f) { return norm(f[colIndex]) === norm(valor); }); }
-function respError(msg) { return { ok: false, error: msg }; }
-function respOk(extra)  { var r = { ok: true }; if (extra) { for (var k in extra) r[k] = extra[k]; } return r; }
-function validarRequeridos(campos) { for (var nombre in campos) { var val = campos[nombre]; if (val === null || val === undefined || val.toString().trim() === '') return nombre + ' es obligatorio.'; } return null; }
-function parseMonto(val) { if (val === undefined || val === null) return 0; var str = val.toString().replace(/,/g, '').replace(/[^0-9.-]+/g, ''); return parseFloat(str) || 0; }
-
-function dispararActualizacionAsync() {
-  try {
-    ScriptApp.getProjectTriggers().forEach(function(t) {
-      if (t.getHandlerFunction() === 'actualizarVistasAsync') ScriptApp.deleteTrigger(t);
-    });
-    ScriptApp.newTrigger('actualizarVistasAsync').timeBased().after(60 * 1000).create();
-  } catch(e) { Logger.log('dispararActualizacionAsync error: ' + e.message); }
-}
-
-function actualizarVistasAsync() {
-  try {
-    triggerAutoVista();
-    triggerAutoReporte();
-    ScriptApp.getProjectTriggers().forEach(function(t) {
-      if (t.getHandlerFunction() === 'actualizarVistasAsync') ScriptApp.deleteTrigger(t);
-    });
-  } catch(e) { Logger.log('ERROR actualizarVistasAsync: ' + e.message); }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// ESTUDIANTES
-// ═══════════════════════════════════════════════════════════════════════════
-function abrirEstudiantes() {
-  SpreadsheetApp.getUi().showModalDialog(
-    HtmlService.createHtmlOutput(htmlEstudiantes()).setWidth(520).setHeight(720), '👥 Gestión de Estudiantes');
-}
-
-function getEstudiantes() {
-  return getCleanData('BD_Estudiantes').map(function(f, i) {
-    return { fila: i + 2, dni: f[0], nombre: f[1], tel: f[2], activo: f[3] };
-  });
-}
-
-function agregarEstudiante(d) {
-  try {
-    if (!d.dni || d.dni.toString().trim() === '') return respError('El DNI es obligatorio.');
-    if (!d.nombre || d.nombre.trim() === '') return respError('El nombre es obligatorio.');
-    if (d.dni.toString().trim().length < 7) return respError('El DNI debe tener al menos 7 dígitos.');
-    if (existeEnColumna('BD_Estudiantes', 0, d.dni)) return respError('El DNI ya existe.');
-    var sh = getOrCreateSheet('BD_Estudiantes');
-    sh.appendRow([d.dni.toString().trim(), d.nombre.trim(), d.tel || '', d.activo || 'SÍ', '']);
-    invalidarCache('BD_Estudiantes');
-    return respOk();
-  } catch(e) { return respError(e.message); }
-}
-
-function modificarEstudiante(d) {
-  try {
-    if (!d.dni || d.dni.toString().trim() === '') return respError('El DNI es obligatorio.');
-    if (!d.nombre || d.nombre.trim() === '') return respError('El nombre es obligatorio.');
-    var sh = getSs().getSheetByName('BD_Estudiantes');
-    sh.getRange(d.fila, 1, 1, 4).setValues([[d.dni.toString().trim(), d.nombre.trim(), d.tel || '', d.activo]]);
-    invalidarCache('BD_Estudiantes');
-    return respOk();
-  } catch(e) { return respError(e.message); }
-}
-
-function eliminarEstudiante(fila) {
-  try {
-    getSs().getSheetByName('BD_Estudiantes').deleteRow(fila);
-    invalidarCache('BD_Estudiantes');
-    return respOk();
-  } catch(e) { return respError(e.message); }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// ACTIVIDADES
-// ═══════════════════════════════════════════════════════════════════════════
-function abrirActividades() {
-  SpreadsheetApp.getUi().showModalDialog(
-    HtmlService.createHtmlOutput(htmlActividades()).setWidth(520).setHeight(720), '📂 Gestión de Actividades');
-}
-
-function getActividadesAdmin() {
-  return getCleanData('BD_Actividades').map(function(f, i) {
-    return { fila: i + 2, codigo: f[0], nombre: f[1], monto: f[2], desc: f[3], tipo: f[4] || 'Cobro', fechaLimite: f[5] || '' };
-  });
-}
-
-function agregarActividad(d) {
-  try {
-    if (!d.codigo || d.codigo.trim() === '') return respError('El código es obligatorio.');
-    if (!d.nombre || d.nombre.trim() === '') return respError('El nombre es obligatorio.');
-    if (parseMonto(d.monto) < 0) return respError('El monto no puede ser negativo.');
-    
-    var tipoStr = (d.tipo || '').toLowerCase();
-    var tipo = (tipoStr === 'asistencia') ? 'Asistencia' : (tipoStr === 'variable' ? 'Variable' : 'Cobro');
-    
-    if (tipo === 'Asistencia' && (!d.fechaLimite || d.fechaLimite.trim() === ''))
-      return respError('Las actividades de tipo Asistencia requieren una fecha límite de registro.');
-    if (existeEnColumna('BD_Actividades', 0, d.codigo)) return respError('Ya existe una actividad con ese código.');
-    if (existeEnColumna('BD_Actividades', 1, d.nombre)) return respError('Ya existe una actividad con ese nombre.');
-    var sh = getOrCreateSheet('BD_Actividades');
-    var sCod = d.codigo.trim(); var sNom = d.nombre.trim();
-    if (sCod.startsWith('=')) sCod = "'" + sCod;
-    if (sNom.startsWith('=')) sNom = "'" + sNom;
-    sh.appendRow([sCod, sNom, parseMonto(d.monto), d.desc || '', tipo, d.fechaLimite || '']);
-    invalidarCache('BD_Actividades');
-    return respOk();
-  } catch(e) { return respError(e.message); }
-}
-
-function modificarActividad(d) {
-  try {
-    if (!d.codigo || d.codigo.trim() === '') return respError('El código es obligatorio.');
-    if (!d.nombre || d.nombre.trim() === '') return respError('El nombre es obligatorio.');
-    if (parseMonto(d.monto) < 0) return respError('El monto no puede ser negativo.');
-    
-    var tipoStr = (d.tipo || '').toLowerCase();
-    var tipo = (tipoStr === 'asistencia') ? 'Asistencia' : (tipoStr === 'variable' ? 'Variable' : 'Cobro');
-    
-    var sh = getSs().getSheetByName('BD_Actividades');
-    sh.getRange(d.fila, 1, 1, 6).setValues([[d.codigo.trim(), d.nombre.trim(), parseMonto(d.monto), d.desc || '', tipo, d.fechaLimite || '']]);
-    invalidarCache('BD_Actividades');
-    return respOk();
-  } catch(e) { return respError(e.message); }
-}
-
-function eliminarActividad(fila) {
-  try {
-    var sh = getSs().getSheetByName('BD_Actividades');
-    var codActividad = sh.getRange(fila, 1).getValue().toString();
-    var pagos = getCleanData('BD_Pagos');
-    if (pagos.some(function(p) { return p[4].toString() === codActividad; }))
-      return respError('No se puede eliminar: tiene pagos registrados.');
-    sh.deleteRow(fila);
-    invalidarCache('BD_Actividades');
-    return respOk();
-  } catch(e) { return respError(e.message); }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// PAGOS DE ESTUDIANTES
-// ═══════════════════════════════════════════════════════════════════════════
-function abrirPago() {
-  SpreadsheetApp.getUi().showModalDialog(
-    HtmlService.createHtmlOutput(htmlPago()).setWidth(520).setHeight(720), '📝 Registro de Pago');
-}
-
-function buscarEstudiante(q) {
-  try {
-    var data = getCleanData('BD_Estudiantes');
-    q = norm(q);
-    if (q.length < 2) return [];
-    return data.filter(function(f) {
-      return (norm(f[0]).indexOf(q) !== -1 || norm(f[1]).indexOf(q) !== -1) && f[3] !== 'NO';
-    }).map(function(f) { return { dni: f[0], nombre: f[1] }; });
-  } catch(e) { return []; }
-}
-
-function getActividades() {
-  try {
-    return getCleanData('BD_Actividades').map(function(f) {
-      return { codigo: f[0].toString(), nombre: f[1].toString(), monto: parseMonto(f[2]) };
-    });
-  } catch(e) { return []; }
-}
-
-function guardarPago(p) {
-  try {
-    if (!p.dni || !p.codActividad) return respError('Selecciona estudiante y actividad.');
-    var data = getCleanData('BD_Pagos');
-    var duplicado = data.some(function(f) {
-      return norm(f[2]) === norm(p.dni) && norm(f[4]) === norm(p.codActividad);
-    });
-    if (duplicado) return respError('Este estudiante ya pagó esa actividad.');
-    var sh = getOrCreateSheet('BD_Pagos');
-    var id = generarID(sh);
-    sh.appendRow([id, formatoFecha(), p.dni, p.nombre, p.codActividad,
-      p.nomActividad, parseMonto(p.monto), p.metodoPago || 'No especificado', p.obs || '']);
-    SpreadsheetApp.flush();
-    invalidarCache('BD_Pagos');
-    dispararActualizacionAsync(); 
-    return respOk({ id: id });
-  } catch(e) { return respError(e.message); }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// MOVIMIENTOS: INGRESOS EXTRA Y EGRESOS
-// ═══════════════════════════════════════════════════════════════════════════
-function abrirIngresoExtra() {
-  SpreadsheetApp.getUi().showModalDialog(
-    HtmlService.createHtmlOutput(htmlIngresoExtra()).setWidth(520).setHeight(720), '💰 Registrar Ingreso Extra');
-}
-
-function abrirEgreso() {
-  SpreadsheetApp.getUi().showModalDialog(
-    HtmlService.createHtmlOutput(htmlEgreso()).setWidth(520).setHeight(720), '💸 Registrar Egreso');
-}
-
-function getCategoriasIngreso() {
-  return [
-    {valor:'Tesoreria',      texto:'🏦 Tesorería / Fondo general'},
-    {valor:'Padrino',        texto:'👤 Padrino / Apadrinamiento'},
-    {valor:'Donacion',       texto:'🎁 Donación / Aporte voluntario'},
-    {valor:'ActividadExtra', texto:'🎯 Actividad especial (no estudiantes)'},
-    {valor:'Subvencion',     texto:'🏛️ Subvención / Institución'},
-    {valor:'Venta',          texto:'🛒 Venta de productos / Rifa'},
-    {valor:'Otros',          texto:'📋 Otros ingresos'}
-  ];
-}
-
-function getCategoriasEgreso() {
-  return [
-    {valor:'Materiales',      texto:'📦 Materiales'},
-    {valor:'Servicios',       texto:'🔧 Servicios'},
-    {valor:'Viaticos',        texto:'🚗 Viáticos'},
-    {valor:'Infraestructura', texto:'🏗️ Infraestructura'},
-    {valor:'Personal',        texto:'👷 Personal'},
-    {valor:'Otros',           texto:'📋 Otros'}
-  ];
-}
-
-function _guardarMovimiento(tipo, e) {
-  try {
-    var monto = parseMonto(e.monto);
-    if (monto <= 0) return respError('El monto debe ser mayor a 0.');
-    var err = validarRequeridos({ 'Concepto': e.concepto, 'Categoría': e.categoria, 'Responsable': e.responsable });
-    if (err) return respError(err);
-    var sh   = getOrCreateSheet(tipo);
-    var id   = generarID(sh);
-    var fecha = e.fecha && e.fecha.trim() !== '' ? e.fecha.trim() : formatoFecha();
-    var hora  = e.hora  && e.hora.trim()  !== '' ? e.hora.trim()  : formatoHora();
-    if (tipo === 'BD_IngresosExtra') {
-      sh.appendRow([id, fecha, hora, e.concepto.trim(), monto, e.categoria, e.responsable.trim(), e.origen || 'No especificado', e.obs || '']);
-    } else {
-      sh.appendRow([id, fecha, hora, e.concepto.trim(), monto, e.categoria, e.responsable.trim(), e.obs || '']);
-    }
-    SpreadsheetApp.flush();
-    invalidarCache(tipo);
-    dispararActualizacionAsync();
-    return respOk({ id: id });
-  } catch(err) {
-    Logger.log('ERROR _guardarMovimiento ' + tipo + ': ' + err.message);
-    return respError(err.message);
+  .pin-input:focus { border-color:var(--green); }
+  .btn-entrar {
+    width:200px; padding:14px; background:var(--green); color:#062b25;
+    border:none; border-radius:13px; font-size:15px; font-weight:700;
+    font-family:inherit; cursor:pointer;
   }
-}
+  .login-error {
+    font-size:13px; font-weight:600; color:var(--red);
+    background:var(--red-dim); border:1px solid rgba(244,63,94,.25);
+    border-radius:10px; padding:10px 14px; text-align:center; display:none;
+  }
 
-function guardarIngresoExtra(e) { return _guardarMovimiento('BD_IngresosExtra', e); }
-function guardarEgreso(e)       { return _guardarMovimiento('BD_Egresos', e); }
+  /* ── CARDS ── */
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px; width:100%; }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// TRIGGERS AUTOMÁTICOS
-// ═══════════════════════════════════════════════════════════════════════════
-function instalarTriggers() {
-  ScriptApp.getProjectTriggers().forEach(function(t) {
-    var fn = t.getHandlerFunction();
-    if (fn === 'triggerAutoVista' || fn === 'triggerAutoReporte') ScriptApp.deleteTrigger(t);
-  });
-  ScriptApp.newTrigger('triggerAutoVista').timeBased().everyHours(2).create();
-  ScriptApp.newTrigger('triggerAutoReporte').timeBased().atHour(7).everyDays(1).inTimezone('America/Lima').create();
-  SpreadsheetApp.getUi().alert('✅ Triggers instalados:\n\n• Vista Pública → cada 2 horas\n• Reporte Financiero → todos los días a las 7:00 AM\n\nYa funcionan automáticamente.');
-}
+  /* ── BUSCADOR ── */
+  .search-wrap { position:relative; }
+  .search-input {
+    width:100%; padding:12px 14px 12px 40px;
+    background:rgba(255,255,255,.06); border:1.5px solid var(--border);
+    border-radius:11px; font-size:14px; font-family:inherit; color:#fff;
+    outline:none; transition:border-color .2s, background .2s;
+    -webkit-appearance:none;
+  }
+  .search-input:focus { border-color:var(--green); background:rgba(255,255,255,.09); }
+  .search-icon { position:absolute; left:13px; top:50%; transform:translateY(-50%); color:var(--dim); font-size:15px; pointer-events:none; }
+  .sugg-box {
+    position:absolute; top:calc(100% + 6px); left:0; right:0;
+    background:#1A2332; border:1.5px solid rgba(255,255,255,.12);
+    border-radius:12px; z-index:50; max-height:220px; overflow-y:auto;
+    display:none; box-shadow:0 20px 40px rgba(0,0,0,.5);
+  }
+  .sugg-item { padding:11px 14px; cursor:pointer; border-bottom:1px solid rgba(255,255,255,.05); display:flex; align-items:center; gap:10px; transition:background .15s; }
+  .sugg-item:last-child { border-bottom:none; }
+  .sugg-item:hover { background:rgba(255,255,255,.06); }
+  .sugg-av { width:36px; height:36px; border-radius:10px; flex-shrink:0; background:rgba(0,201,167,.2); color:var(--green); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; }
+  .sugg-info h5 { font-size:14px; font-weight:600; color:#fff; margin-bottom:1px; }
+  .sugg-info p { font-size:12px; color:var(--dim); }
+  .sugg-empty { padding:16px; text-align:center; color:var(--dim); font-size:13px; }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// VISTA PÚBLICA
-// ═══════════════════════════════════════════════════════════════════════════
-function generarVistaPublica() { triggerAutoVista(); SpreadsheetApp.getUi().alert('🌍 Vista Pública actualizada.'); }
+  /* ── CHIP ESTUDIANTE ── */
+  .student-chip {
+    background:var(--green-dim); border:1px solid rgba(0,201,167,.3);
+    border-radius:12px; padding:12px 14px;
+    display:flex; align-items:center; gap:12px;
+  }
+  .student-av {
+    width:40px; height:40px; border-radius:50%; flex-shrink:0;
+    background:linear-gradient(135deg, var(--green), var(--green-dark));
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Space Grotesk',sans-serif; font-size:14px; font-weight:700; color:#fff;
+  }
+  .student-name { font-size:14px; font-weight:600; color:#fff; }
+  .student-dni { font-size:12px; color:var(--green); }
+  .btn-cambiar { margin-left:auto; font-size:12px; color:var(--dim); background:none; border:none; cursor:pointer; font-family:inherit; text-decoration:underline; flex-shrink:0; }
 
-function triggerAutoVista() {
-  try {
-    var pub  = SpreadsheetApp.openById('1FJ8_ZrVK9azdFAxEMnjKmDdW10icfNuA60MlUEdcghQ');
-    var pagD = getCleanData('BD_Pagos');
-    var estD = getCleanData('BD_Estudiantes');
-    var actD = getCleanData('BD_Actividades');
-    var asisD = getCleanData('BD_Asistencias');
-    if (actD.length === 0) return;
-    var sh = pub.getSheetByName('Vista_Publica') || pub.insertSheet('Vista_Publica');
-    sh.clear(); sh.setHiddenGridlines(true);
-    var C = { header:'#2D005A', accent:'#FF007A', success:'#00C9A7', danger:'#FF4D4D', bg:'#F8F9FD', text:'#1A1A1A', white:'#FFFFFF' };
-    [20,45,280,110,20,45,280,20].forEach(function(w,i){ sh.setColumnWidth(i+1,w); });
-    sh.getRange(1,1,1,8).setBackground(C.header);
-    sh.setRowHeight(2,60);
-    sh.getRange(2,1,1,8).merge().setValue('💎 ESTADO DE PAGOS')
-      .setBackground(C.header).setFontColor(C.white).setFontSize(22).setFontWeight('bold')
-      .setHorizontalAlignment('center').setVerticalAlignment('middle');
-    sh.setRowHeight(3,28);
-    sh.getRange(3,1,1,8).merge().setValue('Actualizado: ' + formatoFecha() + ' ' + formatoHora())
-      .setBackground(C.accent).setFontColor(C.white).setFontSize(11)
-      .setHorizontalAlignment('center').setVerticalAlignment('middle');
-    var fila = 5;
-    var totalAlumnos = estD.length;
-    actD.forEach(function(act) {
-      var cod = act[0].toString(), nom = act[1].toString(), mto = act[2];
-      var tipo = norm(act[4]) === 'asistencia' ? 'asistencia' : 'cobro';
-      var pagados = pagD.filter(function(p){ return p[4].toString() === cod; });
-      var dniPag  = pagados.map(function(p){ return p[2].toString(); });
-      var presentes, deudores;
-      if (tipo === 'asistencia') {
-        var dniAsistio = asisD.filter(function(a){ return a[3].toString() === cod; }).map(function(a){ return a[4].toString(); });
-        var asistieron = asisD.filter(function(a){ return a[3].toString() === cod; }).map(function(a){ return { nombre: '✅ ' + a[5], fecha: a[1] }; });
-        var pagaronMulta = pagados.map(function(p){ return { nombre: '💰 ' + p[3], fecha: p[1] }; });
-        presentes = asistieron.concat(pagaronMulta);
-        deudores  = estD.filter(function(e){ var d = e[0].toString(); return dniAsistio.indexOf(d) === -1 && dniPag.indexOf(d) === -1; });
-      } else {
-        presentes = pagados.map(function(p){ return { nombre: p[3], fecha: p[1] }; });
-        deudores  = estD.filter(function(e){ return dniPag.indexOf(e[0].toString()) === -1; });
-      }
-      var etiquetaIzq = tipo === 'asistencia' ? 'CUMPLIERON' : 'PAGARON';
-      var etiquetaDer = tipo === 'asistencia' ? 'DEBEN MULTA' : 'PENDIENTES';
-      sh.setRowHeight(fila,38);
-      sh.getRange(fila,1,1,8).merge()
-        .setValue('  🚀 ' + nom.toUpperCase() + '  [' + cod + ']  —  S/. ' + mto)
-        .setBackground(C.header).setFontColor(C.white).setFontWeight('bold').setFontSize(13)
-        .setHorizontalAlignment('left').setVerticalAlignment('middle');
-      fila++;
-      sh.setRowHeight(fila,28);
-      sh.getRange(fila,1,1,4).merge().setValue('  ✅ ' + etiquetaIzq + ': ' + presentes.length + ' / ' + totalAlumnos)
-        .setBackground(C.success).setFontColor(C.text).setFontWeight('bold').setFontSize(11);
-      sh.getRange(fila,5,1,4).merge().setValue('  ❌ ' + etiquetaDer + ': ' + deudores.length)
-        .setBackground(C.danger).setFontColor(C.white).setFontWeight('bold').setFontSize(11);
-      fila++;
-      sh.getRange(fila,2).setValue('#').setBackground('#DDDDDD').setHorizontalAlignment('center').setFontWeight('bold');
-      sh.getRange(fila,3).setValue('  ESTUDIANTE').setBackground('#DDDDDD').setFontWeight('bold');
-      sh.getRange(fila,4).setValue('FECHA').setBackground('#DDDDDD').setHorizontalAlignment('center').setFontWeight('bold');
-      sh.getRange(fila,6).setValue('#').setBackground('#FFCDD2').setHorizontalAlignment('center').setFontWeight('bold');
-      sh.getRange(fila,7).setValue('  PENDIENTE').setBackground('#FFCDD2').setFontWeight('bold');
-      sh.getRange(fila,1).setBackground(C.bg); sh.getRange(fila,5).setBackground(C.bg); sh.getRange(fila,8).setBackground(C.bg);
-      fila++;
-      var maxRows = Math.max(presentes.length, deudores.length, 1);
-      for (var r = 0; r < maxRows; r++) {
-        sh.setRowHeight(fila,26);
-        var bgPag = r%2===0 ? C.white : '#F0F0F0';
-        var bgDeu = r%2===0 ? '#FFF5F5' : '#FFE4E4';
-        if (r < presentes.length) {
-          sh.getRange(fila,2).setValue(r+1).setHorizontalAlignment('center').setBackground(bgPag);
-          sh.getRange(fila,3).setValue('  ' + presentes[r].nombre).setBackground(bgPag);
-          sh.getRange(fila,4).setValue(presentes[r].fecha).setHorizontalAlignment('center').setBackground(bgPag);
-        } else { sh.getRange(fila,2,1,3).setBackground(bgPag); }
-        if (r < deudores.length) {
-          sh.getRange(fila,6).setValue(r+1).setHorizontalAlignment('center').setBackground(bgDeu);
-          sh.getRange(fila,7).setValue('  ' + deudores[r][1]).setBackground(bgDeu);
-        } else { sh.getRange(fila,6,1,2).setBackground(bgDeu); }
-        sh.getRange(fila,1).setBackground(C.bg); sh.getRange(fila,5).setBackground(C.bg); sh.getRange(fila,8).setBackground(C.bg);
-        fila++;
-      }
-      fila += 2;
-    });
-    SpreadsheetApp.flush();
-    Logger.log('triggerAutoVista OK: ' + formatoFecha() + ' ' + formatoHora());
-  } catch(e) { Logger.log('ERROR triggerAutoVista: ' + e.message); }
-}
+  /* ── SECCIÓN PENDIENTES ── */
+  .section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .section-label { font-size:11px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:var(--dim); }
+  .btn-selall { font-size:12px; font-weight:600; color:var(--green); background:none; border:none; cursor:pointer; font-family:inherit; text-decoration:underline; padding:0; }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// REPORTE FINANCIERO
-// ═══════════════════════════════════════════════════════════════════════════
-function actualizarReporte() { triggerAutoReporte(); SpreadsheetApp.getUi().alert('📊 Reporte Financiero actualizado.'); }
-
-function triggerAutoReporte() {
-  try {
-    var estD = getCleanData('BD_Estudiantes');
-    var actD = getCleanData('BD_Actividades');
-    var pagD = getCleanData('BD_Pagos');
-    var egrD = getCleanData('BD_Egresos');
-    var ingD = getCleanData('BD_IngresosExtra');
-    var asisD = getCleanData('BD_Asistencias');
-    if (actD.length === 0) return;
-    var ss  = getSs();
-    var rep = ss.getSheetByName('Panel_Reportes');
-    if (rep) { ss.deleteSheet(rep); SpreadsheetApp.flush(); }
-    rep = ss.insertSheet('Panel_Reportes');
-    rep.setHiddenGridlines(true);
-    SpreadsheetApp.flush();
-    var C = { primario:'#2D005A', acento:'#FF007A', exito:'#00C9A7', alerta:'#FF4D4D', azul:'#3B82F6', naranja:'#F97316', blanco:'#FFFFFF', texto:'#1A1A1A' };
-    var totalAlumnos = estD.length;
-    var totalEsperado = 0, totalRecaudado = 0, totalEgresos = 0, totalIngresosExtra = 0;
-    
-    actD.forEach(function(a){ 
-      if(norm(a[4]) !== 'variable') { // Ignoramos las actividades libres del total estricto esperado
-        totalEsperado += parseMonto(a[2]) * totalAlumnos; 
-      }
-    });
-
-    pagD.forEach(function(p){ totalRecaudado    += parseMonto(p[6]); });
-    egrD.forEach(function(e){ totalEgresos      += parseMonto(e[4]); });
-    ingD.forEach(function(i){ totalIngresosExtra += parseMonto(i[4]); });
-    var totalIngresos = totalRecaudado + totalIngresosExtra;
-    var saldoNeto     = totalIngresos - totalEgresos;
-    var pctAvance     = totalEsperado > 0 ? (totalRecaudado / totalEsperado * 100).toFixed(1) : '0';
-    var pagSet = {};
-    pagD.forEach(function(p){ pagSet[p[2] + '|' + p[4]] = true; });
-    var asisSet = {};
-    asisD.forEach(function(a){ asisSet[a[4] + '|' + a[3]] = true; });
-    rep.setRowHeight(2, 50);
-    rep.getRange(2, 2, 1, 10).merge().setValue('📊 PANEL DE CONTROL FINANCIERO (V10.0)')
-      .setBackground(C.primario).setFontColor(C.blanco).setFontSize(22).setFontWeight('bold')
-      .setHorizontalAlignment('center').setVerticalAlignment('middle');
-    rep.setRowHeight(4, 70); rep.setRowHeight(5, 70);
-    var kpis = [
-      { col:2,  bg:C.exito,  fc:C.texto,  txt:'💰 PAGOS EST.\n'      + formatSoles(totalRecaudado)    },
-      { col:4,  bg:C.naranja, fc:C.blanco, txt:'💎 INGRESOS EXTRA\n'  + formatSoles(totalIngresosExtra) },
-      { col:6,  bg:C.alerta,  fc:C.blanco, txt:'💸 EGRESOS\n'         + formatSoles(totalEgresos)       },
-      { col:8,  bg:C.azul,    fc:C.blanco, txt:'🏦 SALDO NETO\n'      + formatSoles(saldoNeto)          },
-      { col:10, bg:C.acento,  fc:C.blanco, txt:'📈 AVANCE\n'          + pctAvance + '%'                 }
-    ];
-    kpis.forEach(function(k){
-      rep.getRange(4, k.col, 2, 2).merge().setValue(k.txt).setBackground(k.bg).setFontColor(k.fc)
-        .setFontWeight('bold').setHorizontalAlignment('center').setVerticalAlignment('middle');
-    });
-    SpreadsheetApp.flush();
-    rep.getRange(8, 2).setValue('🎯 RECAUDADO POR ACTIVIDAD').setFontSize(14).setFontWeight('bold').setFontColor(C.primario);
-    var actVals = [['ACTIVIDAD','CÓDIGO','MONTO UNIT.','PAGARON','PENDIENTES','RECAUDADO','% AVANCE']];
-    var actBgs  = [[C.primario,C.primario,C.primario,C.primario,C.primario,C.primario,C.primario]];
-    var actFcs  = [[C.blanco,  C.blanco,  C.blanco,  C.blanco,  C.blanco,  C.blanco,  C.blanco ]];
-    actD.forEach(function(a){
-      var cod = a[0].toString();
-      var pagados = pagD.filter(function(p){ return p[4].toString() === cod; });
-      var nPag  = pagados.length;
-      var nPend = totalAlumnos - nPag;
-      var recaud = 0; pagados.forEach(function(p){ recaud += parseMonto(p[6]); });
-      var pct = totalAlumnos > 0 ? (nPag/totalAlumnos*100).toFixed(1)+'%' : '0%';
-      actVals.push(["'"+a[1],"'"+cod,"'"+formatSoles(parseMonto(a[2])),"'"+nPag+'/'+totalAlumnos,"'"+nPend,"'"+formatSoles(recaud),"'"+pct]);
-      actBgs.push(['#FFFFFF','#FFFFFF','#FFFFFF','#FFFFFF','#FFFFFF','#FFFFFF','#FFFFFF']);
-      actFcs.push([C.texto,  C.texto,  C.texto,  C.texto,  C.texto,  C.texto,  C.texto ]);
-    });
-    var actRng = rep.getRange(9, 2, actVals.length, 7);
-    actRng.setValues(actVals); actRng.setBackgrounds(actBgs); actRng.setFontColors(actFcs);
-    rep.getRange(9, 2, 1, 7).setFontWeight('bold').setHorizontalAlignment('center');
-    actRng.setBorder(true,true,true,true,true,true,'#DDDDDD',SpreadsheetApp.BorderStyle.SOLID);
-    SpreadsheetApp.flush();
-    var cursor = 10 + actVals.length;
-    if (ingD.length > 0) {
-      rep.getRange(cursor, 2).setValue('💎 INGRESOS EXTRA DETALLE').setFontSize(14).setFontWeight('bold').setFontColor(C.primario);
-      var ingVals = [['FECHA','CONCEPTO','CATEGORÍA','RESPONSABLE','ORIGEN','MONTO']];
-      var ingBgs  = [[C.primario,C.primario,C.primario,C.primario,C.primario,C.primario]];
-      ingD.forEach(function(i){
-        ingVals.push(["'"+i[1],"'"+i[3],"'"+i[5],"'"+i[6],"'"+i[7],"'"+formatSoles(parseMonto(i[4]))]);
-        ingBgs.push(['#FFFFFF','#FFFFFF','#FFFFFF','#FFFFFF','#FFFFFF','#FFFFFF']);
-      });
-      var ingRng = rep.getRange(cursor+1, 2, ingVals.length, 6);
-      ingRng.setValues(ingVals); ingRng.setBackgrounds(ingBgs);
-      rep.getRange(cursor+1, 2, 1, 6).setFontWeight('bold').setFontColor(C.blanco).setHorizontalAlignment('center');
-      ingRng.setBorder(true,true,true,true,true,true,'#DDDDDD',SpreadsheetApp.BorderStyle.SOLID);
-      cursor += ingVals.length + 2;
-      SpreadsheetApp.flush();
-    }
-    rep.getRange(cursor, 2).setValue('📋 PAGOS PENDIENTES').setFontSize(14).setFontWeight('bold').setFontColor(C.primario);
-    var pendVals = [['ACTIVIDAD','DNI','ESTUDIANTE','MONTO']];
-    var pendBgs  = [[C.primario,C.primario,C.primario,C.primario]];
-    actD.forEach(function(a){
-      var tipo = norm(a[4]) === 'asistencia' ? 'asistencia' : 'cobro';
-      estD.forEach(function(e){
-        var yaPago    = pagSet[e[0]+'|'+a[0]];
-        var yaAsistio = tipo === 'asistencia' && asisSet[e[0]+'|'+a[0]];
-        if (!yaPago && !yaAsistio) {
-          pendVals.push(["'"+a[1],"'"+e[0],"'"+e[1],"'"+formatSoles(parseMonto(a[2]))]);
-          pendBgs.push(['#FFFFFF','#FFFFFF','#FFFFFF','#FFFFFF']);
-        }
-      });
-    });
-    if (pendVals.length > 1) {
-      var pendRng = rep.getRange(cursor+1, 2, pendVals.length, 4);
-      pendRng.setValues(pendVals); pendRng.setBackgrounds(pendBgs);
-      rep.getRange(cursor+1, 2, 1, 4).setFontWeight('bold').setFontColor(C.blanco).setHorizontalAlignment('center');
-      pendRng.setBorder(true,true,true,true,true,true,'#DDDDDD',SpreadsheetApp.BorderStyle.SOLID);
-    }
-    SpreadsheetApp.flush();
-    Logger.log('triggerAutoReporte OK: ' + formatoFecha() + ' ' + formatoHora());
-  } catch(e) { Logger.log('ERROR triggerAutoReporte: ' + e.message + '\n' + e.stack); }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// HTML TEMPLATES — CSS COMPARTIDO
-// ═══════════════════════════════════════════════════════════════════════════
-function htmlCSS(colorPrimario, colorSecundario) {
-  colorSecundario = colorSecundario || '#0F172A';
-  return '<style>' +
-    '@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap");' +
-    '*{box-sizing:border-box;margin:0;padding:0;}' +
-    'body{font-family:"Plus Jakarta Sans",sans-serif;background:#F1F5F9;color:#1E293B;min-height:100vh;padding:20px;}' +
-    '.card{background:#fff;border-radius:20px;padding:28px;box-shadow:0 1px 3px rgba(0,0,0,.06),0 8px 24px rgba(0,0,0,.05);}' +
-    '.header{background:linear-gradient(135deg,' + colorPrimario + ' 0%,' + colorSecundario + ' 100%);color:#fff;padding:22px 24px;border-radius:14px;margin-bottom:28px;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.18);}' +
-    '.header h2{font-size:22px;font-weight:700;letter-spacing:-.3px;}' +
-    '.fg{margin-bottom:18px;}' +
-    '.fg label{display:block;font-size:12px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:#64748B;margin-bottom:7px;}' +
-    '.fg input,.fg select,.fg textarea{width:100%;padding:12px 14px;border:1.5px solid #E2E8F0;border-radius:10px;font-size:14px;font-family:inherit;color:#0F172A;background:#FAFBFC;outline:none;transition:border-color .2s,box-shadow .2s,background .2s;}' +
-    '.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:' + colorPrimario + ';background:#fff;box-shadow:0 0 0 3px ' + colorPrimario + '22;}' +
-    '.fg input[readonly]{background:#F1F5F9;color:#64748B;cursor:not-allowed;border-color:#E2E8F0;}' +
-    '.fg select{cursor:pointer;}' +
-    '.monto-wrap{position:relative;}' +
-    '.monto-prefix{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:14px;font-weight:700;color:' + colorPrimario + ';pointer-events:none;z-index:2;}' +
-    '.monto-input{padding-left:46px !important;}' +
-    '.sugg-wrap{position:relative;}' +
-    '.sugg-box{position:absolute;top:calc(100% + 6px);left:0;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.12);z-index:100;max-height:200px;overflow-y:auto;display:none;border:1.5px solid #E2E8F0;}' +
-    '.sugg-item{padding:11px 14px;cursor:pointer;border-bottom:1px solid #F1F5F9;display:flex;align-items:center;gap:12px;transition:background .15s;}' +
-    '.sugg-item:last-child{border-bottom:none;}' +
-    '.sugg-item:hover{background:#F8FAFC;}' +
-    '.sugg-avatar{width:36px;height:36px;border-radius:10px;flex-shrink:0;background:' + colorPrimario + '18;color:' + colorPrimario + ';display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;}' +
-    '.sugg-info h5{font-size:14px;font-weight:600;color:#0F172A;margin-bottom:1px;}' +
-    '.sugg-info p{font-size:12px;color:#94A3B8;}' +
-    '.sugg-empty{padding:16px;text-align:center;color:#94A3B8;font-size:13px;}' +
-    '.btn{width:100%;padding:14px;background:' + colorPrimario + ';color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;transition:transform .2s,box-shadow .2s,filter .2s;box-shadow:0 4px 14px ' + colorPrimario + '44;display:flex;align-items:center;justify-content:center;gap:8px;}' +
-    '.btn:hover{transform:translateY(-2px);filter:brightness(1.08);}' +
-    '.btn:disabled{background:#CBD5E1;box-shadow:none;cursor:not-allowed;filter:none;transform:none;}' +
-    '.spinner{width:18px;height:18px;border:2.5px solid rgba(255,255,255,.35);border-radius:50%;border-top-color:#fff;animation:spin .7s linear infinite;display:none;}' +
-    '.btn.loading .btn-label{display:none;}' +
-    '.btn.loading .spinner{display:block;}' +
-    '.alert{display:none;padding:13px 16px;border-radius:10px;margin-bottom:20px;font-size:13px;font-weight:600;text-align:center;}' +
-    '.alert.error{background:#FEF2F2;color:#DC2626;border:1.5px solid #FECACA;display:block;}' +
-    '.alert.success{background:#F0FDF4;color:#16A34A;border:1.5px solid #BBF7D0;display:block;}' +
-    '.list-wrap{margin-top:28px;display:flex;flex-direction:column;gap:10px;}' +
-    '.li{background:#fff;border:1.5px solid #F1F5F9;padding:14px 16px;border-radius:14px;display:flex;justify-content:space-between;align-items:center;transition:border-color .2s;}' +
-    '.li:hover{border-color:' + colorPrimario + '55;}' +
-    '.li-left{display:flex;align-items:center;gap:12px;}' +
-    '.li-icon{width:44px;height:44px;border-radius:12px;background:' + colorPrimario + '12;color:' + colorPrimario + ';display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex-shrink:0;}' +
-    '.li-info h4{font-size:14px;font-weight:600;color:#0F172A;margin-bottom:2px;}' +
-    '.li-info p{font-size:12px;color:#94A3B8;}' +
-    '.btn-del{background:#FEF2F2;color:#DC2626;border:1.5px solid #FECACA;padding:7px 14px;border-radius:8px;cursor:pointer;font-weight:600;font-size:12px;font-family:inherit;}' +
-    '.btn-del:hover{background:#DC2626;color:#fff;}' +
-    '.divider{border:none;border-top:1.5px solid #F1F5F9;margin:20px 0;}' +
-    '@keyframes spin{to{transform:rotate(360deg)}}' +
-    '</style>';
-}
-
-function _btnHtml(label) { return '<button type="submit" id="btnS" class="btn"><span class="btn-label">' + label + '</span><div class="spinner"></div></button>'; }
-function _jsLoading() { return 'function setLoading(on){var b=document.getElementById("btnS");b.disabled=on;b.classList.toggle("loading",on);}'; }
-function _jsAlert()   { return 'function showMsg(txt,err){var m=document.getElementById("msg");m.className="alert "+(err?"error":"success");m.textContent=txt;setTimeout(function(){m.style.display="none";},4500);}'; }
-
-// ═══════════════════════════════════════════════════════════════════════════
-// HTML: ESTUDIANTES
-// ═══════════════════════════════════════════════════════════════════════════
-function htmlEstudiantes() {
-  return '<!DOCTYPE html><html><head><meta charset="UTF-8">' + htmlCSS('#3B82F6','#1D4ED8') + '</head><body>' +
-  '<div class="card"><div class="header"><h2>👥 Estudiantes</h2></div><div id="msg" class="alert"></div>' +
-  '<form id="form">' +
-    '<div class="fg"><label>DNI</label><input type="text" id="dni" placeholder="Ej: 71234567" maxlength="15" autocomplete="off" required></div>' +
-    '<div class="fg"><label>Nombre Completo</label><input type="text" id="nombre" placeholder="Nombres y Apellidos" autocomplete="off" required></div>' +
-    '<div class="fg"><label>Teléfono (opcional)</label><input type="text" id="tel" placeholder="Ej: 987654321" autocomplete="off"></div>' +
-    _btnHtml('Registrar Estudiante') +
-  '</form></div>' +
-  '<div class="list-wrap" id="lista"></div>' +
-  '<script>' + _jsAlert() + _jsLoading() +
-  'document.getElementById("form").onsubmit=function(e){e.preventDefault();setLoading(true);var d={dni:document.getElementById("dni").value,nombre:document.getElementById("nombre").value,tel:document.getElementById("tel").value};google.script.run.withSuccessHandler(function(r){setLoading(false);if(!r.ok)showMsg(r.error,true);else{showMsg("✅ Registrado con éxito",false);document.getElementById("form").reset();cargar();}}).agregarEstudiante(d);};' +
-  'function liItem(icono,t1,t2,fila){return "<div class=\\"li\\"><div class=\\"li-left\\"><div class=\\"li-icon\\">"+icono+"</div><div class=\\"li-info\\"><h4>"+t1+"</h4><p>"+t2+"</p></div></div><button class=\\"btn-del\\" onclick=\\"del("+fila+")\\">Eliminar</button></div>";}' +
-  'function cargar(){google.script.run.withSuccessHandler(function(d){var h="";d.reverse().forEach(function(s){h+=liItem(s.nombre.substring(0,2).toUpperCase(),s.nombre,"DNI: "+s.dni+" · Tel: "+(s.tel||"—"),s.fila);});document.getElementById("lista").innerHTML=h;}).getEstudiantes();}' +
-  'function del(f){if(confirm("¿Eliminar estudiante?"))google.script.run.withSuccessHandler(cargar).eliminarEstudiante(f);}' +
-  'cargar();</script></body></html>';
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// HTML: ACTIVIDADES
-// ═══════════════════════════════════════════════════════════════════════════
-function htmlActividades() {
-  return '<!DOCTYPE html><html><head><meta charset="UTF-8">' + htmlCSS('#8B5CF6','#5B21B6') + '</head><body>' +
-  '<div class="card"><div class="header"><h2>📂 Actividades</h2></div><div id="msg" class="alert"></div>' +
-  '<form id="form">' +
-    '<div class="fg"><label>Código corto</label><input type="text" id="codigo" placeholder="Ej: POL25" autocomplete="off" required></div>' +
-    '<div class="fg"><label>Nombre de la actividad</label><input type="text" id="nombre" placeholder="Ej: Gran Pollada" autocomplete="off" required></div>' +
-    '<div class="fg"><label>Tipo</label><select id="tipo"><option value="Cobro">💰 Cobro normal (Fijo para todos)</option><option value="Variable">📊 Monto Variable (Polladas, rifas, libre)</option><option value="Asistencia">📋 Evento de asistencia (Multa)</option></select></div>' +
-    '<div class="fg"><label id="lblMonto">Monto (S/.)</label><div class="monto-wrap"><span class="monto-prefix">S/.</span><input type="number" id="monto" class="monto-input" step="0.10" min="0" placeholder="0.00" autocomplete="off" required></div></div>' +
-    '<div class="fg" id="fgFechaLimite" style="display:none"><label>Fecha y hora límite de registro</label><input type="datetime-local" id="fechaLimite" autocomplete="off"></div>' +
-    '<div class="fg"><label>Descripción (opcional)</label><input type="text" id="desc" placeholder="Detalles adicionales..." autocomplete="off"></div>' +
-    _btnHtml('Crear Actividad') +
-  '</form></div>' +
-  '<div class="list-wrap" id="lista"></div>' +
-  '<script>' + _jsAlert() + _jsLoading() +
-  'document.getElementById("tipo").onchange=function(){var esAsis=this.value==="Asistencia"; var esVar=this.value==="Variable"; document.getElementById("fgFechaLimite").style.display=esAsis?"block":"none";document.getElementById("lblMonto").textContent=esAsis?"Monto de la multa (S/.)":(esVar?"Precio Unitario/Base (S/.)":"Monto Fijo (S/.)");document.getElementById("fechaLimite").required=esAsis;};' +
-  'document.getElementById("form").onsubmit=function(e){e.preventDefault();var tipo=document.getElementById("tipo").value;var fl=document.getElementById("fechaLimite").value;if(tipo==="Asistencia"&&!fl){showMsg("Selecciona la fecha límite de registro.",true);return;}setLoading(true);var d={codigo:document.getElementById("codigo").value,nombre:document.getElementById("nombre").value,monto:document.getElementById("monto").value,desc:document.getElementById("desc").value,tipo:tipo,fechaLimite:fl};google.script.run.withSuccessHandler(function(r){setLoading(false);if(!r.ok)showMsg(r.error,true);else{showMsg("✅ Actividad creada",false);document.getElementById("form").reset();document.getElementById("fgFechaLimite").style.display="none";cargar();}}).agregarActividad(d);};' +
-  'function liAct(cod,nom,mto,fila,tipo){var badge=tipo==="Asistencia"?" &#128203;":(tipo==="Variable"?" 📊":"");return "<div class=\\"li\\"><div class=\\"li-left\\"><div class=\\"li-icon\\">&#127919;</div><div class=\\"li-info\\"><h4>["+cod+"] "+nom+badge+"</h4><p>S/. "+mto+"</p></div></div><button class=\\"btn-del\\" onclick=\\"del("+fila+")\\">Eliminar</button></div>";}' +
-  'function cargar(){google.script.run.withSuccessHandler(function(d){var h="";d.reverse().forEach(function(a){h+=liAct(a.codigo,a.nombre,a.monto,a.fila,a.tipo);});document.getElementById("lista").innerHTML=h;}).getActividadesAdmin();}' +
-  'function del(f){if(confirm("¿Eliminar actividad?"))google.script.run.withSuccessHandler(function(r){if(!r.ok)showMsg(r.error,true);else cargar();}).eliminarActividad(f);}' +
-  'cargar();</script></body></html>';
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// HTML: PAGO DE ESTUDIANTE
-// ═══════════════════════════════════════════════════════════════════════════
-function htmlPago() {
-  return '<!DOCTYPE html><html><head><meta charset="UTF-8">' + htmlCSS('#00C9A7','#00796B') + '<style>' +
-  '.check-list{display:flex;flex-direction:column;gap:8px;margin-bottom:18px;}' +
-  '.check-item{display:flex;align-items:center;gap:12px;padding:12px 14px;background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:10px;cursor:pointer;transition:border-color .15s,background .15s;}' +
-  '.check-item:hover{border-color:#00C9A7;background:#F0FDF9;}' +
-  '.check-item.selected{border-color:#00C9A7;background:#F0FDF9;}' +
-  '.check-item input[type=checkbox]{width:18px;height:18px;accent-color:#00C9A7;cursor:pointer;flex-shrink:0;}' +
-  '.check-nombre{font-size:14px;font-weight:600;color:#0F172A;flex:1;}' +
-  '.check-monto{font-size:13px;font-weight:700;color:#00796B;white-space:nowrap; display:flex; align-items:center; gap:4px;}' +
-  '.check-tipo{font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;white-space:nowrap;}' +
-  '.check-tipo.cobro{background:#E0F2FE;color:#0369A1;}' +
-  '.check-tipo.multa{background:#FEF3C7;color:#92400E;}' +
-  '.check-tipo.variable{background:#F3E8FF;color:#7E22CE;}' +
-  '.monto-var{width:75px;padding:4px 8px;border:1.5px solid #CBD5E1;border-radius:6px;font-size:13px;font-weight:700;color:#0F172A;text-align:right;outline:none;background:#fff;}' +
-  '.monto-var:focus{border-color:#00C9A7;}' +
-  '.total-box{background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:12px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}' +
-  '.total-label{font-size:13px;font-weight:600;color:#64748B;}' +
-  '.total-num{font-size:20px;font-weight:800;color:#00796B;}' +
-  '.aldia{text-align:center;padding:24px;background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:12px;color:#15803D;font-weight:700;font-size:14px;}' +
-  '.selall{font-size:12px;font-weight:600;color:#00796B;cursor:pointer;text-decoration:underline;background:none;border:none;font-family:inherit;padding:0;margin-bottom:10px;display:block;}' +
-  '.btn-cambiar{background:none;border:none;color:#64748B;font-size:12px;cursor:pointer;text-decoration:underline;margin-top:10px;display:block;width:100%;text-align:center;font-family:inherit;}' +
-  '</style></head><body>' +
-  '<div class="card">' +
-    '<div class="header" style="background:linear-gradient(135deg,#00C9A7 0%,#00796B 100%)"><h2>📝 Registrar Pago</h2></div>' +
-    '<div id="msg" class="alert"></div>' +
-    '<div id="paso1">' +
-      '<div class="fg"><label>Buscar Estudiante</label>' +
-        '<div class="sugg-wrap">' +
-          '<input type="text" id="q" placeholder="🔍 Escribe nombre o DNI..." autocomplete="off">' +
-          '<input type="hidden" id="estVal">' +
-          '<div id="sugg" class="sugg-box"></div>' +
-        '</div>' +
-      '</div>' +
-    '</div>' +
-    '<div id="paso2" style="display:none;">' +
-      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">' +
-        '<div style="font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#64748B;">Pendientes</div>' +
-        '<button class="selall" id="btnSelAll">Seleccionar todo</button>' +
-      '</div>' +
-      '<div class="check-list" id="checkList"></div>' +
-      '<div class="total-box">' +
-        '<span class="total-label">Total a cobrar:</span>' +
-        '<span class="total-num" id="totalNum">S/. 0.00</span>' +
-      '</div>' +
-      '<div class="fg"><label>Método de Pago</label>' +
-        '<select id="metodoPago" required>' +
-          '<option value="">Seleccione...</option>' +
-          '<option value="Efectivo">💵 Efectivo</option>' +
-          '<option value="Yape">📱 Yape</option>' +
-          '<option value="Plin">📱 Plin</option>' +
-          '<option value="Transferencia">🏦 Transferencia Bancaria</option>' +
-          '<option value="Otro">📋 Otro</option>' +
-        '</select>' +
-      '</div>' +
-      '<div class="fg"><label>Observaciones (opcional)</label>' +
-        '<input type="text" id="obs" placeholder="Nº operación, etc." autocomplete="off">' +
-      '</div>' +
-      '<button type="button" id="btnConfirmar" class="btn" disabled>Confirmar Pago</button>' +
-      '<button type="button" id="btnCambiar" class="btn-cambiar">← Cambiar estudiante</button>' +
-    '</div>' +
-  '</div>' +
-  '<script>' + _jsAlert() +
-  'var pendientesData=[]; var estSeleccionado=null; var todoSeleccionado=false;' +
-  'var tmr; document.getElementById("q").oninput=function(){' +
-    'clearTimeout(tmr); var q=this.value; var sb=document.getElementById("sugg"); document.getElementById("estVal").value="";' +
-    'if(q.length===0){ sb.style.display="none"; document.getElementById("paso2").style.display="none"; document.getElementById("checkList").innerHTML=""; document.getElementById("totalNum").textContent="S/. 0.00"; document.getElementById("btnConfirmar").disabled=true; todoSeleccionado=false; document.getElementById("btnSelAll").textContent="Seleccionar todo"; document.getElementById("metodoPago").value=""; document.getElementById("obs").value=""; estSeleccionado=null; return; }' +
-    'if(q.length<2){sb.style.display="none";return;}' +
-    'tmr=setTimeout(function(){ google.script.run.withSuccessHandler(function(d){ if(d.length===0){sb.innerHTML="<div class=\\"sugg-empty\\">Sin resultados</div>";sb.style.display="block";return;} var h=""; d.forEach(function(e){ var ini=e.nombre.substring(0,2).toUpperCase(); h+="<div class=\\"sugg-item\\" onclick=\\"pickEst(\'"+e.dni+"\',\'"+e.nombre+"\')\\"><div class=\\"sugg-avatar\\">"+ini+"</div><div class=\\"sugg-info\\"><h5>"+e.nombre+"</h5><p>DNI: "+e.dni+"</p></div></div>"; }); sb.innerHTML=h;sb.style.display="block"; }).buscarEstudiante(q); },300);' +
-  '};' +
-  'document.addEventListener("click",function(e){if(!e.target.closest(".sugg-wrap"))document.getElementById("sugg").style.display="none";});' +
-  'function pickEst(dni,nom){ estSeleccionado={dni:dni,nombre:nom}; document.getElementById("estVal").value=dni+"|"+nom; document.getElementById("q").value="✅ "+nom+" ("+dni+")"; document.getElementById("sugg").style.display="none"; document.getElementById("btnConfirmar").disabled=true; document.getElementById("checkList").innerHTML="<p style=\\"color:#64748B;font-size:13px;\\">Cargando...</p>"; document.getElementById("paso2").style.display="block"; google.script.run.withSuccessHandler(function(d){ pendientesData=d; todoSeleccionado=false; document.getElementById("btnSelAll").textContent="Seleccionar todo"; document.getElementById("metodoPago").value=""; document.getElementById("obs").value=""; renderPendientes(); }).getPendientesEstudiante(dni); }' +
+  /* ── CHECKBOXES Y LISTA ── */
+  .pend-list { display:flex; flex-direction:column; gap:6px; }
+  .pend-item {
+    background:rgba(255,255,255,.04); border:1px solid var(--border);
+    border-radius:11px; padding:11px 13px;
+    display:flex; align-items:center; gap:10px; cursor:pointer;
+    transition:border-color .15s, background .15s; user-select:none;
+  }
+  .pend-item:active { transform:scale(.99); }
+  .pend-item.sel { background:var(--green-dim); border-color:rgba(0,201,167,.4); }
+  .pend-cb {
+    width:20px; height:20px; border-radius:6px; flex-shrink:0;
+    border:1.5px solid var(--muted);
+    display:flex; align-items:center; justify-content:center;
+    transition:background .15s, border-color .15s;
+  }
+  .pend-item.sel .pend-cb { background:var(--green); border-color:var(--green); }
+  .pend-check { display:none; color:#062b25; font-size:13px; font-weight:700; }
+  .pend-item.sel .pend-check { display:block; }
+  .pend-nombre { font-size:13px; color:var(--text); flex:1; line-height:1.3; }
+  .pend-item.sel .pend-nombre { color:#fff; }
   
-  'function renderPendientes(){' +
-    'var cl=document.getElementById("checkList");' +
-    'if(pendientesData.length===0){ cl.innerHTML="<div class=\\"aldia\\">🎉 Este estudiante está al día.</div>"; document.getElementById("btnSelAll").style.display="none"; document.getElementById("totalNum").textContent="S/. 0.00"; document.getElementById("btnConfirmar").disabled=true; return; }' +
-    'document.getElementById("btnSelAll").style.display="block";' +
-    'var h="";' +
-    'pendientesData.forEach(function(a,i){' +
-      'var tipoCls="cobro", tipoTxt="Cuota";' +
-      'if(a.tipo==="Asistencia"){ tipoCls="multa"; tipoTxt="Multa"; }' +
-      'else if(a.tipo==="Variable"){ tipoCls="variable"; tipoTxt="Libre"; }' +
-      
-      'var montoHtml = (a.tipo==="Variable") ' +
-      '? "S/. <input type=\\"number\\" step=\\"0.1\\" id=\\"monto"+i+"\\" class=\\"monto-var\\" value=\\""+a.monto.toFixed(2)+"\\" onclick=\\"event.stopPropagation()\\" oninput=\\"actualizarTotal()\\">" ' +
-      ': "S/. "+a.monto.toFixed(2);' +
+  .badge { font-size:10px; font-weight:700; padding:2px 7px; border-radius:99px; white-space:nowrap; flex-shrink:0; }
+  .badge-cuota { background:rgba(59,130,246,.15); color:#93C5FD; }
+  .badge-multa { background:var(--amber-dim); color:var(--amber); }
+  .badge-libre { background:rgba(139,92,246,0.15); color:#A78BFA; } /* NUEVO: Badge morado para variables */
 
-      'h+="<label class=\\"check-item\\" id=\\"item"+i+"\\" onclick=\\"toggleItem("+i+")\\">"' +
-        '+"<input type=\\"checkbox\\" id=\\"cb"+i+"\\" onclick=\\"event.stopPropagation()\\" onchange=\\"actualizarTotal()\\">"' +
-        '+"<span class=\\"check-nombre\\">"+a.nombre+"</span>"' +
-        '+"<span class=\\"check-tipo "+tipoCls+"\\">"+tipoTxt+"</span>"' +
-        '+"<span class=\\"check-monto\\">"+montoHtml+"</span>"' +
-        '+"</label>";' +
-    '});' +
-    'cl.innerHTML=h; actualizarTotal();' +
-  '}' +
+  .pend-monto { font-size:13px; font-weight:600; color:var(--dim); white-space:nowrap; display: flex; align-items: center; gap: 6px; }
+  .pend-item.sel .pend-monto { color:var(--green); }
 
-  'function toggleItem(i){ var cb=document.getElementById("cb"+i); cb.checked=!cb.checked; actualizarTotal(); }' +
+  /* NUEVO: Input para pagos variables */
+  .monto-var-input {
+    width: 65px;
+    padding: 4px 6px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: #fff;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: right;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .monto-var-input:focus { border-color: var(--green); }
+  .pend-item.sel .monto-var-input { color: var(--green); border-color: rgba(0,201,167,.4); }
 
-  'function actualizarTotal(){' +
-    'var total=0; var alguno=false;' +
-    'pendientesData.forEach(function(a,i){' +
-      'var cb=document.getElementById("cb"+i); var item=document.getElementById("item"+i);' +
-      'if(cb&&cb.checked){' +
-        'item.classList.add("selected"); alguno=true;' +
-        'var m = a.monto;' +
-        'if(a.tipo==="Variable"){ var mInp = document.getElementById("monto"+i); if(mInp) m=parseFloat(mInp.value)||0; }' +
-        'total+=m;' +
-      '} else { if(item) item.classList.remove("selected"); }' +
-    '});' +
-    'document.getElementById("totalNum").textContent="S/. "+total.toFixed(2);' +
-    'document.getElementById("btnConfirmar").disabled=!alguno;' +
-  '}' +
+  .aldia { text-align:center; padding:24px; background:var(--green-dim); border:1px solid rgba(0,201,167,.3); border-radius:12px; color:var(--green); font-weight:700; font-size:14px; }
 
-  'document.getElementById("btnSelAll").onclick=function(){ todoSeleccionado=!todoSeleccionado; pendientesData.forEach(function(a,i){ var cb=document.getElementById("cb"+i); if(cb)cb.checked=todoSeleccionado; }); actualizarTotal(); this.textContent=todoSeleccionado?"Deseleccionar todo":"Seleccionar todo"; };' +
-  'document.getElementById("btnCambiar").onclick=function(){ estSeleccionado=null; pendientesData=[]; todoSeleccionado=false; document.getElementById("paso2").style.display="none"; document.getElementById("q").value=""; document.getElementById("estVal").value=""; document.getElementById("checkList").innerHTML=""; document.getElementById("btnSelAll").textContent="Seleccionar todo"; document.getElementById("btnSelAll").style.display="block"; document.getElementById("totalNum").textContent="S/. 0.00"; document.getElementById("btnConfirmar").disabled=true; document.getElementById("metodoPago").value=""; document.getElementById("obs").value=""; showMsg("",""); };' +
+  /* ── TOTAL ── */
+  .total-box {
+    background:rgba(0,201,167,.08); border:1px solid rgba(0,201,167,.25);
+    border-radius:12px; padding:14px 16px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .total-left .total-label { font-size:13px; color:var(--dim); }
+  .total-left .total-count { font-size:11px; color:var(--muted); margin-top:2px; }
+  .total-amount { font-family:'Space Grotesk',sans-serif; font-size:24px; font-weight:700; color:var(--green); }
 
-  'document.getElementById("btnConfirmar").onclick=function(){' +
-    'var met=document.getElementById("metodoPago").value; if(!met){showMsg("Selecciona el método de pago.",true);return;}' +
-    'var pagos=[];' +
-    'pendientesData.forEach(function(a,i){' +
-      'var cb=document.getElementById("cb"+i);' +
-      'if(cb&&cb.checked){' +
-        'var m = a.monto; if(a.tipo==="Variable"){ var mInp=document.getElementById("monto"+i); if(mInp) m=parseFloat(mInp.value)||0; }' +
-        'pagos.push({dni:estSeleccionado.dni,nombre:estSeleccionado.nombre,codActividad:a.codigo,nomActividad:a.nombre,monto:m,metodoPago:met,obs:document.getElementById("obs").value});' +
-      '}' +
-    '});' +
-    'if(pagos.length===0){showMsg("Selecciona al menos una actividad.",true);return;}' +
-    'this.disabled=true; this.textContent="Registrando..."; var btnRef=this;' +
-    'google.script.run.withSuccessHandler(function(r){ btnRef.textContent="Confirmar Pago"; if(!r.ok){showMsg(r.error,true);btnRef.disabled=false;return;} var msg="✅ "+r.registrados+" pago(s) registrado(s)"; if(r.detalle)msg+=" · "+r.detalle; showMsg(msg,false); document.getElementById("metodoPago").value=""; document.getElementById("obs").value=""; todoSeleccionado=false; document.getElementById("btnSelAll").textContent="Seleccionar todo"; google.script.run.withSuccessHandler(function(d){pendientesData=d;renderPendientes();}).getPendientesEstudiante(estSeleccionado.dni); }).guardarPagosBatch(pagos);' +
-  '};' +
-  '</script></body></html>';
+  /* ── MÉTODO ── */
+  .metodo-wrap { position:relative; }
+  .metodo-select {
+    width:100%; padding:12px 14px;
+    background:rgba(255,255,255,.06); border:1.5px solid var(--border);
+    border-radius:11px; font-size:14px; font-family:inherit; color:#fff;
+    outline:none; -webkit-appearance:none; cursor:pointer;
+    transition:border-color .2s;
+  }
+  .metodo-select:focus { border-color:var(--green); }
+  .metodo-select option { background:#1E293B; }
+  .fg label { display:block; font-size:11px; font-weight:700; letter-spacing:.6px; text-transform:uppercase; color:var(--dim); margin-bottom:7px; }
+
+  /* ── BOTÓN CONFIRMAR ── */
+  .btn-confirm {
+    width:100%; padding:16px; border:none; border-radius:14px;
+    font-size:15px; font-weight:700; font-family:inherit; cursor:pointer;
+    background:var(--green); color:#062b25;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    transition:opacity .2s, transform .15s;
+    position:relative; overflow:hidden;
+  }
+  .btn-confirm:active { transform:scale(.98); }
+  .btn-confirm:disabled { opacity:.4; cursor:not-allowed; transform:none; }
+  .btn-confirm .sp { width:18px; height:18px; border:2.5px solid rgba(6,43,37,.3); border-radius:50%; border-top-color:#062b25; animation:spin .7s linear infinite; display:none; }
+  .btn-confirm.loading .bl { display:none; }
+  .btn-confirm.loading .sp { display:block; }
+
+  /* ── BARRA DE PROGRESO ── */
+  .prog-wrap { height:3px; background:rgba(255,255,255,.1); border-radius:99px; margin-top:8px; overflow:hidden; display:none; }
+  .prog-wrap.vis { display:block; }
+  .prog-fill { height:100%; width:0%; background:var(--green); border-radius:99px; transition:width .4s ease; }
+  .prog-estado { text-align:center; font-size:11px; font-weight:600; color:var(--dim); margin-top:5px; min-height:16px; display:none; }
+  .prog-estado.vis { display:block; }
+
+  /* ── MENSAJE ── */
+  .msg { display:none; padding:12px 14px; border-radius:11px; font-size:13px; font-weight:600; text-align:center; }
+  .msg.ok { background:var(--green-dim); color:var(--green); border:1px solid rgba(0,201,167,.3); display:block; }
+  .msg.err { background:var(--red-dim); color:var(--red); border:1px solid rgba(244,63,94,.3); display:block; }
+
+  /* ── FOOTER ── */
+  .footer { text-align:center; padding:20px; font-size:12px; color:var(--muted); }
+  .btn-salir { background:none; border:none; color:var(--dim); font-size:12px; cursor:pointer; text-decoration:underline; font-family:inherit; }
+
+  @keyframes spin { to { transform:rotate(360deg); } }
+  ::-webkit-scrollbar { width:4px; }
+  ::-webkit-scrollbar-thumb { background:var(--muted); border-radius:4px; }
+</style>
+</head>
+<body>
+
+<div class="bg-glow"><div class="glow glow-1"></div><div class="glow glow-2"></div><div class="glow glow-3"></div></div>
+
+<div class="wrap">
+
+  <!-- HEADER -->
+  <div class="app-header">
+    <div class="header-top">
+      <div class="header-icon">💰</div>
+      <div class="header-title">Registrar Pago</div>
+    </div>
+    <div class="header-sub">Tesorería del Aula</div>
+  </div>
+
+  <!-- LOGIN -->
+  <div id="pantallaLogin">
+    <span class="pin-label">Ingresa tu PIN de tesorero</span>
+    <input type="password" id="pinInput" class="pin-input" maxlength="6" inputmode="numeric" placeholder="••••" autocomplete="off">
+    <button class="btn-entrar" id="btnEntrar" onclick="verificarPin()">Entrar</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+
+  <!-- APP -->
+  <div id="pantallaApp" style="display:none;" class="body">
+
+    <div id="msg" class="msg"></div>
+
+    <!-- PASO 1: Buscador -->
+    <div id="paso1" class="card">
+      <div class="fg" style="margin:0;">
+        <label>Buscar estudiante</label>
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="q" class="search-input" style="padding-left:38px" placeholder="Nombre o DNI..." autocomplete="off">
+          <div class="sugg-box" id="sugg"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASO 2: Pendientes -->
+    <div id="paso2" style="display:none; flex-direction:column; gap:12px;">
+
+      <!-- Chip estudiante -->
+      <div class="student-chip">
+        <div class="student-av" id="stuAv"></div>
+        <div>
+          <div class="student-name" id="stuName"></div>
+          <div class="student-dni" id="stuDni"></div>
+        </div>
+        <button class="btn-cambiar" onclick="cambiarEst()">Cambiar</button>
+      </div>
+
+      <!-- Lista pendientes -->
+      <div>
+        <div class="section-header">
+          <span class="section-label" id="pendLabel">Pendientes</span>
+          <button class="btn-selall" id="btnSelAll">Seleccionar todo</button>
+        </div>
+        <div class="pend-list" id="pendList"></div>
+      </div>
+
+      <!-- Total -->
+      <div class="total-box" id="totalBox">
+        <div class="total-left">
+          <div class="total-label">Total a registrar</div>
+          <div class="total-count" id="totalCount">0 cuotas</div>
+        </div>
+        <div class="total-amount" id="totalAmount">S/. 0.00</div>
+      </div>
+
+      <!-- Método -->
+      <div class="fg" style="margin:0;">
+        <label>Método de pago</label>
+        <div class="metodo-wrap">
+          <select id="metodoPago" class="metodo-select">
+            <option value="">Seleccione...</option>
+            <option value="Efectivo">💵 Efectivo</option>
+            <option value="Yape">📱 Yape</option>
+            <option value="Plin">📱 Plin</option>
+            <option value="Transferencia">🏦 Transferencia</option>
+            <option value="Otro">📋 Otro</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Observaciones -->
+      <div class="fg" style="margin:0;">
+        <label>Observaciones (opcional)</label>
+        <input type="text" id="obs" class="search-input" style="padding-left:14px" placeholder="Nº operación, código, etc." autocomplete="off">
+      </div>
+
+      <!-- Botón confirmar -->
+      <button id="btnConfirmar" class="btn-confirm" disabled onclick="confirmarPagos()">
+        <span class="bl" id="btnLabel">Confirmar pago</span>
+        <div class="sp"></div>
+      </button>
+      <div class="prog-wrap" id="progWrap"><div class="prog-fill" id="progFill"></div></div>
+      <div class="prog-estado" id="progEstado"></div>
+
+    </div>
+
+    <div class="footer">
+      <button class="btn-salir" onclick="cerrarSesion()">Cerrar sesión</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── CONFIG ──
+var WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbzhFDAZmzyZLRbbJjWC3NyKEO0WYlw3S2KsO27-DLHU9AGRueEqmDHyYIJA-sZpaJ_Reg/exec';
+var PIN_SECRETO = '9071';
+
+var pinGuardado = '';
+var estSeleccionado = null;
+var pendientesData = [];
+var todoSel = false;
+
+// ── DEVICE ID ──
+function getDeviceId() {
+  var id = localStorage.getItem('deviceId');
+  if (!id) { id = 'dev_' + Math.random().toString(36).substring(2) + Date.now().toString(36); localStorage.setItem('deviceId', id); }
+  return id;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// HTML: INGRESO EXTRA
-// ═══════════════════════════════════════════════════════════════════════════
-function htmlIngresoExtra() {
-  return '<!DOCTYPE html><html><head><meta charset="UTF-8">' + htmlCSS('#F97316','#C2410C') + '</head><body>' +
-  '<div class="card"><div class="header"><h2>💰 Ingreso Extra</h2></div><div id="msg" class="alert"></div>' +
-  '<form id="form">' +
-    '<div class="fg"><label>Concepto / Motivo</label><input type="text" id="concepto" placeholder="Ej: Venta de uniformes" autocomplete="off" required></div>' +
-    '<div class="fg"><label>Categoría</label><select id="categoria" required><option value="">Seleccione...</option></select></div>' +
-    '<div class="fg"><label>Monto recibido (S/.)</label><div class="monto-wrap"><span class="monto-prefix">S/.</span><input type="number" id="monto" class="monto-input" step="0.10" min="0.10" placeholder="0.00" autocomplete="off" required></div></div>' +
-    '<div class="fg"><label>Origen / Entidad (opcional)</label><input type="text" id="origen" placeholder="Ej: Asociación de Padres" autocomplete="off"></div>' +
-    '<div class="fg"><label>Responsable</label><input type="text" id="responsable" placeholder="Tu nombre completo" autocomplete="off" required></div>' +
-    _btnHtml('Registrar Ingreso') +
-  '</form></div>' +
-  '<script>' + _jsAlert() + _jsLoading() +
-  'google.script.run.withSuccessHandler(function(d){var h="<option value=\\"\\">Seleccione...</option>";d.forEach(function(c){h+="<option value=\\""+c.valor+"\\">"+c.texto+"</option>";});document.getElementById("categoria").innerHTML=h;}).getCategoriasIngreso();' +
-  'document.getElementById("form").onsubmit=function(e){e.preventDefault();setLoading(true);var d={concepto:document.getElementById("concepto").value,categoria:document.getElementById("categoria").value,monto:document.getElementById("monto").value,origen:document.getElementById("origen").value,responsable:document.getElementById("responsable").value};google.script.run.withSuccessHandler(function(r){setLoading(false);if(!r.ok)showMsg(r.error,true);else{showMsg("✅ Ingreso guardado (ID: "+r.id+")",false);document.getElementById("form").reset();}}).guardarIngresoExtra(d);};' +
-  '</script></body></html>';
+// ── INACTIVIDAD ──
+var inactTimer;
+function resetInact() {
+  clearTimeout(inactTimer);
+  inactTimer = setTimeout(function() { cerrarSesion(); mostrarLoginError('Sesión cerrada por inactividad.'); }, 2 * 60 * 1000);
+}
+function startInact() {
+  ['click','keydown','input','touchstart'].forEach(function(e) { document.addEventListener(e, resetInact); });
+  resetInact();
+}
+function stopInact() {
+  clearTimeout(inactTimer);
+  ['click','keydown','input','touchstart'].forEach(function(e) { document.removeEventListener(e, resetInact); });
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// HTML: EGRESO
-// ═══════════════════════════════════════════════════════════════════════════
-function htmlEgreso() {
-  return '<!DOCTYPE html><html><head><meta charset="UTF-8">' + htmlCSS('#EF4444','#991B1B') + '</head><body>' +
-  '<div class="card"><div class="header"><h2>💸 Registrar Egreso</h2></div><div id="msg" class="alert"></div>' +
-  '<form id="form">' +
-    '<div class="fg"><label>Concepto del gasto</label><input type="text" id="concepto" placeholder="Ej: Compra de pintura" autocomplete="off" required></div>' +
-    '<div class="fg"><label>Categoría</label><select id="categoria" required><option value="">Seleccione...</option></select></div>' +
-    '<div class="fg"><label>Monto a gastar (S/.)</label><div class="monto-wrap"><span class="monto-prefix">S/.</span><input type="number" id="monto" class="monto-input" step="0.10" min="0.10" placeholder="0.00" autocomplete="off" required></div></div>' +
-    '<div class="fg"><label>Responsable / Autoriza</label><input type="text" id="responsable" placeholder="Tu nombre completo" autocomplete="off" required></div>' +
-    '<div class="fg"><label>Observaciones (opcional)</label><input type="text" id="obs" placeholder="Nº boleta, factura, etc." autocomplete="off"></div>' +
-    _btnHtml('Registrar Egreso') +
-  '</form></div>' +
-  '<script>' + _jsAlert() + _jsLoading() +
-  'google.script.run.withSuccessHandler(function(d){var h="<option value=\\"\\">Seleccione...</option>";d.forEach(function(c){h+="<option value=\\""+c.valor+"\\">"+c.texto+"</option>";});document.getElementById("categoria").innerHTML=h;}).getCategoriasEgreso();' +
-  'document.getElementById("form").onsubmit=function(e){e.preventDefault();setLoading(true);var d={concepto:document.getElementById("concepto").value,categoria:document.getElementById("categoria").value,monto:document.getElementById("monto").value,responsable:document.getElementById("responsable").value,obs:document.getElementById("obs").value};google.script.run.withSuccessHandler(function(r){setLoading(false);if(!r.ok)showMsg(r.error,true);else{showMsg("✅ Egreso guardado (ID: "+r.id+")",false);document.getElementById("form").reset();}}).guardarEgreso(d);};' +
-  '</script></body></html>';
+// ── API ──
+function api(accion, extra) {
+  var body = Object.assign({ pin: pinGuardado, accion: accion, deviceId: getDeviceId() }, extra || {});
+  return fetch(WEBAPP_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify(body) }).then(function(r) { return r.json(); });
 }
 
-function guardarPagosBatch(pagos) {
-  try {
-    if (!pagos || pagos.length === 0) return respError('No hay pagos para registrar.');
+// ── LOGIN ──
+function verificarPin() {
+  var pin = document.getElementById('pinInput').value.trim();
+  if (pin.length < 4) { mostrarLoginError('Ingresa tu PIN completo.'); return; }
+  pinGuardado = pin;
+  var btn = document.getElementById('btnEntrar');
+  btn.disabled = true; btn.textContent = 'Verificando...';
+  api('getActividades').then(function(r) {
+    btn.disabled = false; btn.textContent = 'Entrar';
+    if (r.ok) {
+      document.getElementById('pantallaLogin').style.display = 'none';
+      document.getElementById('pantallaApp').style.display = 'flex';
+      startInact();
+    } else {
+      mostrarLoginError(r.error || 'PIN incorrecto.');
+    }
+  }).catch(function() { btn.disabled = false; btn.textContent = 'Entrar'; mostrarLoginError('Error de conexión.'); });
+}
+function mostrarLoginError(txt) { var e = document.getElementById('loginError'); e.textContent = txt; e.style.display = 'block'; }
+document.getElementById('pinInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') verificarPin(); });
 
-    var sh = getOrCreateSheet('BD_Pagos');
-    var data = getCleanData('BD_Pagos');
-    var registrados = [];
-    var errores = [];
+function cerrarSesion() {
+  pinGuardado = ''; stopInact();
+  document.getElementById('pantallaApp').style.display = 'none';
+  document.getElementById('pantallaLogin').style.display = 'flex';
+  document.getElementById('pinInput').value = '';
+  document.getElementById('loginError').style.display = 'none';
+  resetFormulario();
+}
 
-    pagos.forEach(function(p) {
-      // Verificar duplicado
-      var duplicado = data.some(function(f) {
-        return norm(f[2]) === norm(p.dni) && norm(f[4]) === norm(p.codActividad);
-      });
-      if (duplicado) {
-        errores.push(p.nomActividad + ' (ya pagado)');
-        return;
+// ── BUSCADOR ──
+var tmr;
+document.getElementById('q').addEventListener('input', function() {
+  clearTimeout(tmr);
+  var q = this.value;
+  var sb = document.getElementById('sugg');
+  if (q.length === 0) { sb.style.display = 'none'; return; }
+  if (q.length < 2) { sb.style.display = 'none'; return; }
+  tmr = setTimeout(function() {
+    api('buscarEstudiante', { query: q }).then(function(r) {
+      if (!r.ok || r.data.length === 0) { sb.innerHTML = '<div class="sugg-empty">Sin resultados</div>'; sb.style.display = 'block'; return; }
+      sb.innerHTML = r.data.map(function(e) {
+        var ini = e.nombre.substring(0, 2).toUpperCase();
+        return '<div class="sugg-item" onclick="pickEst(\'' + e.dni + '\',\'' + e.nombre.replace(/'/g, "&#39;") + '\')">' +
+          '<div class="sugg-av">' + ini + '</div>' +
+          '<div class="sugg-info"><h5>' + e.nombre + '</h5><p>DNI: ' + e.dni + '</p></div></div>';
+      }).join('');
+      sb.style.display = 'block';
+    });
+  }, 300);
+});
+
+document.addEventListener('click', function(e) { if (!e.target.closest('.search-wrap')) document.getElementById('sugg').style.display = 'none'; });
+
+function pickEst(dni, nombre) {
+  estSeleccionado = { dni: dni, nombre: nombre };
+  document.getElementById('q').value = '✅ ' + nombre + ' (' + dni + ')';
+  document.getElementById('sugg').style.display = 'none';
+  document.getElementById('stuAv').textContent = nombre.substring(0, 2).toUpperCase();
+  document.getElementById('stuName').textContent = nombre;
+  document.getElementById('stuDni').textContent = 'DNI: ' + dni;
+  document.getElementById('paso2').style.display = 'flex';
+  document.getElementById('pendList').innerHTML = '<div style="padding:16px;text-align:center;color:var(--dim);font-size:13px;">Cargando...</div>';
+  document.getElementById('btnConfirmar').disabled = true;
+  document.getElementById('metodoPago').value = '';
+  document.getElementById('obs').value = '';
+  todoSel = false;
+  document.getElementById('btnSelAll').textContent = 'Seleccionar todo';
+  cargarPendientes(dni);
+}
+
+function cambiarEst() {
+  resetFormulario();
+  document.getElementById('q').value = '';
+  document.getElementById('q').focus();
+}
+
+function resetFormulario() {
+  estSeleccionado = null; pendientesData = []; todoSel = false;
+  document.getElementById('paso2').style.display = 'none';
+  document.getElementById('pendList').innerHTML = '';
+  document.getElementById('totalAmount').textContent = 'S/. 0.00';
+  document.getElementById('totalCount').textContent = '0 cuotas';
+  document.getElementById('btnConfirmar').disabled = true;
+  document.getElementById('btnLabel').textContent = 'Confirmar pago';
+  document.getElementById('metodoPago').value = '';
+  document.getElementById('obs').value = '';
+  document.getElementById('btnSelAll').textContent = 'Seleccionar todo';
+  showMsg('', '');
+  ocultarProgress();
+}
+
+// ── CARGAR PENDIENTES ──
+function cargarPendientes(dni) {
+  api('getPendientesEstudiante', { dni: dni }).then(function(r) {
+    pendientesData = r.ok ? (r.data || []) : [];
+    renderPendientes();
+  }).catch(function() {
+    pendientesData = [];
+    renderPendientes();
+  });
+}
+
+function renderPendientes() {
+  var list = document.getElementById('pendList');
+  if (pendientesData.length === 0) {
+    list.innerHTML = '<div class="aldia">🎉 Este estudiante está al día. No tiene pagos pendientes.</div>';
+    document.getElementById('btnSelAll').style.display = 'none';
+    document.getElementById('totalBox').style.display = 'none';
+    document.getElementById('pendLabel').textContent = 'Sin pendientes';
+    actualizarTotal();
+    return;
+  }
+  document.getElementById('btnSelAll').style.display = 'block';
+  document.getElementById('totalBox').style.display = 'flex';
+  document.getElementById('pendLabel').textContent = 'Pendientes (' + pendientesData.length + ')';
+  list.innerHTML = pendientesData.map(function(a, i) {
+    var badgeCls = 'badge-cuota';
+    var badgeTxt = 'Cuota';
+    if (a.tipo === 'Asistencia') { badgeCls = 'badge-multa'; badgeTxt = 'Multa'; }
+    else if (a.tipo === 'Variable') { badgeCls = 'badge-libre'; badgeTxt = 'Libre'; } // Etiqueta nueva
+
+    // NUEVO: Si es variable, ponemos un input. Si no, solo el texto.
+    var montoRender = '';
+    if (a.tipo === 'Variable') {
+      montoRender = 'S/. <input type="number" step="0.1" id="montoInp' + i + '" class="monto-var-input" value="' + a.monto.toFixed(2) + '" onclick="event.stopPropagation()" oninput="actualizarTotal()">';
+    } else {
+      montoRender = 'S/. ' + a.monto.toFixed(2);
+    }
+
+    return '<div class="pend-item" id="item' + i + '" onclick="toggleItem(' + i + ')">' +
+      '<div class="pend-cb"><span class="pend-check">✓</span></div>' +
+      '<span class="pend-nombre">' + a.nombre + '</span>' +
+      '<span class="badge ' + badgeCls + '">' + badgeTxt + '</span>' +
+      '<span class="pend-monto">' + montoRender + '</span>' +
+    '</div>';
+  }).join('');
+  actualizarTotal();
+}
+
+function toggleItem(i) {
+  var item = document.getElementById('item' + i);
+  item.classList.toggle('sel');
+  actualizarTotal();
+}
+
+document.getElementById('btnSelAll').addEventListener('click', function() {
+  todoSel = !todoSel;
+  pendientesData.forEach(function(a, i) {
+    var item = document.getElementById('item' + i);
+    if (item) { if (todoSel) item.classList.add('sel'); else item.classList.remove('sel'); }
+  });
+  this.textContent = todoSel ? 'Deseleccionar todo' : 'Seleccionar todo';
+  actualizarTotal();
+});
+
+function actualizarTotal() {
+  var total = 0, count = 0;
+  pendientesData.forEach(function(a, i) {
+    var item = document.getElementById('item' + i);
+    if (item && item.classList.contains('sel')) {
+      var montoItem = a.monto;
+      // NUEVO: Extraer monto de la casilla si es tipo Libre/Variable
+      if (a.tipo === 'Variable') {
+        var inputObj = document.getElementById('montoInp' + i);
+        if (inputObj) montoItem = parseFloat(inputObj.value) || 0;
       }
-      var id = generarID(sh);
-      sh.appendRow([
-        id, formatoFecha(), p.dni, p.nombre, p.codActividad,
-        p.nomActividad, parseMonto(p.monto), p.metodoPago || 'No especificado', p.obs || ''
-      ]);
-      data.push([id.toString(), formatoFecha(), p.dni, p.nombre, p.codActividad,
-        p.nomActividad, p.monto.toString(), p.metodoPago || 'No especificado', p.obs || '']);
-      registrados.push(id);
-    });
-
-    if (registrados.length === 0) return respError('Todos los pagos ya estaban registrados: ' + errores.join(', '));
-
-    SpreadsheetApp.flush();
-    invalidarCache('BD_Pagos');
-    dispararActualizacionAsync();
-
-    return respOk({
-      registrados: registrados.length,
-      errores: errores.length,
-      detalle: errores.length > 0 ? 'Se omitieron: ' + errores.join(', ') : ''
-    });
-  } catch(e) { return respError(e.message); }
-}
-
-function getPendientesEstudiante(dni) {
-  try {
-    var actD  = getCleanData('BD_Actividades');
-    var pagD  = getCleanData('BD_Pagos');
-    var asisD = getCleanData('BD_Asistencias');
-
-    var pagSet = {};
-    pagD.forEach(function(p) { pagSet[p[2] + '|' + p[4]] = true; });
-    var asisSet = {};
-    asisD.forEach(function(a) { asisSet[a[4] + '|' + a[3]] = true; });
-
-    return actD.filter(function(a) {
-      var cod  = a[0].toString();
-      var tipo = norm(a[4]);
-      var yaPago    = pagSet[dni + '|' + cod];
-      var yaAsistio = tipo === 'asistencia' && asisSet[dni + '|' + cod];
-      return !yaPago && !yaAsistio;
-    }).map(function(a) {
-      var t = norm(a[4]);
-      var tipoOut = 'Cobro';
-      if(t === 'asistencia') tipoOut = 'Asistencia';
-      if(t === 'variable') tipoOut = 'Variable';
-
-      return {
-        codigo: a[0].toString(),
-        nombre: a[1].toString(),
-        monto:  parseMonto(a[2]),
-        tipo:   tipoOut
-      };
-    });
-  } catch(e) { return []; }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// doPost
-// ═══════════════════════════════════════════════════════════════════════════
-function doPost(e) {
-  try {
-    var body   = JSON.parse(e.postData.contents);
-    var accion = body.accion;
-    var deviceId = (body.deviceId || 'desconocido').toString();
-
-    var cache = CacheService.getScriptCache();
-    var keyBloqueo = 'bloqueo_' + deviceId;
-    var intentosPrevios = parseInt(cache.get(keyBloqueo)) || 0;
-
-    if (intentosPrevios >= MAX_INTENTOS_FALLIDOS) {
-      return ContentService.createTextOutput(JSON.stringify({
-        ok: false, error: 'Demasiados intentos fallidos. Espera ' + MINUTOS_BLOQUEO + ' minutos antes de volver a intentar.'
-      })).setMimeType(ContentService.MimeType.JSON);
-    }
-
-    var pinValido = false;
-    if (body.pin && body.pin.toString() === PIN_SECRETO) {
-      pinValido = true;
-    } else if (body.pin && body.pin.toString() === PIN_ASISTENCIA && ACCIONES_ASISTENCIA_PUBLICA.indexOf(accion) !== -1) {
-      pinValido = true;
-    }
-
-    if (!pinValido) {
-      var nuevosIntentos = intentosPrevios + 1;
-      cache.put(keyBloqueo, nuevosIntentos.toString(), MINUTOS_BLOQUEO * 60);
-      var restantes = MAX_INTENTOS_FALLIDOS - nuevosIntentos;
-      return ContentService.createTextOutput(JSON.stringify({
-        ok: false, error: 'PIN incorrecto.' + (restantes > 0 ? ' Te quedan ' + restantes + ' intentos.' : ' Cuenta bloqueada temporalmente.')
-      })).setMimeType(ContentService.MimeType.JSON);
-    }
-
-    cache.remove(keyBloqueo);
-
-    var resultado;
-    if      (accion === 'guardarPago')         { resultado = guardarPago(body.datos); }
-    else if (accion === 'guardarIngresoExtra')   { resultado = guardarIngresoExtra(body.datos); }
-    else if (accion === 'guardarEgreso')         { resultado = guardarEgreso(body.datos); }
-    else if (accion === 'getEstudiantes')        { resultado = respOk({ data: getEstudiantes() }); }
-    else if (accion === 'getActividades')        { resultado = respOk({ data: getActividades() }); }
-    else if (accion === 'buscarEstudiante')      { resultado = respOk({ data: buscarEstudiante(body.query || '') }); }
-    else if (accion === 'registrarAsistenciaQR') { resultado = validarYRegistrarAsistenciaQR(body.token, body.dni, body.nombre); }
-    else if (accion === 'getEventosAsistencia')  { resultado = respOk({ data: getEventosAsistencia() }); }
-    else if (accion === 'generarSesionQR')       { resultado = generarSesionQR(body.codigoActividad, body.minutosValidez); }
-    
-    else if (accion === 'registrarConsulta')    { resultado = registrarConsulta(body.dni, body.nombre); }
-    else if (accion === 'getPendientesEstudiante') { resultado = respOk({ data: getPendientesEstudiante(body.dni || '') }); }
-    else if (accion === 'guardarPagosBatch')    { resultado = guardarPagosBatch(body.pagos); }
-    else { resultado = respError('Acción no reconocida.'); }
-    return ContentService.createTextOutput(JSON.stringify(resultado))
-      .setMimeType(ContentService.MimeType.JSON);
-  } catch(err) {
-    return ContentService.createTextOutput(JSON.stringify({ ok: false, error: err.message }))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// SESIONES QR
-// ═══════════════════════════════════════════════════════════════════════════
-function generarSesionQR(codigoActividad, minutosValidez) {
-  try {
-    if (!codigoActividad) return respError('Selecciona un evento.');
-    var act = getCleanData('BD_Actividades').filter(function(a) {
-      return a[0].toString() === codigoActividad.toString();
-    })[0];
-    if (!act) return respError('Evento no encontrado.');
-    if (norm(act[4]) !== 'asistencia') return respError('Esta actividad no es de tipo Asistencia.');
-    var mins = parseInt(minutosValidez) || 15;
-    var ahora = new Date();
-    var expiraDate = new Date(ahora.getTime() + mins * 60000);
-    var token = Utilities.getUuid();
-    var sh = getOrCreateSheet('BD_SesionesQR');
-    sh.appendRow([token, codigoActividad,
-      Utilities.formatDate(ahora, TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss"),
-      Utilities.formatDate(expiraDate, TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss"), 'SI']);
-    return respOk({ token: token, expiraMs: expiraDate.getTime(), nombreEvento: act[1] });
-  } catch(e) { return respError(e.message); }
-}
-
-function validarYRegistrarAsistenciaQR(token, dni, nombre) {
-  try {
-    if (!token || !dni) return respError('Faltan datos.');
-    var sesiones = getCleanData('BD_SesionesQR');
-    var sesion = sesiones.filter(function(s) { return s[0].toString() === token.toString(); })[0];
-    if (!sesion) return respError('Código QR no válido.');
-    if (norm(sesion[4]) !== 'si') return respError('Esta sesión ya fue cerrada.');
-    if (new Date() > new Date(sesion[3])) return respError('El tiempo para registrarte ya venció.');
-    return registrarAsistencia({ dni: dni, nombre: nombre, codigoActividad: sesion[1], registradoPor: 'ESTUDIANTE_QR' });
-  } catch(e) { return respError(e.message); }
-}
-
-function abrirGenerarQR() {
-  SpreadsheetApp.getUi().showModalDialog(
-    HtmlService.createHtmlOutput(htmlGenerarQR()).setWidth(420).setHeight(640), '📱 Generar QR de Asistencia');
-}
-
-function htmlGenerarQR() {
-  return '<!DOCTYPE html><html><head><meta charset="UTF-8">' + htmlCSS('#7C3AED','#4C1D95') + '</head><body>' +
-  '<div class="card"><div class="header" style="background:linear-gradient(135deg,#7C3AED 0%,#4C1D95 100%)"><h2>📱 QR de Asistencia</h2></div><div id="msg" class="alert"></div>' +
-  '<div id="formWrap"><form id="form">' +
-    '<div class="fg"><label>Evento</label><select id="evento" required><option value="">Seleccione...</option></select></div>' +
-    '<div class="fg"><label>Válido por (minutos)</label><input type="number" id="mins" value="15" min="1" max="180" required></div>' +
-    _btnHtml('Generar Sesión QR') +
-  '</form></div>' +
-  '<div id="qrWrap" style="display:none;text-align:center;">' +
-    '<h3 id="qrTitulo" style="margin-bottom:14px;color:#1E293B;"></h3>' +
-    '<img id="qrImg" style="width:260px;height:260px;border-radius:12px;border:1.5px solid #E2E8F0;">' +
-    '<p id="cuenta" style="margin-top:16px;font-size:22px;font-weight:700;color:#7C3AED;"></p>' +
-    '<button id="btnOtra" type="button" class="btn" style="margin-top:14px;background:#1E293B;">Generar otra sesión</button>' +
-  '</div></div>' +
-  '<script>' + _jsAlert() + _jsLoading() +
-  'var URL_CHECKIN = "https://jo5ew.github.io/pagos/checkin.html";' +
-  'google.script.run.withSuccessHandler(function(d){var h="<option value=\\"\\">Seleccione...</option>";d.forEach(function(ev){h+="<option value=\\""+ev.codigo+"\\">"+ev.nombre+"</option>";});document.getElementById("evento").innerHTML=h;}).getEventosAsistencia();' +
-  'var timerInterval;' +
-  'function mostrarQR(token,expiraMs,nombreEvento){document.getElementById("formWrap").style.display="none";document.getElementById("qrWrap").style.display="block";document.getElementById("qrTitulo").textContent=nombreEvento;var link=URL_CHECKIN+"?token="+token;document.getElementById("qrImg").src="https://api.qrserver.com/v1/create-qr-code/?size=260x260&data="+encodeURIComponent(link);clearInterval(timerInterval);timerInterval=setInterval(function(){var restante=Math.round((expiraMs-Date.now())/1000);if(restante<=0){document.getElementById("cuenta").textContent="⛔ VENCIDO";document.getElementById("qrImg").style.opacity="0.25";clearInterval(timerInterval);return;}var m=Math.floor(restante/60),s=restante%60;document.getElementById("cuenta").textContent="⏱ "+m+":"+(s<10?"0":"")+s;},1000);}' +
-  'document.getElementById("form").onsubmit=function(e){e.preventDefault();setLoading(true);var cod=document.getElementById("evento").value;var mins=document.getElementById("mins").value;if(!cod){showMsg("Selecciona un evento.",true);setLoading(false);return;}google.script.run.withSuccessHandler(function(r){setLoading(false);if(!r.ok)showMsg(r.error,true);else mostrarQR(r.token,r.expiraMs,r.nombreEvento);}).generarSesionQR(cod,mins);};' +
-  'document.getElementById("btnOtra").onclick=function(){document.getElementById("qrWrap").style.display="none";document.getElementById("formWrap").style.display="block";};' +
-  '</script></body></html>';
-}
-
-function vincularCuentaGoogle(emailGoogle, dni) {
-  try {
-    if (!emailGoogle || !dni) return respError('Email y DNI son obligatorios.');
-    var sh = getSs().getSheetByName('BD_Estudiantes');
-    var data = getCleanData('BD_Estudiantes');
-    var emailNorm = norm(emailGoogle);
-    var yaVinculado = data.some(function(f) { return norm(f[4]) === emailNorm && f[0].toString() !== dni.toString(); });
-    if (yaVinculado) return respError('Esta cuenta de Google ya está vinculada a otro estudiante.');
-    var idx = -1;
-    for (var i = 0; i < data.length; i++) { if (data[i][0].toString() === dni.toString()) { idx = i; break; } }
-    if (idx === -1) return respError('DNI no encontrado. Pide al tesorero que te registre primero.');
-    sh.getRange(idx + 2, 5).setValue(emailNorm);
-    invalidarCache('BD_Estudiantes');
-    return respOk();
-  } catch(e) { return respError(e.message); }
-}
-
-function getEstudiantePorEmail(emailGoogle) {
-  var data = getCleanData('BD_Estudiantes');
-  var emailNorm = norm(emailGoogle);
-  for (var i = 0; i < data.length; i++) {
-    if (norm(data[i][4]) === emailNorm) return { dni: data[i][0], nombre: data[i][1], tel: data[i][2], activo: data[i][3] };
-  }
-  return null;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// ASISTENCIAS
-// ═══════════════════════════════════════════════════════════════════════════
-function getEventosAsistencia() {
-  try {
-    return getCleanData('BD_Actividades').filter(function(a) { return norm(a[4]) === 'asistencia'; })
-      .map(function(a) { return { codigo: a[0].toString(), nombre: a[1].toString(), monto: parseMonto(a[2]), fechaLimite: a[5] }; });
-  } catch(e) { return []; }
-}
-
-function registrarAsistencia(d) {
-  try {
-    if (!d.dni || !d.codigoActividad) return respError('Selecciona estudiante y evento.');
-    var act = getCleanData('BD_Actividades').filter(function(a) { return a[0].toString() === d.codigoActividad.toString(); })[0];
-    if (!act) return respError('Evento no encontrado.');
-    if (norm(act[4]) !== 'asistencia') return respError('Esa actividad no es de tipo Asistencia.');
-    var fechaLimite = act[5];
-    if (fechaLimite) {
-      var limite = new Date(fechaLimite);
-      if (new Date() > limite) return respError('La fecha y hora límite de registro ya pasó. Corresponde multa.');
-    }
-    var yaRegistrado = getCleanData('BD_Asistencias').some(function(a) {
-      return a[3].toString() === d.codigoActividad.toString() && norm(a[4]) === norm(d.dni);
-    });
-    if (yaRegistrado) return respError('Ya hay asistencia registrada para este estudiante en este evento.');
-    var sh = getOrCreateSheet('BD_Asistencias');
-    var id = generarID(sh);
-    sh.appendRow([id, formatoFecha(), formatoHora(), d.codigoActividad, d.dni, d.nombre || '', d.registradoPor || 'TESORERO']);
-    SpreadsheetApp.flush();
-    invalidarCache('BD_Asistencias');
-    dispararActualizacionAsync();
-    return respOk({ id: id });
-  } catch(e) { return respError(e.message); }
-}
-
-function abrirAsistencia() {
-  SpreadsheetApp.getUi().showModalDialog(
-    HtmlService.createHtmlOutput(htmlAsistencia()).setWidth(520).setHeight(720), '✅ Registrar Asistencia');
-}
-
-function htmlAsistencia() {
-  return '<!DOCTYPE html><html><head><meta charset="UTF-8">' + htmlCSS('#0EA5E9','#075985') + '</head><body>' +
-  '<div class="card"><div class="header" style="background:linear-gradient(135deg,#0EA5E9 0%,#075985 100%)"><h2>✅ Registrar Asistencia</h2></div><div id="msg" class="alert"></div>' +
-  '<form id="form">' +
-    '<div class="fg"><label>Buscar Estudiante</label><div class="sugg-wrap"><input type="text" id="q" placeholder="🔍 Escribe nombre o DNI..." autocomplete="off"><input type="hidden" id="estVal"><div id="sugg" class="sugg-box"></div></div></div>' +
-    '<div class="fg"><label>Evento de asistencia</label><select id="evento" required><option value="">Seleccione...</option></select></div>' +
-    _btnHtml('Marcar Presente') +
-  '</form></div>' +
-  '<script>' + _jsAlert() + _jsLoading() +
-  'google.script.run.withSuccessHandler(function(d){var h="<option value=\\"\\">Seleccione...</option>";d.forEach(function(ev){h+="<option value=\\""+ev.codigo+"\\">"+ev.nombre+" (límite: "+ev.fechaLimite+")</option>";});document.getElementById("evento").innerHTML=h;}).getEventosAsistencia();' +
-  'var tmr;document.getElementById("q").oninput=function(){clearTimeout(tmr);var q=this.value;var sb=document.getElementById("sugg");document.getElementById("estVal").value="";if(q.length<2){sb.style.display="none";return;}tmr=setTimeout(function(){google.script.run.withSuccessHandler(function(d){if(d.length===0){sb.innerHTML="<div class=\\"sugg-empty\\">Sin resultados</div>";sb.style.display="block";return;}var h="";d.forEach(function(e){var ini=e.nombre.substring(0,2).toUpperCase();h+="<div class=\\"sugg-item\\" onclick=\\"pickEst(\'"+e.dni+"\',\'"+e.nombre+"\')\\">"+"<div class=\\"sugg-avatar\\">"+ini+"</div>"+"<div class=\\"sugg-info\\"><h5>"+e.nombre+"</h5><p>DNI: "+e.dni+"</p></div></div>";});sb.innerHTML=h;sb.style.display="block";}).buscarEstudiante(q);},300);};' +
-  'function pickEst(dni,nom){document.getElementById("estVal").value=dni+"|"+nom;document.getElementById("q").value="✅ "+nom+" ("+dni+")";document.getElementById("sugg").style.display="none";}' +
-  'document.addEventListener("click",function(e){if(!e.target.closest(".sugg-wrap"))document.getElementById("sugg").style.display="none";});' +
-  'document.getElementById("form").onsubmit=function(e){e.preventDefault();var ev=document.getElementById("estVal").value;if(!ev){showMsg("Selecciona un estudiante de la lista.",true);return;}var cod=document.getElementById("evento").value;if(!cod){showMsg("Selecciona un evento.",true);return;}setLoading(true);var arr=ev.split("|");var d={dni:arr[0],nombre:arr[1],codigoActividad:cod,registradoPor:"TESORERO"};google.script.run.withSuccessHandler(function(r){setLoading(false);if(!r.ok)showMsg(r.error,true);else{showMsg("✅ Asistencia registrada",false);document.getElementById("form").reset();document.getElementById("estVal").value="";}}).registrarAsistencia(d);};' +
-  '</script></body></html>';
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// RECORDATORIOS WHATSAPP
-// ═══════════════════════════════════════════════════════════════════════════
-function getDeudoresParaRecordatorio() {
-  try {
-    var estD  = getCleanData('BD_Estudiantes');
-    var actD  = getCleanData('BD_Actividades');
-    var pagD  = getCleanData('BD_Pagos');
-    var asisD = getCleanData('BD_Asistencias');
-    var pagSet = {}; pagD.forEach(function(p) { pagSet[p[2] + '|' + p[4]] = true; });
-    var asisSet = {}; asisD.forEach(function(a) { asisSet[a[4] + '|' + a[3]] = true; });
-    var resultado = [];
-    estD.forEach(function(e) {
-      if (norm(e[3]) === 'no') return;
-      var dni = e[0].toString(), nombre = e[1].toString(), telefono = (e[2] || '').toString().trim();
-      var pendientes = [], totalDebe = 0;
-      actD.forEach(function(a) {
-        var cod = a[0].toString(), tipo = norm(a[4]) === 'asistencia' ? 'asistencia' : 'cobro';
-        var yaPago = pagSet[dni + '|' + cod], yaAsistio = tipo === 'asistencia' && asisSet[dni + '|' + cod];
-        if (!yaPago && !yaAsistio) { var monto = parseMonto(a[2]); pendientes.push({ codigo: cod, nombre: a[1].toString(), monto: monto }); totalDebe += monto; }
-      });
-      if (pendientes.length > 0) resultado.push({ dni: dni, nombre: nombre, telefono: telefono, pendientes: pendientes, totalDebe: totalDebe });
-    });
-    resultado.sort(function(a, b) { return b.totalDebe - a.totalDebe; });
-    return resultado;
-  } catch(e) { Logger.log('ERROR getDeudoresParaRecordatorio: ' + e.message); return []; }
-}
-
-function abrirRecordatorios() {
-  SpreadsheetApp.getUi().showModalDialog(
-    HtmlService.createHtmlOutput(htmlRecordatorios()).setWidth(520).setHeight(720), '📱 Recordatorios por WhatsApp');
-}
-
-function htmlRecordatorios() {
-  return '<!DOCTYPE html><html><head><meta charset="UTF-8">' + htmlCSS('#22C55E','#15803D') + '</head><body>' +
-  '<div class="card"><div class="header" style="background:linear-gradient(135deg,#22C55E 0%,#15803D 100%)"><h2>&#128241; Recordatorios</h2></div><div id="msg" class="alert"></div>' +
-  '<div id="vistaLista">' +
-    '<p style="font-size:13px;color:#64748B;margin-bottom:14px;">Deudores de mayor a menor. Toca "Recordar" para abrir WhatsApp con el mensaje listo.</p>' +
-    '<button type="button" id="btnRonda" class="btn">&#128228; Iniciar ronda de recordatorios</button>' +
-  '</div>' +
-  '<div id="vistaRonda" style="display:none;text-align:center;">' +
-    '<p id="rondaContador" style="font-size:12px;color:#64748B;font-weight:700;text-transform:uppercase;margin-bottom:10px;"></p>' +
-    '<div style="background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:14px;padding:20px;margin-bottom:14px;">' +
-      '<h3 id="rondaNombre" style="font-size:18px;margin-bottom:6px;color:#0F172A;"></h3>' +
-      '<p id="rondaMonto" style="font-size:14px;color:#15803D;font-weight:700;"></p>' +
-    '</div>' +
-    '<a id="rondaBtnEnviar" href="#" target="_blank" class="btn" style="text-decoration:none;display:block;">&#128241; Enviar y continuar &rarr;</a>' +
-    '<button type="button" id="rondaBtnSaltar" class="btn" style="background:#94A3B8;margin-top:8px;">Saltar, sin enviar</button>' +
-    '<p id="rondaFin" style="display:none;padding:16px;color:#15803D;font-weight:700;">&#9989; Ronda terminada. &#127881;</p>' +
-    '<button type="button" id="rondaBtnSalir" style="background:none;border:none;color:#94A3B8;font-size:12px;margin-top:14px;text-decoration:underline;cursor:pointer;">&larr; Volver a la lista</button>' +
-  '</div></div>' +
-  '<div class="list-wrap" id="lista"></div>' +
-  '<script>' +
-  'var deudores=[],rondaLista=[],rondaIdx=0;' +
-  'function construirMensaje(d){var n="\\n";var lineas=d.pendientes.map(function(p){return "  - *"+p.nombre+"*: S/. "+p.monto.toFixed(2);}).join(n);return "_Hola "+d.nombre+"!_"+n+n+"Tienes pendiente en la tesoreria del aula:"+n+n+lineas+n+n+"*Total a pagar: S/. "+d.totalDebe.toFixed(2)+"*"+n+n+"_Por favor regulariza cuando puedas. Gracias!_";}' +
-  'function getTel(d){var t=(d.telefono||"").replace(/\\D/g,"");return t.length===9?"51"+t:t;}' +
-  'function tieneTelValido(d){return getTel(d).length>=11;}' +
-  'function construirLink(d){return "https://wa.me/"+getTel(d)+"?text="+encodeURIComponent(construirMensaje(d));}' +
-  'function liDeudor(d,i){var sinTel=!tieneTelValido(d);var boton=sinTel?"<span style=\\"font-size:11px;color:#DC2626;font-weight:600;\\">Sin tel&eacute;fono</span>":"<a href=\\""+construirLink(d)+"\\" target=\\"_blank\\" class=\\"btn-del\\" style=\\"background:#DCFCE7;color:#15803D;border-color:#BBF7D0;text-decoration:none;\\">&#128241; Recordar</a>";return "<div class=\\"li\\"><div class=\\"li-left\\"><div class=\\"li-icon\\">"+d.nombre.substring(0,2).toUpperCase()+"</div><div class=\\"li-info\\"><h4>"+d.nombre+"</h4><p>Debe S/. "+d.totalDebe.toFixed(2)+" &middot; "+d.pendientes.length+" pendiente(s)</p></div></div>"+boton+"</div>";}' +
-  'function renderLista(){if(deudores.length===0){document.getElementById("lista").innerHTML="<p style=\\"text-align:center;color:#64748B;padding:24px;\\">&#127881; Nadie tiene pendientes.</p>";return;}var h="";deudores.forEach(function(x,i){h+=liDeudor(x,i);});document.getElementById("lista").innerHTML=h;}' +
-  'function mostrarRondaActual(){document.getElementById("rondaFin").style.display="none";document.getElementById("rondaBtnEnviar").style.display="block";document.getElementById("rondaBtnSaltar").style.display="block";if(rondaIdx>=rondaLista.length){document.getElementById("rondaContador").textContent="";document.getElementById("rondaNombre").textContent="";document.getElementById("rondaMonto").textContent="";document.getElementById("rondaBtnEnviar").style.display="none";document.getElementById("rondaBtnSaltar").style.display="none";document.getElementById("rondaFin").style.display="block";return;}var d=rondaLista[rondaIdx];document.getElementById("rondaContador").textContent="Recordatorio "+(rondaIdx+1)+" de "+rondaLista.length;document.getElementById("rondaNombre").textContent=d.nombre;document.getElementById("rondaMonto").textContent="Debe S/. "+d.totalDebe.toFixed(2)+" \u00b7 "+d.pendientes.length+" pendiente(s)";document.getElementById("rondaBtnEnviar").href=construirLink(d);}' +
-  'document.getElementById("btnRonda").onclick=function(){rondaLista=deudores.filter(tieneTelValido);if(rondaLista.length===0){var m=document.getElementById("msg");m.className="alert error";m.textContent="Ning\u00fan deudor tiene tel\u00e9fono guardado.";m.style.display="block";return;}rondaIdx=0;document.getElementById("vistaLista").style.display="none";document.getElementById("lista").style.display="none";document.getElementById("vistaRonda").style.display="block";mostrarRondaActual();};' +
-  'document.getElementById("rondaBtnEnviar").onclick=function(){rondaIdx++;setTimeout(mostrarRondaActual,500);};' +
-  'document.getElementById("rondaBtnSaltar").onclick=function(){rondaIdx++;mostrarRondaActual();};' +
-  'document.getElementById("rondaBtnSalir").onclick=function(){document.getElementById("vistaRonda").style.display="none";document.getElementById("lista").style.display="block";document.getElementById("vistaLista").style.display="block";};' +
-  'google.script.run.withSuccessHandler(function(d){deudores=d;renderLista();}).getDeudoresParaRecordatorio();' +
-  '</script></body></html>';
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// CONSULTAS (log de visitas a la página pública)
-// ═══════════════════════════════════════════════════════════════════════════
-function registrarConsulta(dni, nombre) {
-  try {
-    var sh = getOrCreateSheet('BD_Consultas');
-    sh.appendRow([generarID(sh), formatoFecha(), formatoHora(), dni || '', nombre || '']);
-    return respOk();
-  } catch(e) { return respError(e.message); }
-}
-
-function limpiarTriggersHuerfanos() {
-  ScriptApp.getProjectTriggers().forEach(function(t) {
-    var fn = t.getHandlerFunction();
-    if (fn === 'actualizarVistasAsync') {
-      ScriptApp.deleteTrigger(t);
+      total += montoItem;
+      count++;
     }
   });
-  SpreadsheetApp.getUi().alert('✅ Triggers huérfanos eliminados.');
+  document.getElementById('totalAmount').textContent = 'S/. ' + total.toFixed(2);
+  document.getElementById('totalCount').textContent = count + (count === 1 ? ' cuota seleccionada' : ' cuotas seleccionadas');
+  var lbl = count > 0 ? 'Confirmar ' + count + (count === 1 ? ' pago' : ' pagos') : 'Confirmar pago';
+  document.getElementById('btnLabel').textContent = lbl;
+  document.getElementById('btnConfirmar').disabled = count === 0;
 }
 
-function testPendientes() {
-  var resultado = getPendientesEstudiante('74854072');
-  Logger.log(JSON.stringify(resultado));
+// ── CONFIRMAR ──
+function confirmarPagos() {
+  var met = document.getElementById('metodoPago').value;
+  if (!met) { showMsg('Selecciona el método de pago.', true); return; }
+  var pagos = [];
+  pendientesData.forEach(function(a, i) {
+    var item = document.getElementById('item' + i);
+    if (item && item.classList.contains('sel')) {
+      var montoFinal = a.monto;
+      // NUEVO: Rescatar el monto final a enviar a la DB
+      if (a.tipo === 'Variable') {
+        var inputObj = document.getElementById('montoInp' + i);
+        if (inputObj) montoFinal = parseFloat(inputObj.value) || 0;
+      }
+      pagos.push({ dni: estSeleccionado.dni, nombre: estSeleccionado.nombre, codActividad: a.codigo, nomActividad: a.nombre, monto: montoFinal, metodoPago: met, obs: document.getElementById('obs').value });
+    }
+  });
+  if (pagos.length === 0) { showMsg('Selecciona al menos una actividad.', true); return; }
+
+  var btn = document.getElementById('btnConfirmar');
+  btn.disabled = true;
+  btn.classList.add('loading');
+  mostrarProgress();
+
+  api('guardarPagosBatch', { pagos: pagos }).then(function(r) {
+    btn.classList.remove('loading');
+    completarProgress();
+    setTimeout(function() {
+      ocultarProgress();
+      if (!r.ok) { showMsg(r.error, true); btn.disabled = false; return; }
+      var msg = '✅ ' + r.registrados + ' pago(s) registrado(s)';
+      if (r.detalle) msg += ' · ' + r.detalle;
+      showMsg(msg, false);
+      document.getElementById('metodoPago').value = '';
+      document.getElementById('obs').value = '';
+      todoSel = false;
+      document.getElementById('btnSelAll').textContent = 'Seleccionar todo';
+      cargarPendientes(estSeleccionado.dni);
+    }, 600);
+  }).catch(function() {
+    btn.classList.remove('loading');
+    ocultarProgress();
+    showMsg('Error de conexión. Intenta de nuevo.', true);
+    btn.disabled = false;
+  });
 }
+
+// ── BARRA DE PROGRESO ──
+var progTimer;
+function mostrarProgress() {
+  var wrap = document.getElementById('progWrap');
+  var fill = document.getElementById('progFill');
+  var est  = document.getElementById('progEstado');
+  wrap.classList.add('vis');
+  est.classList.add('vis');
+  fill.style.width = '0%';
+  est.textContent = 'Verificando datos...';
+  var etapas = [
+    { ms: 200,  pct: '25%', txt: 'Verificando datos...' },
+    { ms: 600,  pct: '50%', txt: 'Guardando pagos...' },
+    { ms: 1200, pct: '75%', txt: 'Confirmando registro...' },
+    { ms: 1800, pct: '88%', txt: 'Casi listo...' }
+  ];
+  etapas.forEach(function(e) {
+    setTimeout(function() {
+      if (document.getElementById('btnConfirmar').classList.contains('loading')) {
+        fill.style.width = e.pct;
+        est.textContent = e.txt;
+      }
+    }, e.ms);
+  });
+}
+function completarProgress() {
+  document.getElementById('progFill').style.width = '100%';
+  document.getElementById('progEstado').textContent = '✅ Completado';
+}
+function ocultarProgress() {
+  setTimeout(function() {
+    document.getElementById('progWrap').classList.remove('vis');
+    document.getElementById('progEstado').classList.remove('vis');
+    document.getElementById('progFill').style.width = '0%';
+  }, 400);
+}
+
+// ── MENSAJE ──
+function showMsg(txt, err) {
+  var m = document.getElementById('msg');
+  if (!txt) { m.style.display = 'none'; return; }
+  m.className = 'msg ' + (err ? 'err' : 'ok');
+  m.textContent = txt;
+  if (!err) setTimeout(function() { m.style.display = 'none'; }, 4500);
+}
+
+</script>
+</body>
+</html>
