@@ -1,382 +1,94 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Registro de Asistencia</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600;700&display=swap">
-<style>
-  :root {
-    --fondo: url('fondo.jpg');
-    --bg-deep: #201a38;
-    --glass: rgba(255,255,255,0.10);
-    --glass-strong: rgba(255,255,255,0.16);
-    --glass-border: rgba(255,255,255,0.22);
-    --text: #fbf8f4;
-    --text-muted: rgba(251,248,244,0.68);
-    --accent-1: #ff9966;
-    --accent-2: #ff5e62;
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-    font-family: 'Inter', system-ui, sans-serif;
-    color: var(--text);
-    background-color: var(--bg-deep);
-    background-image: var(--fondo);
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: contain;
-  }
+const SHEET_NAME = 'Registros';
+const SECRET_CODE = 'ANIV26';
+const CUTOFF = '15:00'; // debe coincidir con HORA_LIMITE en el index.html
+const DRIVE_FOLDER_NAME = 'EvidenciasAsistencia';
 
-  .card {
-    background: var(--glass);
-    backdrop-filter: blur(22px);
-    -webkit-backdrop-filter: blur(22px);
-    border: 1px solid var(--glass-border);
-    max-width: 400px;
-    width: 100%;
-    padding: 30px 26px;
-    border-radius: 24px;
-    box-shadow: 0 24px 60px rgba(0,0,0,0.45);
-  }
+function doPost(e) {
+  try {
+    const params = e.parameter;
+    if (params.codigo !== SECRET_CODE) {
+      return respond({ ok: false, mensaje: 'Código incorrecto' });
+    }
+    const nombre = params.nombre;
+    if (!nombre) {
+      return respond({ ok: false, mensaje: 'Falta el nombre' });
+    }
 
-  .eyebrow {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin-bottom: 4px;
-  }
-  h2 {
-    font-family: 'Poppins', sans-serif;
-    font-weight: 600;
-    font-size: 22px;
-    letter-spacing: -0.01em;
-    margin: 0 0 20px;
-    color: var(--text);
-  }
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SHEET_NAME);
+    const tz = Session.getScriptTimeZone();
+    const ahora = new Date();
+    const hoyStr = Utilities.formatDate(ahora, tz, 'yyyy-MM-dd');
 
-  label {
-    display: block;
-    font-size: 11.5px;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin-bottom: 6px;
-  }
+    const data = sheet.getDataRange().getValues();
+    let tieneEntrada = false;
+    let tieneSalida = false;
+    for (let i = 1; i < data.length; i++) {
+      const fila = data[i];
+      if (!fila[2]) continue;
+      const filaFecha = Utilities.formatDate(new Date(fila[2]), tz, 'yyyy-MM-dd');
+      if (fila[0] === nombre && filaFecha === hoyStr) {
+        if (fila[1] === 'Entrada') tieneEntrada = true;
+        if (fila[1] === 'Salida') tieneSalida = true;
+      }
+    }
 
-  input {
-    width: 100%;
-    padding: 13px 14px;
-    margin-bottom: 16px;
-    font-size: 15.5px;
-    font-family: 'Inter', sans-serif;
-    border-radius: 12px;
-    border: 1px solid var(--glass-border);
-    background: rgba(255,255,255,0.08);
-    color: var(--text);
-  }
-  input::placeholder { color: rgba(251,248,244,0.45); }
-  input[type="file"] { padding: 10px 12px; color: var(--text-muted); font-size: 13.5px; }
+    let tipo = 'Entrada';
+    if (tieneEntrada && !tieneSalida) tipo = 'Salida';
+    if (tieneEntrada && tieneSalida) {
+      return respond({ ok: false, mensaje: 'Ya registraste tu entrada y salida hoy' });
+    }
 
-  .select-wrap { position: relative; margin-bottom: 16px; }
-  .select-trigger {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 13px 14px;
-    font-size: 15.5px;
-    font-family: 'Inter', sans-serif;
-    text-align: left;
-    border-radius: 12px;
-    border: 1px solid var(--glass-border);
-    background: rgba(255,255,255,0.08);
-    color: var(--text);
-    cursor: pointer;
-  }
-  .select-trigger.placeholder { color: rgba(251,248,244,0.45); }
-  .select-trigger svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--text-muted); transition: transform .15s ease; }
-  .select-trigger.open svg { transform: rotate(180deg); }
-  .dropdown-panel {
-    position: absolute;
-    top: calc(100% + 6px);
-    left: 0; right: 0;
-    max-height: 260px;
-    overflow-y: auto;
-    background: rgba(26, 21, 46, 0.97);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    border: 1px solid var(--glass-border);
-    border-radius: 14px;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-    z-index: 30;
-    display: none;
-    padding: 6px;
-  }
-  .dropdown-panel.open { display: block; }
-  .dropdown-option {
-    padding: 11px 12px;
-    border-radius: 9px;
-    font-size: 14.5px;
-    cursor: pointer;
-    color: var(--text);
-  }
-  .dropdown-option:hover, .dropdown-option.selected {
-    background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
-    color: #fff;
-  }
+    let fotoUrl = params.foto ? guardarFoto(params.foto, nombre, tipo) : '';
+    let fotoJust1Url = params.foto2 ? guardarFoto(params.foto2, nombre, tipo + '_justif1') : '';
+    let fotoJust2Url = params.foto3 ? guardarFoto(params.foto3, nombre, tipo + '_justif2') : '';
 
-  button {
-    width: 100%;
-    padding: 14px;
-    font-size: 15.5px;
-    font-weight: 700;
-    letter-spacing: 0.01em;
-    border: none;
-    border-radius: 12px;
-    color: #fff;
-    cursor: pointer;
-    background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
-    box-shadow: 0 10px 26px rgba(255,94,98,0.35);
-    transition: transform .15s ease, box-shadow .15s ease;
-  }
-  button:hover { transform: translateY(-1px); box-shadow: 0 14px 32px rgba(255,94,98,0.45); }
-  button:active { transform: translateY(0); }
-
-  #estadoUbicacion { font-size: 12.5px; color: var(--text-muted); margin: -8px 0 14px; }
-  #mensaje { margin-top: 14px; font-weight: 600; text-align: center; color: var(--text-muted); }
-  #gate, #form, #exito, #errorCodigo { display: none; }
-  #exito { text-align: center; }
-  #exito img { width: 100%; max-width: 200px; display: block; margin: 0 auto 14px; }
-  #exito button { margin-top: 10px; }
-
-  #errorCodigo {
-    position: fixed; inset: 0; background: #ffffff; z-index: 50;
-    flex-direction: column; align-items: center; justify-content: center;
-    padding: 24px; text-align: center;
-  }
-  #errorCodigo img { width: 220px; max-width: 70%; margin-bottom: 20px; border-radius: 16px; }
-  #errorCodigo h2 { color: #c9632b; font-family: 'Poppins', sans-serif; }
-  #errorCodigo p { color: #666; font-family: 'Inter', sans-serif; margin-bottom: 20px; }
-  #errorCodigo button { max-width: 240px; background: linear-gradient(135deg, var(--accent-1), var(--accent-2)); }
-</style>
-</head>
-<body>
-<div class="card">
-
-  <div id="gate">
-    <div class="eyebrow">Fiesta de Aniversario</div>
-    <h2>Código de acceso</h2>
-    <input type="text" id="codigoInput" placeholder="Ingresa el código"
-           autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off">
-    <button onclick="verificarCodigo()">Entrar</button>
-  </div>
-
-  <div id="form">
-    <div class="eyebrow">Fiesta de Aniversario</div>
-    <h2>Registro de asistencia</h2>
-    <label>Tu nombre</label>
-    <div class="select-wrap">
-      <button type="button" class="select-trigger placeholder" id="nombreTrigger" onclick="toggleDropdown()">
-        <span id="nombreLabel">Selecciona…</span>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
-      <div class="dropdown-panel" id="dropdownPanel">
-        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="ANAMURO AÑAMURO, Frank Yuber">ANAMURO AÑAMURO, Frank Yuber</div>
-        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="BENIQUE SUPO, Percy">BENIQUE SUPO, Percy</div>
-        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="CACMA MAMANI, Vladimir Ronaldo">CACMA MAMANI, Vladimir Ronaldo</div>
-        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="CARRIZALES CAPIA, Flavio Cesar">CARRIZALES CAPIA, Flavio Cesar</div>
-        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="CAZASOLA CUNO, Zhaida Yoshy">CAZASOLA CUNO, Zhaida Yoshy</div>
-        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="CHAIÑA ROQUE, Jhon Edwar">CHAIÑA ROQUE, Jhon Edwar</div>
-        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="CHECCA CHURA, Willian Frank">CHECCA CHURA, Willian Frank</div>
-        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="CHOQUE LARICO, Andre Jhonatan">CHOQUE LARICO, Andre Jhonatan</div>
-        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="CONDORI CONDORI, Elmer Salomon">CONDORI CONDORI, Elmer Salomon</div>
-        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="CONDORI VARGAS, Jhon Cristian">CONDORI VARGAS, Jhon Cristian</div>
-        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="FLORES VIVEROS, Kevin Uriel">FLORES VIVEROS, Kevin Uriel</div>
-        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="HUARACHA URIBE, Nilva Jhamileth">HUARACHA URIBE, Nilva Jhamileth</div>
-        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="ITO MARAZA, Cristian">ITO MARAZA, Cristian</div>
-        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="JANCCO CONDORI, Elvis Yampier">JANCCO CONDORI, Elvis Yampier</div>
-        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="LEON LIMA, Luis Enrique">LEON LIMA, Luis Enrique</div>
-        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="MAMANI CONDEÑA, Rudy">MAMANI CONDEÑA, Rudy</div>
-        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="MULLISACA TORRES, Esleyter Marco">MULLISACA TORRES, Esleyter Marco</div>
-        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="MAMANI LARICO, Andrea">MAMANI LARICO, Andrea</div>
-        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="MAMANI MAMANI, Mirian">MAMANI MAMANI, Mirian</div>
-        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="ORTIZ JAEN, Angela Milagros">ORTIZ JAEN, Angela Milagros</div>
-        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="PARIAPAZA OJEDA, Rosa Monica">PARIAPAZA OJEDA, Rosa Monica</div>
-        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="QUISPE JAEN, Jose Manuel">QUISPE JAEN, Jose Manuel</div>
-        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="SALAZAR MENDEZ, Maet Natali">SALAZAR MENDEZ, Maet Natali</div>
-        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="SUCASACA CCORA, Mayer Jared">SUCASACA CCORA, Mayer Jared</div>
-        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="TORRES LAIME, Jose Luis">TORRES LAIME, Jose Luis</div>
-        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="ARNEZ CHAHUARA, Diego Alfredo">ARNEZ CHAHUARA, Diego Alfredo</div>
-      </div>
-      <input type="hidden" id="nombre" value="">
-    </div>
-
-    <label>Foto (evidencia)</label>
-    <input type="file" id="foto" accept="image/*" capture="environment">
-
-    <div id="estadoUbicacion">📍 Obteniendo ubicación…</div>
-
-    <button onclick="enviar()">Registrar</button>
-    <div id="mensaje"></div>
-  </div>
-
-  <div id="exito">
-    <!-- Reemplaza esta imagen por la que quieras mostrar al registrarse -->
-    <img src="https://api.iconify.design/fluent-emoji/check-mark-button.svg" alt="Registrado">
-    <h2 id="exitoTexto">¡Registrado!</h2>
-    <button onclick="registrarOtro()">Hacer otro registro</button>
-  </div>
-
-</div>
-
-<div id="errorCodigo">
-  <img src="error.jpg" alt="Código incorrecto">
-  <h2>Código incorrecto 😹</h2>
-  <p>Revisa mayúsculas y espacios, e inténtalo de nuevo.</p>
-  <button onclick="cerrarErrorCodigo()">Reintentar</button>
-</div>
-
-<script>
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyJxUqhvus342GI03SUYAKmAkW2DUeQ25vO3Id9zuDks6-t7ihE3SMXN1F8B0bM90vMHA/exec";
-  const CODIGO_CORRECTO = "ANIV26";
-  const DURACION_SESION_MS = 3 * 60 * 1000; // el código vale por 3 minutos, luego hay que reingresarlo
-  let coords = { lat: '', lng: '' };
-
-  function codigoVigente() {
-    const marca = localStorage.getItem('codigoTimestamp');
-    if (!marca) return false;
-    return (Date.now() - parseInt(marca, 10)) < DURACION_SESION_MS;
-  }
-
-  if (codigoVigente()) {
-    document.getElementById('form').style.display = 'block';
-    pedirUbicacion();
-  } else {
-    localStorage.removeItem('codigoTimestamp');
-    document.getElementById('gate').style.display = 'block';
-  }
-
-  function verificarCodigo() {
-    const val = document.getElementById('codigoInput').value.trim().toUpperCase();
-    if (val === CODIGO_CORRECTO.toUpperCase()) {
-      localStorage.setItem('codigoTimestamp', Date.now().toString());
-      document.getElementById('gate').style.display = 'none';
-      document.getElementById('form').style.display = 'block';
-      pedirUbicacion();
+    let tardanzaMin = '';
+    let estado = '';
+    if (tipo === 'Entrada') {
+      const partesHora = CUTOFF.split(':').map(Number);
+      const limite = new Date(ahora);
+      limite.setHours(partesHora[0], partesHora[1], 0, 0);
+      const diffMs = ahora - limite;
+      tardanzaMin = diffMs > 0 ? Math.round(diffMs / 60000) : 0;
+      estado = diffMs > 0 ? 'Tardanza' : 'A tiempo';
     } else {
-      document.getElementById('errorCodigo').style.display = 'flex';
+      estado = 'Salida registrada';
     }
+
+    sheet.appendRow([
+      nombre, tipo, ahora, tardanzaMin, estado,
+      params.lat || '', params.lng || '', fotoUrl,
+      params.comentario || '', fotoJust1Url, fotoJust2Url
+    ]);
+
+    return respond({ ok: true, tipo: tipo, tardanza: tardanzaMin });
+  } catch (err) {
+    return respond({ ok: false, mensaje: 'Error: ' + err.message });
   }
+}
 
-  function cerrarErrorCodigo() {
-    document.getElementById('errorCodigo').style.display = 'none';
-    document.getElementById('codigoInput').value = '';
-  }
+function guardarFoto(base64Data, nombre, tipo) {
+  const folders = DriveApp.getFoldersByName(DRIVE_FOLDER_NAME);
+  const folder = folders.hasNext() ? folders.next() : DriveApp.createFolder(DRIVE_FOLDER_NAME);
+  const partes = base64Data.split(',');
+  const bytes = Utilities.base64Decode(partes[1] || partes[0]);
+  const blob = Utilities.newBlob(bytes, 'image/jpeg', nombre + '_' + tipo + '_' + Date.now() + '.jpg');
+  const file = folder.createFile(blob);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return file.getUrl();
+}
 
-  function toggleDropdown() {
-    document.getElementById('dropdownPanel').classList.toggle('open');
-    document.getElementById('nombreTrigger').classList.toggle('open');
-  }
+function doGet(e) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const nombres = ss.getSheets().map(s => s.getName());
+  return ContentService.createTextOutput(JSON.stringify({
+    archivo: ss.getName(),
+    pestañas: nombres
+  })).setMimeType(ContentService.MimeType.JSON);
+}
 
-  function seleccionarNombre(el) {
-    document.getElementById('nombre').value = el.dataset.value;
-    document.getElementById('nombreLabel').textContent = el.dataset.value;
-    document.getElementById('nombreTrigger').classList.remove('placeholder');
-    document.querySelectorAll('.dropdown-option').forEach((o) => o.classList.remove('selected'));
-    el.classList.add('selected');
-    document.getElementById('dropdownPanel').classList.remove('open');
-    document.getElementById('nombreTrigger').classList.remove('open');
-  }
-
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('.select-wrap')) {
-      document.getElementById('dropdownPanel').classList.remove('open');
-      document.getElementById('nombreTrigger').classList.remove('open');
-    }
-  });
-
-  function pedirUbicacion() {
-    const estado = document.getElementById('estadoUbicacion');
-    if (!navigator.geolocation) {
-      estado.textContent = '⚠️ Tu navegador no soporta ubicación, continúa igual.';
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        coords.lat = pos.coords.latitude;
-        coords.lng = pos.coords.longitude;
-        estado.textContent = '✅ Ubicación detectada';
-      },
-      () => { estado.textContent = '⚠️ No se pudo obtener ubicación, puedes continuar igual.'; },
-      { timeout: 8000 }
-    );
-  }
-
-  function toBase64(file) {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.readAsDataURL(file);
-    });
-  }
-
-  async function enviar() {
-    if (!codigoVigente()) {
-      document.getElementById('form').style.display = 'none';
-      document.getElementById('gate').style.display = 'block';
-      return;
-    }
-    const nombre = document.getElementById('nombre').value;
-    const fotoFile = document.getElementById('foto').files[0];
-    if (!nombre) { alert('Selecciona tu nombre'); return; }
-    if (!fotoFile) { alert('Toma una foto primero'); return; }
-
-    document.getElementById('mensaje').textContent = 'Enviando…';
-    const fotoBase64 = await toBase64(fotoFile);
-
-    const body = new FormData();
-    body.append('codigo', CODIGO_CORRECTO);
-    body.append('nombre', nombre);
-    body.append('foto', fotoBase64);
-    body.append('lat', coords.lat);
-    body.append('lng', coords.lng);
-
-    try {
-      await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: body });
-      document.getElementById('form').style.display = 'none';
-      document.getElementById('exitoTexto').textContent = '¡Registrado, ' + nombre.split(',')[1].trim() + '!';
-      document.getElementById('exito').style.display = 'block';
-    } catch (err) {
-      document.getElementById('mensaje').textContent = '❌ Error, intenta de nuevo.';
-    }
-  }
-
-  function registrarOtro() {
-    document.getElementById('nombre').value = '';
-    document.getElementById('nombreLabel').textContent = 'Selecciona…';
-    document.getElementById('nombreTrigger').classList.add('placeholder');
-    document.querySelectorAll('.dropdown-option').forEach((o) => o.classList.remove('selected'));
-    document.getElementById('foto').value = '';
-    document.getElementById('mensaje').textContent = '';
-    document.getElementById('exito').style.display = 'none';
-    if (codigoVigente()) {
-      document.getElementById('form').style.display = 'block';
-    } else {
-      document.getElementById('gate').style.display = 'block';
-    }
-  }
-</script>
-</body>
-</html>
+function respond(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+      
