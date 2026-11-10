@@ -6,10 +6,7 @@
 <title>Registro de Asistencia</title>
 <style>
   :root {
-    /* Reemplaza esta URL por la foto de fondo que quieras usar.
-       Puedes subir tu imagen al mismo repo de GitHub y poner su nombre aquí,
-       ej. url('fondo.jpg') */
-    --fondo: url('https://images.unsplash.com/photo-1511795409834-ef04bbd61622?q=80&w=1200');
+    --fondo: url('fondo.jpg');
     --acento: #c9632b;
   }
   * { box-sizing: border-box; }
@@ -46,11 +43,20 @@
   }
   #estadoUbicacion { font-size: 12px; color: #888; margin-top: -8px; margin-bottom: 10px; }
   #mensaje { margin-top: 16px; font-weight: bold; text-align: center; }
-  #gate, #form, #exito { display: none; }
+  #gate, #form, #exito, #errorCodigo { display: none; }
   #exito img {
     width: 100%; max-width: 220px; display: block; margin: 0 auto 12px;
   }
   #exito { text-align: center; }
+
+  #errorCodigo {
+    position: fixed; inset: 0; background: #fff; z-index: 50;
+    flex-direction: column; align-items: center; justify-content: center;
+    padding: 24px; text-align: center;
+  }
+  #errorCodigo img { width: 220px; max-width: 70%; margin-bottom: 20px; }
+  #errorCodigo h2 { color: #c9632b; }
+  #errorCodigo button { max-width: 240px; }
 </style>
 </head>
 <body>
@@ -114,6 +120,13 @@
 
 </div>
 
+<div id="errorCodigo">
+  <img src="error.jpg" alt="Código incorrecto">
+  <h2>Código incorrecto 😹</h2>
+  <p>Revisa mayúsculas y espacios, e inténtalo de nuevo.</p>
+  <button onclick="cerrarErrorCodigo()">Reintentar</button>
+</div>
+
 <script>
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyJxUqhvus342GI03SUYAKmAkW2DUeQ25vO3Id9zuDks6-t7ihE3SMXN1F8B0bM90vMHA/exec";
   const CODIGO_CORRECTO = "ANIV26";
@@ -133,8 +146,13 @@
       document.getElementById('form').style.display = 'block';
       pedirUbicacion();
     } else {
-      alert('Código incorrecto, revisa mayúsculas/espacios');
+      document.getElementById('errorCodigo').style.display = 'flex';
     }
+  }
+
+  function cerrarErrorCodigo() {
+    document.getElementById('errorCodigo').style.display = 'none';
+    document.getElementById('codigoInput').value = '';
   }
 
   if (localStorage.getItem('codigoOk') === 'si') {
