@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel Admin — Asistencia Aniversario</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --fondo: url('fondo.jpg');
+    --bg-deep: #0b0b12;
+    --glass: rgba(255,255,255,0.06);
+    --glass-strong: rgba(255,255,255,0.1);
+    --glass-border: rgba(255,255,255,0.14);
+    --text: #f3f1e9;
+    --text-muted: rgba(243,241,233,0.62);
+    --accent-1: #F2C94C;
+    --accent-2: #F7DD8B;
+    --accent-ink: #231c08;
+    --warn: #F2994A;
+    --warn-bg: rgba(242,153,74,0.14);
+    --ok: #6FCF97;
+    --ok-bg: rgba(111,207,151,0.14);
+    --bad: #EB5757;
+    --bad-bg: rgba(235,87,87,0.14);
+    --void-bg: rgba(255,255,255,0.05);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: 'Inter', sans-serif;
+    color: var(--text);
+    background-color: var(--bg-deep);
+    background-image: var(--fondo);
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: top center;
+    background-attachment: fixed;
+    padding: 24px 16px 60px;
+  }
+  h1, h2, .brand { font-family: 'Poppins', sans-serif; }
+
+  /* ---- Gate ---- */
+  #gate {
+    max-width: 380px;
+    margin: 12vh auto 0;
+    background: var(--glass-strong);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(16px);
+    border-radius: 20px;
+    padding: 32px 26px;
+    text-align: center;
+  }
+  #gate h1 { font-size: 1.3rem; margin: 0 0 6px; color: var(--accent-2); }
+  #gate p { color: var(--text-muted); font-size: 0.88rem; margin: 0 0 20px; }
+  input[type="password"], input[type="text"] {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255,255,255,0.05);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    outline: none;
+    margin-bottom: 14px;
+  }
+  input::placeholder { color: var(--text-muted); }
+  button {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+  }
+  .btn-primary {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+    color: var(--accent-ink);
+    font-size: 1rem;
+  }
+  .error-msg { color: var(--bad); font-size: 0.82rem; margin-top: 10px; min-height: 1em; }
+
+  /* ---- Dashboard ---- */
+  #dashboard { display: none; max-width: 960px; margin: 0 auto; }
+  .topbar { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; margin-bottom: 22px; }
+  .topbar h1 { font-size: 1.4rem; margin: 0; color: var(--accent-2); }
+  .topbar .sub { color: var(--text-muted); font-size: 0.82rem; }
+  .btn-ghost {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    color: var(--text);
+    padding: 9px 16px;
+    border-radius: 10px;
+    font-size: 0.82rem;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    background: var(--glass-strong);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(12px);
+    border-radius: 16px;
+    padding: 16px;
+    text-align: center;
+  }
+  .stat-card .num { font-family: 'Poppins', sans-serif; font-size: 1.7rem; font-weight: 700; color: var(--accent-1); }
+  .stat-card .lbl { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
+
+  .filters { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .filters button {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    color: var(--text-muted);
+    padding: 7px 14px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+  }
+  .filters button.active {
+    background: var(--accent-1);
+    color: var(--accent-ink);
+    border-color: var(--accent-1);
+  }
+
+  .reg-list { display: flex; flex-direction: column; gap: 10px; }
+  .reg-card {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 14px 16px;
+  }
+  .reg-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; cursor: pointer; }
+  .reg-name { font-weight: 700; font-size: 0.95rem; }
+  .reg-meta { color: var(--text-muted); font-size: 0.76rem; margin-top: 2px; }
+  .badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .badge.ok { background: var(--ok-bg); color: var(--ok); }
+  .badge.warn { background: var(--warn-bg); color: var(--warn); }
+  .badge.bad { background: var(--bad-bg); color: var(--bad); }
+  .badge.void { background: var(--void-bg); color: var(--text-muted); text-decoration: line-through; }
+
+  .reg-body { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--glass-border); font-size: 0.82rem; }
+  .reg-body.open { display: block; }
+  .reg-row { display: flex; gap: 8px; margin-bottom: 6px; }
+  .reg-row b { color: var(--text-muted); min-width: 110px; font-weight: 600; }
+  .evid-links { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+  .evid-links a {
+    color: var(--accent-2);
+    font-size: 0.78rem;
+    text-decoration: none;
+    border: 1px solid var(--glass-border);
+    padding: 5px 10px;
+    border-radius: 8px;
+  }
+  .reg-actions { margin-top: 12px; display: flex; gap: 8px; }
+  .btn-void {
+    background: var(--bad-bg);
+    color: var(--bad);
+    border: 1px solid rgba(235,87,87,0.3);
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 0.78rem;
+  }
+  .empty-msg { text-align: center; color: var(--text-muted); padding: 40px 0; font-size: 0.85rem; }
+  .loading { text-align: center; color: var(--text-muted); padding: 40px 0; font-size: 0.85rem; }
+</style>
+</head>
+<body>
+
+  <div id="gate">
+    <h1>🔐 Panel de administrador</h1>
+    <p>Fiesta de Aniversario — acceso restringido</p>
+    <input type="password" id="claveInput" placeholder="Clave de admin" autocomplete="off">
+    <button class="btn-primary" onclick="entrar()">Entrar</button>
+    <div class="error-msg" id="errorGate"></div>
+  </div>
+
+  <div id="dashboard">
+    <div class="topbar">
+      <div>
+        <h1>Panel de administrador</h1>
+        <div class="sub">Asistencia — Fiesta de Aniversario</div>
+      </div>
+      <button class="btn-ghost" onclick="cargarDatos()">↻ Actualizar</button>
+    </div>
+
+    <div class="stats" id="stats"></div>
+
+    <div class="filters" id="filtros">
+      <button class="active" data-f="todos" onclick="filtrar('todos')">Todos</button>
+      <button data-f="Entrada" onclick="filtrar('Entrada')">Entradas</button>
+      <button data-f="Salida" onclick="filtrar('Salida')">Salidas</button>
+      <button data-f="Tardanza" onclick="filtrar('Tardanza')">Tardanzas</button>
+      <button data-f="ANULADO" onclick="filtrar('ANULADO')">Anulados</button>
+    </div>
+
+    <div class="reg-list" id="lista">
+      <div class="loading">Cargando registros…</div>
+    </div>
+  </div>
+
+<script>
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyJxUqhvus342GI03SUYAKmAkW2DUeQ25vO3Id9zuDks6-t7ihE3SMXN1F8B0bM90vMHA/exec";
+  let claveAdmin = "";
+  let registrosGlobal = [];
+  let filtroActual = "todos";
+
+  function entrar() {
+    const val = document.getElementById('claveInput').value.trim();
+    if (!val) return;
+    claveAdmin = val;
+    document.getElementById('errorGate').textContent = "";
+    cargarDatos(true);
+  }
+
+  document.getElementById('claveInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') entrar();
+  });
+
+  function cargarDatos(primeraVez) {
+    if (!claveAdmin) return;
+    if (!primeraVez) {
+      document.getElementById('lista').innerHTML = '<div class="loading">Actualizando…</div>';
+    }
+    const script = document.createElement('script');
+    const cbName = 'jsonpCb_' + Date.now();
+    window[cbName] = function(data) {
+      delete window[cbName];
+      document.body.removeChild(script);
+      recibirDatos(data, primeraVez);
+    };
+    script.src = APPS_SCRIPT_URL + '?action=registros&clave=' + encodeURIComponent(claveAdmin) + '&callback=' + cbName;
+    script.onerror = function() {
+      document.body.removeChild(script);
+      if (primeraVez) {
+        document.getElementById('errorGate').textContent = 'No se pudo conectar. Revisa tu internet.';
+      } else {
+        document.getElementById('lista').innerHTML = '<div class="empty-msg">No se pudo conectar. Intenta de nuevo.</div>';
+      }
+    };
+    document.body.appendChild(script);
+  }
+
+  function recibirDatos(data, primeraVez) {
+    if (data.error) {
+      if (primeraVez) {
+        document.getElementById('errorGate').textContent = 'Clave incorrecta.';
+      }
+      return;
+    }
+    if (primeraVez) {
+      document.getElementById('gate').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+    }
+    registrosGlobal = data.registros || [];
+    renderStats();
+    renderLista();
+  }
+
+  function renderStats() {
+    const total = registrosGlobal.length;
+    const entradas = registrosGlobal.filter(r => r.tipo === 'Entrada').length;
+    const tardanzas = registrosGlobal.filter(r => r.estado === 'Tardanza').length;
+    const anulados = registrosGlobal.filter(r => (r.estado || '').indexOf('ANULADO') === 0).length;
+    const salidas = registrosGlobal.filter(r => r.tipo === 'Salida').length;
+
+    document.getElementById('stats').innerHTML = `
+      <div class="stat-card"><div class="num">${total}</div><div class="lbl">Registros</div></div>
+      <div class="stat-card"><div class="num">${entradas}</div><div class="lbl">Entradas</div></div>
+      <div class="stat-card"><div class="num">${salidas}</div><div class="lbl">Salidas</div></div>
+      <div class="stat-card"><div class="num">${tardanzas}</div><div class="lbl">Tardanzas</div></div>
+      <div class="stat-card"><div class="num">${anulados}</div><div class="lbl">Anulados</div></div>
+    `;
+  }
+
+  function filtrar(f) {
+    filtroActual = f;
+    document.querySelectorAll('#filtros button').forEach(b => {
+      b.classList.toggle('active', b.dataset.f === f);
+    });
+    renderLista();
+  }
+
+  function badgeFor(r) {
+    const estado = r.estado || '';
+    if (estado.indexOf('ANULADO') === 0) return '<span class="badge void">Anulado</span>';
+    if (estado === 'Tardanza') return '<span class="badge warn">Tardanza</span>';
+    if (estado === 'A tiempo') return '<span class="badge ok">A tiempo</span>';
+    if (estado === 'Salida registrada') return '<span class="badge ok">Salida</span>';
+    return '<span class="badge warn">' + (estado || '—') + '</span>';
+  }
+
+  function renderLista() {
+    let lista = registrosGlobal;
+    if (filtroActual !== 'todos') {
+      if (filtroActual === 'ANULADO') {
+        lista = lista.filter(r => (r.estado || '').indexOf('ANULADO') === 0);
+      } else if (filtroActual === 'Tardanza') {
+        lista = lista.filter(r => r.estado === 'Tardanza');
+      } else {
+        lista = lista.filter(r => r.tipo === filtroActual);
+      }
+    }
+
+    if (lista.length === 0) {
+      document.getElementById('lista').innerHTML = '<div class="empty-msg">No hay registros en esta categoría.</div>';
+      return;
+    }
+
+    document.getElementById('lista').innerHTML = lista.map(r => {
+      const anulado = (r.estado || '').indexOf('ANULADO') === 0;
+      const mapaLink = (r.lat && r.lng) ? `https://maps.google.com/?q=${r.lat},${r.lng}` : '';
+      return `
+      <div class="reg-card">
+        <div class="reg-head" onclick="toggleCard(${r.fila})">
+          <div>
+            <div class="reg-name">${r.nombre}</div>
+            <div class="reg-meta">${r.tipo} · ${r.fechaHora}${r.tardanzaMin ? ' · +' + r.tardanzaMin + ' min' : ''}</div>
+          </div>
+          ${badgeFor(r)}
+        </div>
+        <div class="reg-body" id="body-${r.fila}">
+          <div class="reg-row"><b>Fila (sheet)</b> ${r.fila}</div>
+          <div class="reg-row"><b>Ubicación</b> ${mapaLink ? `<a href="${mapaLink}" target="_blank" style="color:var(--accent-2)">Ver en Google Maps</a>` : 'No disponible'}</div>
+          <div class="reg-row"><b>Comentario</b> ${r.justificacion ? r.justificacion : '—'}</div>
+          <div class="evid-links">
+            ${r.fotoUrl ? `<a href="${r.fotoUrl}" target="_blank">📷 Foto principal</a>` : ''}
+            ${r.fotoJust1 ? `<a href="${r.fotoJust1}" target="_blank">📷 Evidencia extra 1</a>` : ''}
+            ${r.fotoJust2 ? `<a href="${r.fotoJust2}" target="_blank">📷 Evidencia extra 2</a>` : ''}
+          </div>
+          ${!anulado ? `<div class="reg-actions"><button class="btn-void" onclick="anular(${r.fila}, '${r.nombre.replace(/'/g, "\\'")}')">✕ Anular este registro</button></div>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function toggleCard(fila) {
+    const el = document.getElementById('body-' + fila);
+    el.classList.toggle('open');
+  }
+
+  function anular(fila, nombre) {
+    const motivo = prompt('¿Por qué se anula el registro de ' + nombre + '?\n(ej: foto no coincide, evidencia falsa, etc.)');
+    if (motivo === null) return; // cancelado
+    if (!motivo.trim()) {
+      alert('Escribe un motivo para anular.');
+      return;
+    }
+    const form = new FormData();
+    form.append('accion', 'anular');
+    form.append('fila', fila);
+    form.append('motivo', motivo);
+    form.append('claveAdmin', claveAdmin);
+
+    fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: form })
+      .then(() => {
+        setTimeout(() => cargarDatos(false), 1200);
+      })
+      .catch(() => {
+        alert('No se pudo anular. Revisa tu conexión e intenta de nuevo.');
+      });
+  }
+</script>
+
+</body>
+</html>
