@@ -4,65 +4,131 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Registro de Asistencia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600;700&display=swap">
 <style>
   :root {
     --fondo: url('fondo.jpg');
-    --acento: #c9632b;
+    --bg-deep: #201a38;
+    --glass: rgba(255,255,255,0.10);
+    --glass-strong: rgba(255,255,255,0.16);
+    --glass-border: rgba(255,255,255,0.22);
+    --text: #fbf8f4;
+    --text-muted: rgba(251,248,244,0.68);
+    --accent-1: #ff9966;
+    --accent-2: #ff5e62;
   }
   * { box-sizing: border-box; }
   body {
-    font-family: system-ui, sans-serif;
     margin: 0;
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 20px;
+    padding: 24px;
+    font-family: 'Inter', system-ui, sans-serif;
+    color: var(--text);
+    background-color: var(--bg-deep);
     background-image: var(--fondo);
-    background-size: cover;
+    background-repeat: no-repeat;
     background-position: center;
+    background-size: contain;
   }
+
   .card {
-    background: rgba(255,255,255,0.95);
+    background: var(--glass);
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+    border: 1px solid var(--glass-border);
     max-width: 400px;
     width: 100%;
-    padding: 28px 24px;
-    border-radius: 18px;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+    padding: 30px 26px;
+    border-radius: 24px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.45);
   }
-  h2 { margin: 0 0 16px; font-size: 20px; }
-  label { font-size: 13px; font-weight: 600; color: #555; }
-  input, select, button {
-    width: 100%; padding: 12px; margin-top: 6px; margin-bottom: 14px;
-    font-size: 16px; box-sizing: border-box;
-    border-radius: 10px; border: 1px solid #ddd;
+
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 4px;
   }
+  h2 {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 22px;
+    letter-spacing: -0.01em;
+    margin: 0 0 20px;
+    color: var(--text);
+  }
+
+  label {
+    display: block;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  input, select {
+    width: 100%;
+    padding: 13px 14px;
+    margin-bottom: 16px;
+    font-size: 15.5px;
+    font-family: 'Inter', sans-serif;
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255,255,255,0.08);
+    color: var(--text);
+  }
+  input::placeholder { color: rgba(251,248,244,0.45); }
+  select option { color: #201a38; }
+  input[type="file"] { padding: 10px 12px; color: var(--text-muted); font-size: 13.5px; }
+
   button {
-    background: var(--acento); color: white; border: none;
-    font-weight: bold; cursor: pointer; margin-bottom: 0;
+    width: 100%;
+    padding: 14px;
+    font-size: 15.5px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    cursor: pointer;
+    background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+    box-shadow: 0 10px 26px rgba(255,94,98,0.35);
+    transition: transform .15s ease, box-shadow .15s ease;
   }
-  #estadoUbicacion { font-size: 12px; color: #888; margin-top: -8px; margin-bottom: 10px; }
-  #mensaje { margin-top: 16px; font-weight: bold; text-align: center; }
+  button:hover { transform: translateY(-1px); box-shadow: 0 14px 32px rgba(255,94,98,0.45); }
+  button:active { transform: translateY(0); }
+
+  #estadoUbicacion { font-size: 12.5px; color: var(--text-muted); margin: -8px 0 14px; }
+  #mensaje { margin-top: 14px; font-weight: 600; text-align: center; color: var(--text-muted); }
   #gate, #form, #exito, #errorCodigo { display: none; }
-  #exito img {
-    width: 100%; max-width: 220px; display: block; margin: 0 auto 12px;
-  }
   #exito { text-align: center; }
+  #exito img { width: 100%; max-width: 200px; display: block; margin: 0 auto 14px; }
+  #exito button { margin-top: 10px; }
 
   #errorCodigo {
-    position: fixed; inset: 0; background: #fff; z-index: 50;
+    position: fixed; inset: 0; background: #ffffff; z-index: 50;
     flex-direction: column; align-items: center; justify-content: center;
     padding: 24px; text-align: center;
   }
-  #errorCodigo img { width: 220px; max-width: 70%; margin-bottom: 20px; }
-  #errorCodigo h2 { color: #c9632b; }
-  #errorCodigo button { max-width: 240px; }
+  #errorCodigo img { width: 220px; max-width: 70%; margin-bottom: 20px; border-radius: 16px; }
+  #errorCodigo h2 { color: #c9632b; font-family: 'Poppins', sans-serif; }
+  #errorCodigo p { color: #666; font-family: 'Inter', sans-serif; margin-bottom: 20px; }
+  #errorCodigo button { max-width: 240px; background: linear-gradient(135deg, var(--accent-1), var(--accent-2)); }
 </style>
 </head>
 <body>
 <div class="card">
 
   <div id="gate">
+    <div class="eyebrow">Fiesta de Aniversario</div>
     <h2>Código de acceso</h2>
     <input type="text" id="codigoInput" placeholder="Ingresa el código"
            autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off">
@@ -70,6 +136,7 @@
   </div>
 
   <div id="form">
+    <div class="eyebrow">Fiesta de Aniversario</div>
     <h2>Registro de asistencia</h2>
     <label>Tu nombre</label>
     <select id="nombre">
@@ -130,18 +197,27 @@
 <script>
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyJxUqhvus342GI03SUYAKmAkW2DUeQ25vO3Id9zuDks6-t7ihE3SMXN1F8B0bM90vMHA/exec";
   const CODIGO_CORRECTO = "ANIV26";
+  const DURACION_SESION_MS = 3 * 60 * 1000; // el código vale por 3 minutos, luego hay que reingresarlo
   let coords = { lat: '', lng: '' };
 
-  if (localStorage.getItem('codigoOk') === 'si') {
+  function codigoVigente() {
+    const marca = localStorage.getItem('codigoTimestamp');
+    if (!marca) return false;
+    return (Date.now() - parseInt(marca, 10)) < DURACION_SESION_MS;
+  }
+
+  if (codigoVigente()) {
     document.getElementById('form').style.display = 'block';
+    pedirUbicacion();
   } else {
+    localStorage.removeItem('codigoTimestamp');
     document.getElementById('gate').style.display = 'block';
   }
 
   function verificarCodigo() {
     const val = document.getElementById('codigoInput').value.trim().toUpperCase();
     if (val === CODIGO_CORRECTO.toUpperCase()) {
-      localStorage.setItem('codigoOk', 'si');
+      localStorage.setItem('codigoTimestamp', Date.now().toString());
       document.getElementById('gate').style.display = 'none';
       document.getElementById('form').style.display = 'block';
       pedirUbicacion();
@@ -153,10 +229,6 @@
   function cerrarErrorCodigo() {
     document.getElementById('errorCodigo').style.display = 'none';
     document.getElementById('codigoInput').value = '';
-  }
-
-  if (localStorage.getItem('codigoOk') === 'si') {
-    pedirUbicacion();
   }
 
   function pedirUbicacion() {
@@ -185,6 +257,11 @@
   }
 
   async function enviar() {
+    if (!codigoVigente()) {
+      document.getElementById('form').style.display = 'none';
+      document.getElementById('gate').style.display = 'block';
+      return;
+    }
     const nombre = document.getElementById('nombre').value;
     const fotoFile = document.getElementById('foto').files[0];
     if (!nombre) { alert('Selecciona tu nombre'); return; }
@@ -215,7 +292,11 @@
     document.getElementById('foto').value = '';
     document.getElementById('mensaje').textContent = '';
     document.getElementById('exito').style.display = 'none';
-    document.getElementById('form').style.display = 'block';
+    if (codigoVigente()) {
+      document.getElementById('form').style.display = 'block';
+    } else {
+      document.getElementById('gate').style.display = 'block';
+    }
   }
 </script>
 </body>
