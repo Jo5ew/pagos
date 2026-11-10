@@ -5,59 +5,113 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Registro de Asistencia</title>
 <style>
-  body { font-family: system-ui, sans-serif; max-width: 420px; margin: 0 auto; padding: 20px; }
-  input, select, button { width: 100%; padding: 12px; margin-top: 8px; font-size: 16px; box-sizing: border-box; }
-  button { background: #c9632b; color: white; border: none; border-radius: 8px; margin-top: 16px; font-weight: bold; }
+  :root {
+    /* Reemplaza esta URL por la foto de fondo que quieras usar.
+       Puedes subir tu imagen al mismo repo de GitHub y poner su nombre aquí,
+       ej. url('fondo.jpg') */
+    --fondo: url('https://images.unsplash.com/photo-1511795409834-ef04bbd61622?q=80&w=1200');
+    --acento: #c9632b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, sans-serif;
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background-image: var(--fondo);
+    background-size: cover;
+    background-position: center;
+  }
+  .card {
+    background: rgba(255,255,255,0.95);
+    max-width: 400px;
+    width: 100%;
+    padding: 28px 24px;
+    border-radius: 18px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+  }
+  h2 { margin: 0 0 16px; font-size: 20px; }
+  label { font-size: 13px; font-weight: 600; color: #555; }
+  input, select, button {
+    width: 100%; padding: 12px; margin-top: 6px; margin-bottom: 14px;
+    font-size: 16px; box-sizing: border-box;
+    border-radius: 10px; border: 1px solid #ddd;
+  }
+  button {
+    background: var(--acento); color: white; border: none;
+    font-weight: bold; cursor: pointer; margin-bottom: 0;
+  }
+  #estadoUbicacion { font-size: 12px; color: #888; margin-top: -8px; margin-bottom: 10px; }
   #mensaje { margin-top: 16px; font-weight: bold; text-align: center; }
-  #gate, #form { display: none; }
+  #gate, #form, #exito { display: none; }
+  #exito img {
+    width: 100%; max-width: 220px; display: block; margin: 0 auto 12px;
+  }
+  #exito { text-align: center; }
 </style>
 </head>
 <body>
+<div class="card">
 
-<div id="gate">
-  <h2>Código de acceso</h2>
-  <input type="text" id="codigoInput" placeholder="Ingresa el código">
-  <button onclick="verificarCodigo()">Entrar</button>
-</div>
+  <div id="gate">
+    <h2>Código de acceso</h2>
+    <input type="text" id="codigoInput" placeholder="Ingresa el código"
+           autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off">
+    <button onclick="verificarCodigo()">Entrar</button>
+  </div>
 
-<div id="form">
-  <h2>Registro de asistencia</h2>
-  <label>Tu nombre</label>
-  <select id="nombre">
-    <option value="">Selecciona…</option>
-    <option>ANAMURO AÑAMURO, Frank Yuber</option>
-    <option>BENIQUE SUPO, Percy</option>
-    <option>CACMA MAMANI, Vladimir Ronaldo</option>
-    <option>CARRIZALES CAPIA, Flavio Cesar</option>
-    <option>CAZASOLA CUNO, Zhaida Yoshy</option>
-    <option>CHAIÑA ROQUE, Jhon Edwar</option>
-    <option>CHECCA CHURA, Willian Frank</option>
-    <option>CHOQUE LARICO, Andre Jhonatan</option>
-    <option>CONDORI CONDORI, Elmer Salomon</option>
-    <option>CONDORI VARGAS, Jhon Cristian</option>
-    <option>FLORES VIVEROS, Kevin Uriel</option>
-    <option>HUARACHA URIBE, Nilva Jhamileth</option>
-    <option>ITO MARAZA, Cristian</option>
-    <option>JANCCO CONDORI, Elvis Yampier</option>
-    <option>LEON LIMA, Luis Enrique</option>
-    <option>MAMANI CONDEÑA, Rudy</option>
-    <option>MULLISACA TORRES, Esleyter Marco</option>
-    <option>MAMANI LARICO, Andrea</option>
-    <option>MAMANI MAMANI, Mirian</option>
-    <option>ORTIZ JAEN, Angela Milagros</option>
-    <option>PARIAPAZA OJEDA, Rosa Monica</option>
-    <option>QUISPE JAEN, Jose Manuel</option>
-    <option>SALAZAR MENDEZ, Maet Natali</option>
-    <option>SUCASACA CCORA, Mayer Jared</option>
-    <option>TORRES LAIME, Jose Luis</option>
-    <option>ARNEZ CHAHUARA, Diego Alfredo</option>
-  </select>
+  <div id="form">
+    <h2>Registro de asistencia</h2>
+    <label>Tu nombre</label>
+    <select id="nombre">
+      <option value="">Selecciona…</option>
+      <option>ANAMURO AÑAMURO, Frank Yuber</option>
+      <option>BENIQUE SUPO, Percy</option>
+      <option>CACMA MAMANI, Vladimir Ronaldo</option>
+      <option>CARRIZALES CAPIA, Flavio Cesar</option>
+      <option>CAZASOLA CUNO, Zhaida Yoshy</option>
+      <option>CHAIÑA ROQUE, Jhon Edwar</option>
+      <option>CHECCA CHURA, Willian Frank</option>
+      <option>CHOQUE LARICO, Andre Jhonatan</option>
+      <option>CONDORI CONDORI, Elmer Salomon</option>
+      <option>CONDORI VARGAS, Jhon Cristian</option>
+      <option>FLORES VIVEROS, Kevin Uriel</option>
+      <option>HUARACHA URIBE, Nilva Jhamileth</option>
+      <option>ITO MARAZA, Cristian</option>
+      <option>JANCCO CONDORI, Elvis Yampier</option>
+      <option>LEON LIMA, Luis Enrique</option>
+      <option>MAMANI CONDEÑA, Rudy</option>
+      <option>MULLISACA TORRES, Esleyter Marco</option>
+      <option>MAMANI LARICO, Andrea</option>
+      <option>MAMANI MAMANI, Mirian</option>
+      <option>ORTIZ JAEN, Angela Milagros</option>
+      <option>PARIAPAZA OJEDA, Rosa Monica</option>
+      <option>QUISPE JAEN, Jose Manuel</option>
+      <option>SALAZAR MENDEZ, Maet Natali</option>
+      <option>SUCASACA CCORA, Mayer Jared</option>
+      <option>TORRES LAIME, Jose Luis</option>
+      <option>ARNEZ CHAHUARA, Diego Alfredo</option>
+    </select>
 
-  <label>Foto (evidencia)</label>
-  <input type="file" id="foto" accept="image/*" capture="environment">
+    <label>Foto (evidencia)</label>
+    <input type="file" id="foto" accept="image/*" capture="environment">
 
-  <button onclick="enviar()">Registrar</button>
-  <div id="mensaje"></div>
+    <div id="estadoUbicacion">📍 Obteniendo ubicación…</div>
+
+    <button onclick="enviar()">Registrar</button>
+    <div id="mensaje"></div>
+  </div>
+
+  <div id="exito">
+    <!-- Reemplaza esta imagen por la que quieras mostrar al registrarse -->
+    <img src="https://api.iconify.design/fluent-emoji/check-mark-button.svg" alt="Registrado">
+    <h2 id="exitoTexto">¡Registrado!</h2>
+    <button onclick="registrarOtro()">Hacer otro registro</button>
+  </div>
+
 </div>
 
 <script>
@@ -72,20 +126,37 @@
   }
 
   function verificarCodigo() {
-    const val = document.getElementById('codigoInput').value.trim();
-    if (val === CODIGO_CORRECTO) {
+    const val = document.getElementById('codigoInput').value.trim().toUpperCase();
+    if (val === CODIGO_CORRECTO.toUpperCase()) {
       localStorage.setItem('codigoOk', 'si');
       document.getElementById('gate').style.display = 'none';
       document.getElementById('form').style.display = 'block';
+      pedirUbicacion();
     } else {
-      alert('Código incorrecto');
+      alert('Código incorrecto, revisa mayúsculas/espacios');
     }
   }
 
-  navigator.geolocation.getCurrentPosition(
-    (pos) => { coords.lat = pos.coords.latitude; coords.lng = pos.coords.longitude; },
-    () => {}
-  );
+  if (localStorage.getItem('codigoOk') === 'si') {
+    pedirUbicacion();
+  }
+
+  function pedirUbicacion() {
+    const estado = document.getElementById('estadoUbicacion');
+    if (!navigator.geolocation) {
+      estado.textContent = '⚠️ Tu navegador no soporta ubicación, continúa igual.';
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        coords.lat = pos.coords.latitude;
+        coords.lng = pos.coords.longitude;
+        estado.textContent = '✅ Ubicación detectada';
+      },
+      () => { estado.textContent = '⚠️ No se pudo obtener ubicación, puedes continuar igual.'; },
+      { timeout: 8000 }
+    );
+  }
 
   function toBase64(file) {
     return new Promise((resolve) => {
@@ -113,12 +184,20 @@
 
     try {
       await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: body });
-      document.getElementById('mensaje').textContent = '✅ Registrado. ¡Gracias!';
-      document.getElementById('nombre').value = '';
-      document.getElementById('foto').value = '';
+      document.getElementById('form').style.display = 'none';
+      document.getElementById('exitoTexto').textContent = '¡Registrado, ' + nombre.split(',')[1].trim() + '!';
+      document.getElementById('exito').style.display = 'block';
     } catch (err) {
       document.getElementById('mensaje').textContent = '❌ Error, intenta de nuevo.';
     }
+  }
+
+  function registrarOtro() {
+    document.getElementById('nombre').value = '';
+    document.getElementById('foto').value = '';
+    document.getElementById('mensaje').textContent = '';
+    document.getElementById('exito').style.display = 'none';
+    document.getElementById('form').style.display = 'block';
   }
 </script>
 </body>
