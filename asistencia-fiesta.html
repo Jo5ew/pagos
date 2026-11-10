@@ -74,7 +74,7 @@
     margin-bottom: 6px;
   }
 
-  input, select {
+  input {
     width: 100%;
     padding: 13px 14px;
     margin-bottom: 16px;
@@ -86,8 +86,56 @@
     color: var(--text);
   }
   input::placeholder { color: rgba(251,248,244,0.45); }
-  select option { color: #201a38; }
   input[type="file"] { padding: 10px 12px; color: var(--text-muted); font-size: 13.5px; }
+
+  .select-wrap { position: relative; margin-bottom: 16px; }
+  .select-trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 13px 14px;
+    font-size: 15.5px;
+    font-family: 'Inter', sans-serif;
+    text-align: left;
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255,255,255,0.08);
+    color: var(--text);
+    cursor: pointer;
+  }
+  .select-trigger.placeholder { color: rgba(251,248,244,0.45); }
+  .select-trigger svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--text-muted); transition: transform .15s ease; }
+  .select-trigger.open svg { transform: rotate(180deg); }
+  .dropdown-panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0; right: 0;
+    max-height: 260px;
+    overflow-y: auto;
+    background: rgba(26, 21, 46, 0.97);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    z-index: 30;
+    display: none;
+    padding: 6px;
+  }
+  .dropdown-panel.open { display: block; }
+  .dropdown-option {
+    padding: 11px 12px;
+    border-radius: 9px;
+    font-size: 14.5px;
+    cursor: pointer;
+    color: var(--text);
+  }
+  .dropdown-option:hover, .dropdown-option.selected {
+    background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+    color: #fff;
+  }
 
   button {
     width: 100%;
@@ -139,35 +187,41 @@
     <div class="eyebrow">Fiesta de Aniversario</div>
     <h2>Registro de asistencia</h2>
     <label>Tu nombre</label>
-    <select id="nombre">
-      <option value="">Selecciona…</option>
-      <option>ANAMURO AÑAMURO, Frank Yuber</option>
-      <option>BENIQUE SUPO, Percy</option>
-      <option>CACMA MAMANI, Vladimir Ronaldo</option>
-      <option>CARRIZALES CAPIA, Flavio Cesar</option>
-      <option>CAZASOLA CUNO, Zhaida Yoshy</option>
-      <option>CHAIÑA ROQUE, Jhon Edwar</option>
-      <option>CHECCA CHURA, Willian Frank</option>
-      <option>CHOQUE LARICO, Andre Jhonatan</option>
-      <option>CONDORI CONDORI, Elmer Salomon</option>
-      <option>CONDORI VARGAS, Jhon Cristian</option>
-      <option>FLORES VIVEROS, Kevin Uriel</option>
-      <option>HUARACHA URIBE, Nilva Jhamileth</option>
-      <option>ITO MARAZA, Cristian</option>
-      <option>JANCCO CONDORI, Elvis Yampier</option>
-      <option>LEON LIMA, Luis Enrique</option>
-      <option>MAMANI CONDEÑA, Rudy</option>
-      <option>MULLISACA TORRES, Esleyter Marco</option>
-      <option>MAMANI LARICO, Andrea</option>
-      <option>MAMANI MAMANI, Mirian</option>
-      <option>ORTIZ JAEN, Angela Milagros</option>
-      <option>PARIAPAZA OJEDA, Rosa Monica</option>
-      <option>QUISPE JAEN, Jose Manuel</option>
-      <option>SALAZAR MENDEZ, Maet Natali</option>
-      <option>SUCASACA CCORA, Mayer Jared</option>
-      <option>TORRES LAIME, Jose Luis</option>
-      <option>ARNEZ CHAHUARA, Diego Alfredo</option>
-    </select>
+    <div class="select-wrap">
+      <button type="button" class="select-trigger placeholder" id="nombreTrigger" onclick="toggleDropdown()">
+        <span id="nombreLabel">Selecciona…</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="dropdown-panel" id="dropdownPanel">
+        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="ANAMURO AÑAMURO, Frank Yuber">ANAMURO AÑAMURO, Frank Yuber</div>
+        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="BENIQUE SUPO, Percy">BENIQUE SUPO, Percy</div>
+        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="CACMA MAMANI, Vladimir Ronaldo">CACMA MAMANI, Vladimir Ronaldo</div>
+        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="CARRIZALES CAPIA, Flavio Cesar">CARRIZALES CAPIA, Flavio Cesar</div>
+        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="CAZASOLA CUNO, Zhaida Yoshy">CAZASOLA CUNO, Zhaida Yoshy</div>
+        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="CHAIÑA ROQUE, Jhon Edwar">CHAIÑA ROQUE, Jhon Edwar</div>
+        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="CHECCA CHURA, Willian Frank">CHECCA CHURA, Willian Frank</div>
+        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="CHOQUE LARICO, Andre Jhonatan">CHOQUE LARICO, Andre Jhonatan</div>
+        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="CONDORI CONDORI, Elmer Salomon">CONDORI CONDORI, Elmer Salomon</div>
+        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="CONDORI VARGAS, Jhon Cristian">CONDORI VARGAS, Jhon Cristian</div>
+        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="FLORES VIVEROS, Kevin Uriel">FLORES VIVEROS, Kevin Uriel</div>
+        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="HUARACHA URIBE, Nilva Jhamileth">HUARACHA URIBE, Nilva Jhamileth</div>
+        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="ITO MARAZA, Cristian">ITO MARAZA, Cristian</div>
+        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="JANCCO CONDORI, Elvis Yampier">JANCCO CONDORI, Elvis Yampier</div>
+        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="LEON LIMA, Luis Enrique">LEON LIMA, Luis Enrique</div>
+        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="MAMANI CONDEÑA, Rudy">MAMANI CONDEÑA, Rudy</div>
+        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="MULLISACA TORRES, Esleyter Marco">MULLISACA TORRES, Esleyter Marco</div>
+        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="MAMANI LARICO, Andrea">MAMANI LARICO, Andrea</div>
+        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="MAMANI MAMANI, Mirian">MAMANI MAMANI, Mirian</div>
+        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="ORTIZ JAEN, Angela Milagros">ORTIZ JAEN, Angela Milagros</div>
+        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="PARIAPAZA OJEDA, Rosa Monica">PARIAPAZA OJEDA, Rosa Monica</div>
+        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="QUISPE JAEN, Jose Manuel">QUISPE JAEN, Jose Manuel</div>
+        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="SALAZAR MENDEZ, Maet Natali">SALAZAR MENDEZ, Maet Natali</div>
+        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="SUCASACA CCORA, Mayer Jared">SUCASACA CCORA, Mayer Jared</div>
+        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="TORRES LAIME, Jose Luis">TORRES LAIME, Jose Luis</div>
+        <div class="dropdown-option" onclick="seleccionarNombre(this)" data-value="ARNEZ CHAHUARA, Diego Alfredo">ARNEZ CHAHUARA, Diego Alfredo</div>
+      </div>
+      <input type="hidden" id="nombre" value="">
+    </div>
 
     <label>Foto (evidencia)</label>
     <input type="file" id="foto" accept="image/*" capture="environment">
@@ -190,7 +244,7 @@
 <div id="errorCodigo">
   <img src="error.jpg" alt="Código incorrecto">
   <h2>Código incorrecto 😹</h2>
-  
+  <p>Revisa mayúsculas y espacios, e inténtalo de nuevo.</p>
   <button onclick="cerrarErrorCodigo()">Reintentar</button>
 </div>
 
@@ -230,6 +284,28 @@
     document.getElementById('errorCodigo').style.display = 'none';
     document.getElementById('codigoInput').value = '';
   }
+
+  function toggleDropdown() {
+    document.getElementById('dropdownPanel').classList.toggle('open');
+    document.getElementById('nombreTrigger').classList.toggle('open');
+  }
+
+  function seleccionarNombre(el) {
+    document.getElementById('nombre').value = el.dataset.value;
+    document.getElementById('nombreLabel').textContent = el.dataset.value;
+    document.getElementById('nombreTrigger').classList.remove('placeholder');
+    document.querySelectorAll('.dropdown-option').forEach((o) => o.classList.remove('selected'));
+    el.classList.add('selected');
+    document.getElementById('dropdownPanel').classList.remove('open');
+    document.getElementById('nombreTrigger').classList.remove('open');
+  }
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.select-wrap')) {
+      document.getElementById('dropdownPanel').classList.remove('open');
+      document.getElementById('nombreTrigger').classList.remove('open');
+    }
+  });
 
   function pedirUbicacion() {
     const estado = document.getElementById('estadoUbicacion');
@@ -289,6 +365,9 @@
 
   function registrarOtro() {
     document.getElementById('nombre').value = '';
+    document.getElementById('nombreLabel').textContent = 'Selecciona…';
+    document.getElementById('nombreTrigger').classList.add('placeholder');
+    document.querySelectorAll('.dropdown-option').forEach((o) => o.classList.remove('selected'));
     document.getElementById('foto').value = '';
     document.getElementById('mensaje').textContent = '';
     document.getElementById('exito').style.display = 'none';
