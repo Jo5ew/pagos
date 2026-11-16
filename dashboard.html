@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Estado de cuenta del salón</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#080C14; --surface:#0F1724; --surface-2:#141E2E; --border:rgba(255,255,255,.08); --grid:rgba(255,255,255,.07);
+    --text:#E8EDF5; --text-2:#A9B4C6; --dim:#74829A; --muted:#334155;
+    --accent:#8B5CF6; --green:#00C9A7; --red:#F43F5E; --amber:#F59E0B;
+    /* series (validadas sobre --surface): ingresos, egresos, por cobrar */
+    --ing:#3987e5; --egr:#d95926; --deu:#9085e9;
+    --radius:14px;
+  }
+  *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Inter',system-ui,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; font-size:14px; line-height:1.45; }
+  button, input, select { font-family:inherit; font-size:inherit; color:inherit; }
+  .num { font-variant-numeric:tabular-nums; }
+  h1,h2,h3,.display { font-family:'Space Grotesk','Inter',sans-serif; }
+
+  /* ── LOGIN ── */
+  #login { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .login-card { width:100%; max-width:420px; background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:32px 28px; text-align:center; }
+  .login-logo { width:72px; height:72px; object-fit:contain; margin-bottom:14px; }
+  .login-card h1 { font-size:24px; color:#fff; margin-bottom:6px; }
+  .login-card p { color:var(--dim); font-size:13px; margin-bottom:22px; }
+  .login-card input { width:100%; padding:15px; text-align:center; font-size:20px; font-weight:700; letter-spacing:4px; background:rgba(255,255,255,.05); border:1.5px solid var(--border); border-radius:12px; outline:none; margin-bottom:12px; }
+  .login-card input:focus { border-color:var(--accent); }
+  .btn { background:var(--accent); color:#fff; border:none; border-radius:12px; padding:13px 18px; font-weight:700; cursor:pointer; }
+  .btn:disabled { opacity:.5; cursor:wait; }
+  .btn.block { width:100%; }
+  .btn.ghost { background:rgba(255,255,255,.06); border:1px solid var(--border); color:var(--text-2); font-weight:600; padding:8px 12px; border-radius:10px; }
+  .btn.ghost:hover { color:#fff; border-color:rgba(255,255,255,.2); }
+  .err { display:none; margin-top:12px; padding:10px 12px; border-radius:10px; background:rgba(244,63,94,.12); border:1px solid rgba(244,63,94,.3); color:#FDA4B4; font-size:13px; font-weight:600; }
+
+  /* ── APP ── */
+  #app { display:none; max-width:1180px; margin:0 auto; padding:18px 16px 60px; }
+  .top { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+  .top h1 { font-size:20px; color:#fff; flex:1; min-width:200px; }
+  .top .sub { display:block; font-family:'Inter',sans-serif; font-size:12px; font-weight:500; color:var(--dim); margin-top:2px; }
+  .who { display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--border); border-radius:99px; padding:5px 12px 5px 5px; font-size:13px; font-weight:600; }
+  .av { width:28px; height:28px; border-radius:50%; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; }
+
+  .bar { position:sticky; top:0; z-index:20; background:rgba(8,12,20,.92); backdrop-filter:blur(8px); border-bottom:1px solid var(--border); margin:0 -16px 16px; padding:10px 16px; }
+  .tabs { display:flex; gap:4px; overflow-x:auto; margin-bottom:10px; }
+  .tab { background:none; border:none; padding:8px 14px; border-radius:10px; font-weight:600; color:var(--dim); cursor:pointer; white-space:nowrap; }
+  .tab:hover { color:var(--text); }
+  .tab.on { background:var(--surface-2); color:#fff; box-shadow:inset 0 0 0 1px var(--border); }
+  .filters { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .filters label { font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--dim); }
+  select, .inp { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:8px 10px; outline:none; min-width:0; }
+  select:focus, .inp:focus { border-color:var(--accent); }
+  select option { background:#1E293B; }
+  .inp { flex:1; min-width:160px; }
+  .chip { background:var(--surface); border:1px solid var(--border); border-radius:99px; padding:6px 12px; font-size:12px; font-weight:600; color:var(--text-2); cursor:pointer; }
+  .chip.on { background:rgba(139,92,246,.18); border-color:rgba(139,92,246,.5); color:#fff; }
+  .spacer { flex:1; }
+
+  .view { display:none; }
+  .view.on { display:block; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px; }
+  .card h2 { font-size:15px; color:#fff; margin-bottom:2px; }
+  .card .hint { font-size:12px; color:var(--dim); margin-bottom:14px; }
+  .grid { display:grid; gap:12px; }
+  .kpis { grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); margin-bottom:12px; }
+  .kpi .lbl { font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--dim); }
+  .kpi .val { font-family:'Space Grotesk',sans-serif; font-size:24px; font-weight:700; color:#fff; margin:4px 0 2px; }
+  .kpi .note { font-size:12px; color:var(--text-2); }
+  .kpi.hero { background:linear-gradient(135deg,rgba(139,92,246,.22),rgba(59,130,246,.10)); border-color:rgba(139,92,246,.35); }
+  .kpi.hero .val { font-size:30px; }
+  .two { grid-template-columns:1fr; }
+  @media (min-width:860px) { .two { grid-template-columns:1fr 1fr; } .span2 { grid-column:span 2; } }
+
+  /* mi estado */
+  .mine { display:flex; gap:16px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
+  .mine .big { font-family:'Space Grotesk',sans-serif; font-size:26px; font-weight:700; color:#fff; }
+  .pill { display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:700; padding:3px 9px; border-radius:99px; white-space:nowrap; }
+  .pill.ok { background:rgba(0,201,167,.14); color:#5EEAD4; }
+  .pill.bad { background:rgba(244,63,94,.14); color:#FDA4B4; }
+  .pill.neu { background:rgba(255,255,255,.07); color:var(--text-2); }
+  .pill.var { background:rgba(139,92,246,.16); color:#C4B5FD; }
+  .pill.dir { background:rgba(245,158,11,.14); color:#FCD34D; }
+
+  /* gráficos */
+  .legend { display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--text-2); margin-bottom:10px; }
+  .legend i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:6px; vertical-align:-1px; }
+  .cols { position:relative; height:220px; display:flex; align-items:flex-end; gap:6px; padding-left:46px; border-bottom:1px solid rgba(255,255,255,.18); }
+  .cols .gl { position:absolute; left:46px; right:0; border-top:1px solid var(--grid); }
+  .cols .gl span { position:absolute; left:-46px; top:-8px; width:40px; text-align:right; font-size:11px; color:var(--dim); }
+  .cg { flex:1; height:100%; display:flex; align-items:flex-end; justify-content:center; gap:2px; position:relative; z-index:1; min-width:0; }
+  .cg b { display:block; width:42%; max-width:26px; border-radius:4px 4px 0 0; min-height:1px; }
+  .cg:hover { background:rgba(255,255,255,.04); }
+  .xl { display:flex; gap:6px; padding-left:46px; margin-top:6px; }
+  .xl span { flex:1; text-align:center; font-size:11px; color:var(--dim); min-width:0; overflow:hidden; white-space:nowrap; }
+  .hb { display:grid; grid-template-columns:minmax(90px,38%) 1fr auto; gap:10px; align-items:center; padding:5px 0; font-size:13px; }
+  .hb .nm { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-2); }
+  .hb .tr { height:14px; }
+  .hb .tr b { display:block; height:100%; border-radius:0 4px 4px 0; min-width:2px; }
+  .hb .v { font-weight:600; color:var(--text); }
+  .hb:hover .nm { color:#fff; }
+  .hb.me .nm { color:#fff; font-weight:700; }
+  .empty { padding:22px; text-align:center; color:var(--dim); font-size:13px; }
+  .link { background:none; border:none; color:#A78BFA; font-weight:600; font-size:12px; cursor:pointer; text-decoration:underline; padding:0; }
+
+  /* tablas */
+  .tw { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { text-align:left; font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--dim); padding:8px 10px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  th.s { cursor:pointer; user-select:none; }
+  th.s:hover { color:#fff; }
+  td { padding:9px 10px; border-bottom:1px solid rgba(255,255,255,.05); vertical-align:middle; }
+  td.r, th.r { text-align:right; }
+  td.num { white-space:nowrap; }
+  @media (max-width:600px) { .tw > table { min-width:600px; } tr.det .det-grid { max-width:calc(100vw - 80px); } }
+  tr.row { cursor:pointer; }
+  tr.row:hover td { background:rgba(255,255,255,.03); }
+  tr.me td { background:rgba(139,92,246,.08); }
+  tr.det td { background:var(--surface-2); padding:14px; }
+  .pos { color:#7DD3FC; } .neg { color:#FDBA9B; }
+  .prog { display:flex; align-items:center; gap:8px; min-width:130px; }
+  .prog .t { flex:1; height:8px; background:rgba(255,255,255,.08); border-radius:99px; overflow:hidden; }
+  .prog .t b { display:block; height:100%; background:var(--green); border-radius:99px; }
+  .prog span { font-size:12px; color:var(--text-2); white-space:nowrap; }
+  .det-grid { display:grid; gap:14px; grid-template-columns:1fr; }
+  @media (min-width:700px) { .det-grid { grid-template-columns:1fr 1fr; } }
+  .det h4 { font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--dim); margin-bottom:6px; }
+  .det li { list-style:none; display:flex; justify-content:space-between; gap:10px; padding:4px 0; border-bottom:1px dashed rgba(255,255,255,.06); font-size:13px; }
+  .det li span:last-child { color:var(--text-2); white-space:nowrap; }
+  .sum { display:flex; gap:16px; flex-wrap:wrap; font-size:13px; color:var(--text-2); margin:12px 0; }
+  .sum b { color:#fff; }
+  @media (max-width:600px) {
+    .kpi.hero { grid-column:1 / -1; }
+    .kpi .val { font-size:20px; }
+    .hb { grid-template-columns:1fr auto; gap:2px 10px; padding:7px 0; }
+    .hb .nm { grid-column:1 / -1; }
+  }
+  .kpi .val { white-space:nowrap; }
+  .foot { text-align:center; color:var(--muted); font-size:12px; margin-top:28px; }
+
+  #tip { position:fixed; z-index:99; pointer-events:none; display:none; background:#1E293B; border:1px solid rgba(255,255,255,.14); border-radius:10px; padding:8px 10px; font-size:12px; color:var(--text); box-shadow:0 10px 30px rgba(0,0,0,.5); max-width:260px; white-space:pre-line; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login">
+  <div class="login-card">
+    <img src="logoTECNO.svg" alt="" class="login-logo" onerror="this.style.display='none'">
+    <h1>Estado de cuenta del salón</h1>
+    <p>Desarrollo de Sistemas de Información · IV · 2026<br>Ingresa con tu DNI para ver el detalle.</p>
+    <input type="text" id="dniInput" inputmode="numeric" maxlength="12" placeholder="Tu DNI" autocomplete="off">
+    <button class="btn block" id="btnLogin">Ingresar</button>
+    <div class="err" id="loginErr"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="top">
+    <h1>Estado de cuenta del salón<span class="sub" id="updated"></span></h1>
+    <div class="who"><div class="av" id="whoAv"></div><span id="whoName"></span></div>
+    <button class="btn ghost" id="btnRefresh">Actualizar</button>
+    <button class="btn ghost" id="btnOut">Salir</button>
+  </div>
+
+  <div class="bar">
+    <div class="tabs" id="tabs">
+      <button class="tab on" data-v="resumen">Resumen</button>
+      <button class="tab" data-v="actividades">Actividades</button>
+      <button class="tab" data-v="estudiantes">Estudiantes</button>
+      <button class="tab" data-v="movimientos">Movimientos</button>
+    </div>
+    <div class="filters">
+      <label for="fDesde">Periodo</label>
+      <select id="fDesde" aria-label="Desde"></select>
+      <span style="color:var(--dim)">a</span>
+      <select id="fHasta" aria-label="Hasta"></select>
+      <button class="chip on" data-q="todo">Todo</button>
+      <button class="chip" data-q="mes">Último mes</button>
+      <button class="chip" data-q="tri">Últimos 3 meses</button>
+    </div>
+  </div>
+
+  <!-- RESUMEN -->
+  <div class="view on" id="v-resumen">
+    <div class="grid kpis" id="kpis"></div>
+    <div class="card" id="mine" style="margin-bottom:12px"></div>
+    <div class="grid two">
+      <div class="card span2">
+        <h2>Ingresos y egresos por mes</h2>
+        <div class="hint">Soles por mes dentro del periodo elegido. <button class="link" id="btnTabla">Ver como tabla</button></div>
+        <div id="chMes"></div>
+      </div>
+      <div class="card"><h2>En qué se gastó</h2><div class="hint">Egresos del periodo por categoría.</div><div id="chCat"></div></div>
+      <div class="card"><h2>Cómo pagan</h2><div class="hint">Pagos de estudiantes del periodo por método.</div><div id="chMet"></div></div>
+      <div class="card span2"><h2>Quiénes deben más</h2><div class="hint">Deuda actual por estudiante (no depende del periodo). <button class="link" data-go="estudiantes">Ver todos</button></div><div id="chDeu"></div></div>
+    </div>
+  </div>
+
+  <!-- ACTIVIDADES -->
+  <div class="view" id="v-actividades">
+    <div class="filters" style="margin-bottom:12px">
+      <input class="inp" id="aQ" placeholder="Buscar actividad o código…">
+      <select id="aTipo"><option value="">Todos los tipos</option><option value="Fija">Cuota fija</option><option value="Variable">Monto variable</option><option value="Dirigida">Dirigida</option></select>
+      <select id="aEstado"><option value="">Todas</option><option value="pend">Con pendientes</option><option value="ok">Completas</option></select>
+      <select id="aOrden"><option value="cod">Orden: código</option><option value="pct">Menor avance primero</option><option value="deu">Mayor pendiente primero</option><option value="rec">Mayor recaudado primero</option></select>
+    </div>
+    <div class="card"><div class="sum" id="aSum"></div><div class="tw"><table id="aTabla"></table></div></div>
+  </div>
+
+  <!-- ESTUDIANTES -->
+  <div class="view" id="v-estudiantes">
+    <div class="filters" style="margin-bottom:12px">
+      <input class="inp" id="eQ" placeholder="Buscar estudiante…">
+      <select id="eEstado"><option value="">Todos</option><option value="deu">Con deuda</option><option value="ok">Al día</option></select>
+      <select id="eOrden"><option value="nom">Orden: nombre</option><option value="deu">Mayor deuda primero</option><option value="pag">Más pagado primero</option><option value="pct">Menor cumplimiento primero</option></select>
+    </div>
+    <div class="card"><div class="sum" id="eSum"></div><div class="tw"><table id="eTabla"></table></div></div>
+  </div>
+
+  <!-- MOVIMIENTOS -->
+  <div class="view" id="v-movimientos">
+    <div class="filters" style="margin-bottom:12px">
+      <input class="inp" id="mQ" placeholder="Buscar por nombre, concepto o actividad…">
+      <select id="mTipo"><option value="">Todos los tipos</option><option value="Pago">Pagos de estudiantes</option><option value="Ingreso extra">Ingresos extra</option><option value="Egreso">Egresos</option></select>
+      <select id="mCat"></select>
+      <button class="btn ghost" id="btnCsv">Descargar CSV</button>
+    </div>
+    <div class="card"><div class="sum" id="mSum"></div><div class="tw"><table id="mTabla"></table></div><div style="text-align:center;margin-top:12px"><button class="btn ghost" id="mMas" style="display:none">Mostrar más</button></div></div>
+  </div>
+
+  <div class="foot">Datos en vivo de la tesorería del aula · solo lectura</div>
+</div>
+<div id="tip"></div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────
+var SHEET_ID = '1ObB4TZOgCkTyN0iPhrbgZZJNqNw2A81yEoAUfs7kT-8';
+var HOJAS = { est:'BD_Estudiantes', act:'BD_Actividades', pag:'BD_Pagos', egr:'BD_Egresos', ing:'BD_IngresosExtra', asg:'BD_Asignados' };
+var MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+
+// ── UTILIDADES ──────────────────────────────────────────────
+function $(id) { return document.getElementById(id); }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function soles(n) { return (n < 0 ? '−' : '') + 'S/ ' + Math.abs(n).toLocaleString('es-PE', { minimumFractionDigits:2, maximumFractionDigits:2 }); }
+function str(v) { return v == null ? '' : String(v).trim(); }
+function numero(v) { if (typeof v === 'number') return v; var n = parseFloat(String(v == null ? '' : v).replace(/[^0-9.,-]/g, '').replace(/,(\d{1,2})$/, '.$1').replace(/,/g, '')); return isNaN(n) ? 0 : n; }
+function campo(r, pref) { for (var k in r) { if (k.indexOf(pref) === 0) return r[k]; } return ''; }
+function fecha(v) {
+  var s = str(v), m;
+  if ((m = s.match(/^Date\((\d+),(\d+),(\d+)/))) return new Date(+m[1], +m[2], +m[3]);
+  if ((m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/))) return new Date(+m[3], +m[2] - 1, +m[1]);
+  if ((m = s.match(/^(\d{4})-(\d{2})-(\d{2})/))) return new Date(+m[1], +m[2] - 1, +m[3]);
+  return null;
+}
+function fFecha(d) { return d ? ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear() : '—'; }
+function mesKey(d) { return d ? d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) : ''; }
+function mesTxt(k) { var p = k.split('-'); return MESES[+p[1] - 1] + ' ' + p[0].slice(2); }
+function ini(n) { return str(n).substring(0, 2).toUpperCase(); }
+
+// ── CARGA DE DATOS ──────────────────────────────────────────
+function fetchSheet(nombre) {
+  var url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json&headers=1&sheet=' + encodeURIComponent(nombre);
+  return fetch(url).then(function(r) { return r.text(); }).then(function(txt) {
+    var json = JSON.parse(txt.match(/setResponse\(([\s\S]*)\);?\s*$/)[1]);
+    var cols = json.table.cols.map(function(c) { return str(c.label); });
+    return (json.table.rows || []).map(function(r) {
+      var o = {};
+      (r.c || []).forEach(function(cell, i) { if (cols[i]) o[cols[i]] = cell && cell.v != null ? cell.v : ''; });
+      return o;
+    });
+  });
+}
+
+var D = null;      // datos calculados
+var YO = null;     // estudiante que ingresó
+var F = { desde:'', hasta:'' };
+var mLimite = 100, abiertoA = null, abiertoE = null, verTabla = false, mOrden = { k:'fecha', dir:-1 };
+
+function cargar() {
+  var nombres = Object.keys(HOJAS);
+  return Promise.all(nombres.map(function(k) {
+    return fetchSheet(HOJAS[k]).catch(function() { return []; });
+  })).then(function(res) {
+    var raw = {}; nombres.forEach(function(k, i) { raw[k] = res[i]; });
+    D = calcular(raw);
+    if (D.est.length === 0) throw new Error('sin datos');
+  });
+}
+
+// Regla única: ¿a este estudiante le corresponde esta actividad?
+function calcular(raw) {
+  var est = raw.est.filter(function(r) { return str(r['DNI']) && str(r['Estado']).toUpperCase() !== 'NO'; })
+    .map(function(r) { return { dni: str(r['DNI']), nombre: str(r['Nombre']) }; });
+  var asig = {};
+  raw.asg.forEach(function(r) { var c = str(r['Código Act.']), d = str(r['DNI']); if (c && d) { (asig[c] = asig[c] || {})[d] = true; } });
+
+  var pagos = raw.pag.filter(function(r) { return str(r['ID']); }).map(function(r) {
+    return { dni: str(r['DNI']), nombre: str(r['Nombre']), cod: str(r['Código Act.']), act: str(r['Actividad']),
+             monto: numero(campo(r, 'Monto')), metodo: str(r['Método Pago']) || 'Sin registrar', f: fecha(r['Fecha']) };
+  });
+  var pagIdx = {}; pagos.forEach(function(p) { pagIdx[p.dni + '|' + p.cod] = p; });
+
+  var acts = raw.act.filter(function(r) { return str(r['Código']); }).map(function(r) {
+    var t = str(r['Tipo']).toLowerCase();
+    var a = { cod: str(r['Código']), nombre: str(r['Nombre']), monto: numero(campo(r, 'Monto')),
+              tipo: t === 'variable' ? 'Variable' : (t === 'dirigida' ? 'Dirigida' : 'Fija') };
+    a.obligados = est.filter(function(e) { return a.tipo !== 'Dirigida' || (asig[a.cod] && asig[a.cod][e.dni]); });
+    a.pagaron = []; a.pendientes = [];
+    a.obligados.forEach(function(e) { var p = pagIdx[e.dni + '|' + a.cod]; if (p) a.pagaron.push({ e: e, p: p }); else a.pendientes.push(e); });
+    a.recaudado = pagos.filter(function(p) { return p.cod === a.cod; }).reduce(function(s, p) { return s + p.monto; }, 0);
+    a.porCobrar = a.pendientes.length * a.monto;
+    a.pct = a.obligados.length ? a.pagaron.length / a.obligados.length : 1;
+    return a;
+  });
+
+  est.forEach(function(e) {
+    e.pend = []; e.pagos = []; e.debe = 0; e.pagado = 0; e.total = 0;
+    acts.forEach(function(a) {
+      if (a.obligados.indexOf(e) === -1) return;
+      e.total++;
+      var p = pagIdx[e.dni + '|' + a.cod];
+      if (p) { e.pagos.push({ a: a, p: p }); } else { e.pend.push(a); e.debe += a.monto; }
+    });
+    e.pagado = pagos.filter(function(p) { return p.dni === e.dni; }).reduce(function(s, p) { return s + p.monto; }, 0);
+    e.pct = e.total ? (e.total - e.pend.length) / e.total : 1;
+  });
+
+  var mov = [];
+  pagos.forEach(function(p) { mov.push({ tipo:'Pago', f:p.f, det:p.nombre + ' — ' + p.act, cat:p.metodo, monto:p.monto }); });
+  raw.ing.filter(function(r) { return str(r['Concepto']); }).forEach(function(r) {
+    mov.push({ tipo:'Ingreso extra', f:fecha(r['Fecha']), det:str(r['Concepto']), cat:str(r['Categoría']) || 'Sin categoría', monto:numero(campo(r, 'Monto')) });
+  });
+  raw.egr.filter(function(r) { return str(r['Concepto']); }).forEach(function(r) {
+    mov.push({ tipo:'Egreso', f:fecha(r['Fecha']), det:str(r['Concepto']), cat:str(r['Categoría']) || 'Sin categoría', monto:-numero(campo(r, 'Monto')) });
+  });
+  var meses = {}; mov.forEach(function(m) { var k = mesKey(m.f); if (k) meses[k] = true; });
+  return { est: est, acts: acts, mov: mov, meses: Object.keys(meses).sort() };
+}
+
+// ── FILTRO DE PERIODO ───────────────────────────────────────
+function periodoCompleto() { return !D.meses.length || (F.desde === D.meses[0] && F.hasta === D.meses[D.meses.length - 1]); }
+function enPeriodo(m) { var k = mesKey(m.f); if (!k) return periodoCompleto(); return k >= F.desde && k <= F.hasta; }
+function movPeriodo() { return D.mov.filter(enPeriodo); }
+function sumar(rows, f) { return rows.reduce(function(s, r) { return s + (f ? f(r) : r.monto); }, 0); }
+function agrupar(rows, clave) {
+  var g = {}; rows.forEach(function(r) { var k = clave(r); g[k] = (g[k] || 0) + Math.abs(r.monto); });
+  return Object.keys(g).map(function(k) { return { k: k, v: g[k] }; }).sort(function(a, b) { return b.v - a.v; });
+}
+
+// ── COMPONENTES DE GRÁFICO ──────────────────────────────────
+function barrasH(items, color, max, opts) {
+  if (!items.length) return '<div class="empty">Sin datos para este periodo.</div>';
+  var tope = Math.max.apply(null, items.map(function(i) { return i.v; })) || 1;
+  var lista = max ? items.slice(0, max) : items;
+  var resto = max && items.length > max ? items.slice(max) : [];
+  if (resto.length) lista.push({ k: 'Otros (' + resto.length + ')', v: sumar(resto, function(r) { return r.v; }) });
+  var total = sumar(items, function(r) { return r.v; }) || 1;
+  return lista.map(function(i) {
+    var w = Math.max(i.v / tope * 100, 0.5);
+    var tip = i.k + '\n' + soles(i.v) + (opts && opts.sinPct ? '' : ' · ' + (i.v / total * 100).toFixed(1) + '%') + (i.extra ? '\n' + i.extra : '');
+    return '<div class="hb' + (i.me ? ' me' : '') + '" data-tip="' + esc(tip) + '" tabindex="0"><span class="nm">' + esc(i.k) + (i.me ? ' (tú)' : '') + '</span>' +
+           '<span class="tr"><b style="width:' + w + '%;background:' + color + '"></b></span><span class="v num">' + soles(i.v) + '</span></div>';
+  }).join('');
+}
+function escalaBonita(max) {
+  if (max <= 0) return 100;
+  var p = Math.pow(10, Math.floor(Math.log10(max))), n = max / p;
+  return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p;
+}
+function graficoMes() {
+  var filas = D.meses.filter(function(k) { return k >= F.desde && k <= F.hasta; }).map(function(k) {
+    var rows = D.mov.filter(function(m) { return mesKey(m.f) === k; });
+    return { k: k, ing: sumar(rows.filter(function(r) { return r.monto > 0; })), egr: -sumar(rows.filter(function(r) { return r.monto < 0; })) };
+  });
+  if (!filas.length) return '<div class="empty">Sin movimientos con fecha en este periodo.</div>';
+  if (verTabla) {
+    return '<div class="tw"><table><tr><th>Mes</th><th class="r">Ingresos</th><th class="r">Egresos</th><th class="r">Neto</th></tr>' + filas.map(function(f) {
+      return '<tr><td>' + mesTxt(f.k) + '</td><td class="r num">' + soles(f.ing) + '</td><td class="r num">' + soles(f.egr) + '</td><td class="r num">' + soles(f.ing - f.egr) + '</td></tr>';
+    }).join('') + '</table></div>';
+  }
+  var tope = escalaBonita(Math.max.apply(null, filas.map(function(f) { return Math.max(f.ing, f.egr); })));
+  var h = '<div class="legend"><span><i style="background:var(--ing)"></i>Ingresos</span><span><i style="background:var(--egr)"></i>Egresos</span></div><div class="cols">';
+  [0.25, 0.5, 0.75, 1].forEach(function(t) { h += '<div class="gl" style="bottom:' + (t * 100) + '%"><span>' + (tope * t).toLocaleString('es-PE') + '</span></div>'; });
+  filas.forEach(function(f) {
+    var tip = mesTxt(f.k) + '\nIngresos: ' + soles(f.ing) + '\nEgresos: ' + soles(f.egr) + '\nNeto: ' + soles(f.ing - f.egr);
+    h += '<div class="cg" data-tip="' + esc(tip) + '" tabindex="0"><b style="height:' + (f.ing / tope * 100) + '%;background:var(--ing)"></b><b style="height:' + (f.egr / tope * 100) + '%;background:var(--egr)"></b></div>';
+  });
+  h += '</div><div class="xl">' + filas.map(function(f, i) { var p = f.k.split('-'); return '<span>' + MESES[+p[1] - 1] + (i === 0 || p[1] === '01' ? ' ' + p[0].slice(2) : '') + '</span>'; }).join('') + '</div>';
+  return h;
+}
+function progreso(pct, txt) { return '<div class="prog"><div class="t"><b style="width:' + Math.round(pct * 100) + '%"></b></div><span class="num">' + txt + '</span></div>'; }
+
+// ── RESUMEN ─────────────────────────────────────────────────
+function pintarResumen() {
+  var per = movPeriodo();
+  var saldo = sumar(D.mov);
+  var ing = sumar(per.filter(function(m) { return m.monto > 0; })), egr = -sumar(per.filter(function(m) { return m.monto < 0; }));
+  var porCobrar = sumar(D.acts, function(a) { return a.porCobrar; });
+  var deudores = D.est.filter(function(e) { return e.pend.length > 0; }).length;
+  var lblPer = periodoCompleto() ? 'todo el historial' : mesTxt(F.desde) + (F.desde !== F.hasta ? ' a ' + mesTxt(F.hasta) : '');
+  $('kpis').innerHTML =
+    '<div class="card kpi hero"><div class="lbl">Saldo en caja</div><div class="val num">' + soles(saldo) + '</div><div class="note">Acumulado a hoy</div></div>' +
+    '<div class="card kpi"><div class="lbl">Ingresos</div><div class="val num">' + soles(ing) + '</div><div class="note">' + lblPer + '</div></div>' +
+    '<div class="card kpi"><div class="lbl">Egresos</div><div class="val num">' + soles(egr) + '</div><div class="note">' + lblPer + '</div></div>' +
+    '<div class="card kpi"><div class="lbl">Por cobrar</div><div class="val num">' + soles(porCobrar) + '</div><div class="note">Deuda actual del salón</div></div>' +
+    '<div class="card kpi"><div class="lbl">Con deuda</div><div class="val num">' + deudores + ' de ' + D.est.length + '</div><div class="note">estudiantes</div></div>';
+
+  var yo = D.est.filter(function(e) { return e.dni === YO.dni; })[0];
+  if (yo) {
+    var lista = yo.pend.slice(0, 6).map(function(a) { return '<li><span>' + esc(a.nombre) + '</span><span class="num">' + soles(a.monto) + '</span></li>'; }).join('');
+    $('mine').innerHTML = '<h2>Tu estado</h2><div class="hint">' + esc(yo.nombre) + '</div><div class="mine">' +
+      '<div><div class="big num">' + soles(yo.debe) + '</div><span class="pill ' + (yo.pend.length ? 'bad">✕ ' + yo.pend.length + ' pendiente' + (yo.pend.length > 1 ? 's' : '') : 'ok">✓ Estás al día') + '</span></div>' +
+      '<div style="flex:1;min-width:200px">' + progreso(yo.pct, (yo.total - yo.pend.length) + ' de ' + yo.total + ' cumplidos') + '<div class="note" style="margin-top:6px;color:var(--text-2);font-size:12px">Has pagado ' + soles(yo.pagado) + ' en total.</div></div></div>' +
+      (lista ? '<ul class="det">' + lista + '</ul>' + (yo.pend.length > 6 ? '<div style="margin-top:8px"><button class="link" data-go="estudiantes">Ver los ' + yo.pend.length + ' pendientes</button></div>' : '') : '');
+  } else { $('mine').style.display = 'none'; }
+
+  $('chMes').innerHTML = graficoMes();
+  $('btnTabla').textContent = verTabla ? 'Ver como gráfico' : 'Ver como tabla';
+  $('chCat').innerHTML = barrasH(agrupar(per.filter(function(m) { return m.tipo === 'Egreso'; }), function(m) { return m.cat; }), 'var(--egr)', 8);
+  $('chMet').innerHTML = barrasH(agrupar(per.filter(function(m) { return m.tipo === 'Pago'; }), function(m) { return m.cat; }), 'var(--ing)', 8);
+  var deu = D.est.filter(function(e) { return e.debe > 0; }).sort(function(a, b) { return b.debe - a.debe; })
+    .map(function(e) { return { k: e.nombre, v: e.debe, me: e.dni === YO.dni, extra: e.pend.length + ' pendiente(s)' }; });
+  $('chDeu').innerHTML = deu.length ? barrasH(deu.slice(0, 10), 'var(--deu)', 0, { sinPct: true }) : '<div class="empty">Nadie tiene deuda. 🎉</div>';
+}
+
+// ── ACTIVIDADES ─────────────────────────────────────────────
+function pillTipo(t) { return t === 'Variable' ? '<span class="pill var">Variable</span>' : t === 'Dirigida' ? '<span class="pill dir">Dirigida</span>' : '<span class="pill neu">Fija</span>'; }
+function pintarActividades() {
+  var q = $('aQ').value.trim().toLowerCase(), t = $('aTipo').value, es = $('aEstado').value, o = $('aOrden').value;
+  var rows = D.acts.filter(function(a) {
+    return (!q || (a.nombre + ' ' + a.cod).toLowerCase().indexOf(q) !== -1) && (!t || a.tipo === t) &&
+           (!es || (es === 'pend' ? a.pendientes.length > 0 : a.pendientes.length === 0));
+  });
+  if (o === 'pct') rows.sort(function(a, b) { return a.pct - b.pct; });
+  if (o === 'deu') rows.sort(function(a, b) { return b.porCobrar - a.porCobrar; });
+  if (o === 'rec') rows.sort(function(a, b) { return b.recaudado - a.recaudado; });
+  $('aSum').innerHTML = '<span><b>' + rows.length + '</b> actividades</span><span>Recaudado <b class="num">' + soles(sumar(rows, function(a) { return a.recaudado; })) + '</b></span><span>Por cobrar <b class="num">' + soles(sumar(rows, function(a) { return a.porCobrar; })) + '</b></span>';
+  var h = '<tr><th>Actividad</th><th>Tipo</th><th class="r">Monto</th><th>Avance</th><th class="r">Recaudado</th><th class="r">Por cobrar</th></tr>';
+  rows.forEach(function(a) {
+    h += '<tr class="row" data-a="' + esc(a.cod) + '"><td><b>' + esc(a.nombre) + '</b><br><span style="color:var(--dim);font-size:12px">' + esc(a.cod) + '</span></td><td>' + pillTipo(a.tipo) + '</td>' +
+         '<td class="r num">' + soles(a.monto) + '</td><td>' + progreso(a.pct, a.pagaron.length + '/' + a.obligados.length) + '</td><td class="r num">' + soles(a.recaudado) + '</td><td class="r num">' + (a.porCobrar ? soles(a.porCobrar) : '—') + '</td></tr>';
+    if (abiertoA === a.cod) {
+      h += '<tr class="det"><td colspan="6"><div class="det-grid det"><div><h4>Pendientes (' + a.pendientes.length + ')</h4><ul>' +
+        (a.pendientes.map(function(e) { return '<li><span>' + esc(e.nombre) + '</span><span class="num">' + soles(a.monto) + '</span></li>'; }).join('') || '<li><span>Nadie pendiente</span><span></span></li>') +
+        '</ul></div><div><h4>Pagaron (' + a.pagaron.length + ')</h4><ul>' +
+        (a.pagaron.map(function(x) { return '<li><span>' + esc(x.e.nombre) + '</span><span class="num">' + fFecha(x.p.f) + ' · ' + esc(x.p.metodo) + ' · ' + soles(x.p.monto) + '</span></li>'; }).join('') || '<li><span>Aún nadie</span><span></span></li>') +
+        '</ul></div></div></td></tr>';
+    }
+  });
+  $('aTabla').innerHTML = rows.length ? h : '<tr><td class="empty">Ninguna actividad coincide con los filtros.</td></tr>';
+}
+
+// ── ESTUDIANTES ─────────────────────────────────────────────
+function pintarEstudiantes() {
+  var q = $('eQ').value.trim().toLowerCase(), es = $('eEstado').value, o = $('eOrden').value;
+  var rows = D.est.filter(function(e) { return (!q || e.nombre.toLowerCase().indexOf(q) !== -1) && (!es || (es === 'deu' ? e.debe > 0 : e.pend.length === 0)); });
+  rows.sort(function(a, b) { return o === 'deu' ? b.debe - a.debe : o === 'pag' ? b.pagado - a.pagado : o === 'pct' ? a.pct - b.pct : a.nombre.localeCompare(b.nombre); });
+  $('eSum').innerHTML = '<span><b>' + rows.length + '</b> estudiantes</span><span>Pagado <b class="num">' + soles(sumar(rows, function(e) { return e.pagado; })) + '</b></span><span>Deben <b class="num">' + soles(sumar(rows, function(e) { return e.debe; })) + '</b></span>';
+  var h = '<tr><th>Estudiante</th><th>Estado</th><th class="r">Pagado</th><th class="r">Debe</th><th>Cumplimiento</th></tr>';
+  rows.forEach(function(e) {
+    h += '<tr class="row' + (e.dni === YO.dni ? ' me' : '') + '" data-e="' + esc(e.dni) + '"><td><b>' + esc(e.nombre) + '</b>' + (e.dni === YO.dni ? ' <span class="pill var">Tú</span>' : '') + '</td>' +
+         '<td>' + (e.pend.length ? '<span class="pill bad">✕ ' + e.pend.length + ' pendiente' + (e.pend.length > 1 ? 's' : '') + '</span>' : '<span class="pill ok">✓ Al día</span>') + '</td>' +
+         '<td class="r num">' + soles(e.pagado) + '</td><td class="r num">' + (e.debe ? soles(e.debe) : '—') + '</td><td>' + progreso(e.pct, (e.total - e.pend.length) + '/' + e.total) + '</td></tr>';
+    if (abiertoE === e.dni) {
+      h += '<tr class="det"><td colspan="5"><div class="det-grid det"><div><h4>Pendientes (' + e.pend.length + ')</h4><ul>' +
+        (e.pend.map(function(a) { return '<li><span>' + esc(a.nombre) + '</span><span class="num">' + soles(a.monto) + '</span></li>'; }).join('') || '<li><span>Sin pendientes</span><span></span></li>') +
+        '</ul></div><div><h4>Pagos (' + e.pagos.length + ')</h4><ul>' +
+        (e.pagos.map(function(x) { return '<li><span>' + esc(x.a.nombre) + '</span><span class="num">' + fFecha(x.p.f) + ' · ' + esc(x.p.metodo) + ' · ' + soles(x.p.monto) + '</span></li>'; }).join('') || '<li><span>Sin pagos</span><span></span></li>') +
+        '</ul></div></div></td></tr>';
+    }
+  });
+  $('eTabla').innerHTML = rows.length ? h : '<tr><td class="empty">Ningún estudiante coincide con los filtros.</td></tr>';
+}
+
+// ── MOVIMIENTOS ─────────────────────────────────────────────
+function movFiltrados() {
+  var q = $('mQ').value.trim().toLowerCase(), t = $('mTipo').value, c = $('mCat').value;
+  var rows = movPeriodo().filter(function(m) { return (!t || m.tipo === t) && (!c || m.cat === c) && (!q || (m.det + ' ' + m.cat).toLowerCase().indexOf(q) !== -1); });
+  rows.sort(function(a, b) {
+    var x = mOrden.k === 'monto' ? a.monto - b.monto : (a.f ? a.f.getTime() : 0) - (b.f ? b.f.getTime() : 0);
+    return x * mOrden.dir;
+  });
+  return rows;
+}
+function opcionesCat() {
+  var t = $('mTipo').value, prev = $('mCat').value, set = {};
+  movPeriodo().forEach(function(m) { if (!t || m.tipo === t) set[m.cat] = true; });
+  var ks = Object.keys(set).sort();
+  $('mCat').innerHTML = '<option value="">Todas las categorías y métodos</option>' + ks.map(function(k) { return '<option' + (k === prev ? ' selected' : '') + '>' + esc(k) + '</option>'; }).join('');
+}
+function pintarMovimientos() {
+  var rows = movFiltrados();
+  var ing = sumar(rows.filter(function(m) { return m.monto > 0; })), egr = -sumar(rows.filter(function(m) { return m.monto < 0; }));
+  $('mSum').innerHTML = '<span><b>' + rows.length + '</b> movimientos</span><span>Ingresos <b class="num">' + soles(ing) + '</b></span><span>Egresos <b class="num">' + soles(egr) + '</b></span><span>Neto <b class="num">' + soles(ing - egr) + '</b></span>';
+  var fl = function(k) { return mOrden.k === k ? (mOrden.dir > 0 ? ' ↑' : ' ↓') : ''; };
+  var h = '<tr><th class="s" data-o="fecha">Fecha' + fl('fecha') + '</th><th>Tipo</th><th>Detalle</th><th>Categoría / método</th><th class="r s" data-o="monto">Monto' + fl('monto') + '</th></tr>';
+  rows.slice(0, mLimite).forEach(function(m) {
+    h += '<tr><td class="num" style="white-space:nowrap">' + fFecha(m.f) + '</td><td><span class="pill ' + (m.tipo === 'Egreso' ? 'bad' : m.tipo === 'Pago' ? 'neu' : 'var') + '">' + m.tipo + '</span></td><td>' + esc(m.det) + '</td><td style="color:var(--text-2)">' + esc(m.cat) + '</td>' +
+         '<td class="r num ' + (m.monto < 0 ? 'neg' : 'pos') + '">' + (m.monto > 0 ? '+' : '') + soles(m.monto) + '</td></tr>';
+  });
+  $('mTabla').innerHTML = rows.length ? h : '<tr><td class="empty">Ningún movimiento coincide con los filtros.</td></tr>';
+  $('mMas').style.display = rows.length > mLimite ? 'inline-block' : 'none';
+  $('mMas').textContent = 'Mostrar más (' + (rows.length - mLimite) + ' restantes)';
+}
+function descargarCsv() {
+  var rows = movFiltrados();
+  var csv = '﻿Fecha;Tipo;Detalle;Categoría o método;Monto\n' + rows.map(function(m) {
+    return [fFecha(m.f), m.tipo, '"' + m.det.replace(/"/g, '""') + '"', '"' + m.cat.replace(/"/g, '""') + '"', m.monto.toFixed(2)].join(';');
+  }).join('\n');
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = 'movimientos_tesoreria.csv'; document.body.appendChild(a); a.click(); a.remove();
+}
+
+// ── ORQUESTA ────────────────────────────────────────────────
+function pintarTodo() { pintarResumen(); pintarActividades(); pintarEstudiantes(); opcionesCat(); pintarMovimientos(); }
+function llenarPeriodo() {
+  var ops = D.meses.map(function(k) { return '<option value="' + k + '">' + mesTxt(k) + '</option>'; }).join('');
+  $('fDesde').innerHTML = ops; $('fHasta').innerHTML = ops;
+  if (!F.desde || D.meses.indexOf(F.desde) === -1) F.desde = D.meses[0] || '';
+  if (!F.hasta || D.meses.indexOf(F.hasta) === -1) F.hasta = D.meses[D.meses.length - 1] || '';
+  $('fDesde').value = F.desde; $('fHasta').value = F.hasta;
+}
+function fijarPeriodo(d, h, chip) {
+  if (d > h) { var t = d; d = h; h = t; }
+  F.desde = d; F.hasta = h; $('fDesde').value = d; $('fHasta').value = h; mLimite = 100;
+  document.querySelectorAll('.chip').forEach(function(c) { c.classList.toggle('on', c.dataset.q === chip); });
+  pintarTodo();
+}
+function irA(v) {
+  document.querySelectorAll('.tab').forEach(function(t) { t.classList.toggle('on', t.dataset.v === v); });
+  document.querySelectorAll('.view').forEach(function(x) { x.classList.toggle('on', x.id === 'v-' + v); });
+  window.scrollTo(0, 0);
+}
+function entrar(est) {
+  YO = est;
+  try { sessionStorage.setItem('dash_dni', est.dni); } catch (e) {}
+  $('login').style.display = 'none'; $('app').style.display = 'block';
+  $('whoAv').textContent = ini(est.nombre); $('whoName').textContent = est.nombre.split(',').pop().trim() || est.nombre;
+  $('updated').textContent = 'Actualizado ' + new Date().toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' });
+  llenarPeriodo(); pintarTodo();
+}
+function salir() {
+  YO = null; try { sessionStorage.removeItem('dash_dni'); } catch (e) {}
+  $('app').style.display = 'none'; $('login').style.display = 'flex'; $('dniInput').value = '';
+}
+function errLogin(t) { var e = $('loginErr'); e.textContent = t; e.style.display = t ? 'block' : 'none'; }
+function intentar() {
+  var dni = $('dniInput').value.replace(/\D/g, '');
+  if (dni.length < 7) { errLogin('Escribe tu DNI completo.'); return; }
+  var b = $('btnLogin'); b.disabled = true; b.textContent = 'Verificando…'; errLogin('');
+  (D ? Promise.resolve() : cargar()).then(function() {
+    b.disabled = false; b.textContent = 'Ingresar';
+    var est = D.est.filter(function(e) { return e.dni === dni; })[0];
+    if (!est) { errLogin('Ese DNI no está en la lista del salón.'); return; }
+    entrar(est);
+  }).catch(function() { b.disabled = false; b.textContent = 'Ingresar'; D = null; errLogin('No se pudo conectar con los datos. Intenta de nuevo.'); });
+}
+
+// ── EVENTOS ─────────────────────────────────────────────────
+$('btnLogin').onclick = intentar;
+$('dniInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') intentar(); });
+$('btnOut').onclick = salir;
+$('btnRefresh').onclick = function() {
+  var b = this; b.disabled = true; b.textContent = 'Actualizando…';
+  cargar().then(function() { var est = D.est.filter(function(e) { return e.dni === YO.dni; })[0]; if (est) entrar(est); else salir(); })
+    .catch(function() { $('updated').textContent = 'No se pudo actualizar'; })
+    .then(function() { b.disabled = false; b.textContent = 'Actualizar'; });
+};
+$('tabs').onclick = function(e) { var t = e.target.closest('.tab'); if (t) irA(t.dataset.v); };
+$('fDesde').onchange = $('fHasta').onchange = function() { fijarPeriodo($('fDesde').value, $('fHasta').value, periodoPreset()); };
+function periodoPreset() { var n = D.meses.length; return ($('fDesde').value === D.meses[0] && $('fHasta').value === D.meses[n - 1]) ? 'todo' : ''; }
+document.querySelectorAll('.chip').forEach(function(c) {
+  c.onclick = function() {
+    var n = D.meses.length; if (!n) return;
+    var q = c.dataset.q, ult = D.meses[n - 1];
+    fijarPeriodo(q === 'todo' ? D.meses[0] : q === 'mes' ? ult : D.meses[Math.max(n - 3, 0)], ult, q);
+  };
+});
+$('btnTabla').onclick = function() { verTabla = !verTabla; pintarResumen(); };
+['aQ', 'aTipo', 'aEstado', 'aOrden'].forEach(function(id) { $(id).oninput = pintarActividades; });
+['eQ', 'eEstado', 'eOrden'].forEach(function(id) { $(id).oninput = pintarEstudiantes; });
+$('mQ').oninput = $('mCat').oninput = function() { mLimite = 100; pintarMovimientos(); };
+$('mTipo').oninput = function() { mLimite = 100; $('mCat').value = ''; opcionesCat(); pintarMovimientos(); };
+$('mMas').onclick = function() { mLimite += 100; pintarMovimientos(); };
+$('btnCsv').onclick = descargarCsv;
+$('aTabla').onclick = function(e) { var r = e.target.closest('tr.row'); if (r) { abiertoA = abiertoA === r.dataset.a ? null : r.dataset.a; pintarActividades(); } };
+$('eTabla').onclick = function(e) { var r = e.target.closest('tr.row'); if (r) { abiertoE = abiertoE === r.dataset.e ? null : r.dataset.e; pintarEstudiantes(); } };
+$('mTabla').onclick = function(e) { var t = e.target.closest('th.s'); if (t) { mOrden = { k: t.dataset.o, dir: mOrden.k === t.dataset.o ? -mOrden.dir : -1 }; pintarMovimientos(); } };
+document.addEventListener('click', function(e) {
+  var g = e.target.closest('[data-go]');
+  if (g) { if (g.dataset.go === 'estudiantes' && YO && g.closest('#mine')) { abiertoE = YO.dni; pintarEstudiantes(); } irA(g.dataset.go); }
+});
+
+// Tooltip compartido
+(function() {
+  var tip = $('tip');
+  function mostrar(el, x, y) {
+    tip.textContent = el.dataset.tip; tip.style.display = 'block';
+    var w = tip.offsetWidth, h = tip.offsetHeight;
+    tip.style.left = Math.max(8, Math.min(x + 14, window.innerWidth - w - 8)) + 'px';
+    tip.style.top = Math.max(8, y - h - 12) + 'px';
+  }
+  document.addEventListener('mousemove', function(e) { var el = e.target.closest && e.target.closest('[data-tip]'); if (el) mostrar(el, e.clientX, e.clientY); else tip.style.display = 'none'; });
+  document.addEventListener('focusin', function(e) { var el = e.target.closest && e.target.closest('[data-tip]'); if (el) { var r = el.getBoundingClientRect(); mostrar(el, r.left + r.width / 2, r.top); } });
+  document.addEventListener('focusout', function() { tip.style.display = 'none'; });
+  document.addEventListener('scroll', function() { tip.style.display = 'none'; }, true);
+})();
+
+// Sesión recordada en esta pestaña
+(function() {
+  var dni = ''; try { dni = sessionStorage.getItem('dash_dni') || ''; } catch (e) {}
+  if (!dni) return;
+  $('dniInput').value = dni; intentar();
+})();
+</script>
+</body>
+</html>
