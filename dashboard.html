@@ -71,7 +71,7 @@
   .kpi .note { font-size:12px; color:var(--text-2); }
   .kpi.hero { background:linear-gradient(135deg,rgba(139,92,246,.22),rgba(59,130,246,.10)); border-color:rgba(139,92,246,.35); }
   .kpi.hero .val { font-size:30px; }
-  .two { grid-template-columns:1fr; }
+  .two { grid-template-columns:1fr; align-items:start; }
   @media (min-width:860px) { .two { grid-template-columns:1fr 1fr; } .span2 { grid-column:span 2; } }
 
   /* mi estado */
@@ -140,6 +140,9 @@
   .kpi .val { white-space:nowrap; }
   .foot { text-align:center; color:var(--muted); font-size:12px; margin-top:28px; }
 
+  #loginFail { display:none; margin-top:16px; max-width:100%; border-radius:12px; border:1px solid var(--border); animation:shake .5s ease; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px) rotate(-2deg)} 40%{transform:translateX(8px) rotate(2deg)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }
+  @media (prefers-reduced-motion:reduce) { #loginFail { animation:none; } }
   #tip { position:fixed; z-index:99; pointer-events:none; display:none; background:#1E293B; border:1px solid rgba(255,255,255,.14); border-radius:10px; padding:8px 10px; font-size:12px; color:var(--text); box-shadow:0 10px 30px rgba(0,0,0,.5); max-width:260px; white-space:pre-line; }
 </style>
 </head>
@@ -154,6 +157,8 @@
     <input type="text" id="dniInput" inputmode="numeric" maxlength="12" placeholder="Tu DNI" autocomplete="off">
     <button class="btn block" id="btnLogin">Ingresar</button>
     <div class="err" id="loginErr"></div>
+    <img id="loginFail" src="login-error.jpg" alt="" onerror="this.style.display='none'">
+    <a href="index.html" style="display:inline-block;margin-top:16px;font-size:12px;color:var(--dim)">← Volver a consulta de pagos</a>
   </div>
 </div>
 
@@ -163,14 +168,13 @@
     <h1>Estado de cuenta del salón<span class="sub" id="updated"></span></h1>
     <div class="who"><div class="av" id="whoAv"></div><span id="whoName"></span></div>
     <button class="btn ghost" id="btnRefresh">Actualizar</button>
+    <a class="btn ghost" href="index.html" style="text-decoration:none">Consulta</a>
     <button class="btn ghost" id="btnOut">Salir</button>
   </div>
 
   <div class="bar">
     <div class="tabs" id="tabs">
       <button class="tab on" data-v="resumen">Resumen</button>
-      <button class="tab" data-v="actividades">Actividades</button>
-      <button class="tab" data-v="estudiantes">Estudiantes</button>
       <button class="tab" data-v="movimientos">Movimientos</button>
     </div>
     <div class="filters">
@@ -195,30 +199,8 @@
         <div id="chMes"></div>
       </div>
       <div class="card"><h2>En qué se gastó</h2><div class="hint">Egresos del periodo por categoría.</div><div id="chCat"></div></div>
-      <div class="card"><h2>Cómo pagan</h2><div class="hint">Pagos de estudiantes del periodo por método.</div><div id="chMet"></div></div>
-      <div class="card span2"><h2>Quiénes deben más</h2><div class="hint">Deuda actual por estudiante (no depende del periodo). <button class="link" data-go="estudiantes">Ver todos</button></div><div id="chDeu"></div></div>
+      <div class="card"><h2>Quiénes deben</h2><div class="hint">Deuda actual por estudiante, de mayor a menor.</div><div id="chDeu"></div></div>
     </div>
-  </div>
-
-  <!-- ACTIVIDADES -->
-  <div class="view" id="v-actividades">
-    <div class="filters" style="margin-bottom:12px">
-      <input class="inp" id="aQ" placeholder="Buscar actividad o código…">
-      <select id="aTipo"><option value="">Todos los tipos</option><option value="Fija">Cuota fija</option><option value="Variable">Monto variable</option><option value="Dirigida">Dirigida</option></select>
-      <select id="aEstado"><option value="">Todas</option><option value="pend">Con pendientes</option><option value="ok">Completas</option></select>
-      <select id="aOrden"><option value="cod">Orden: código</option><option value="pct">Menor avance primero</option><option value="deu">Mayor pendiente primero</option><option value="rec">Mayor recaudado primero</option></select>
-    </div>
-    <div class="card"><div class="sum" id="aSum"></div><div class="tw"><table id="aTabla"></table></div></div>
-  </div>
-
-  <!-- ESTUDIANTES -->
-  <div class="view" id="v-estudiantes">
-    <div class="filters" style="margin-bottom:12px">
-      <input class="inp" id="eQ" placeholder="Buscar estudiante…">
-      <select id="eEstado"><option value="">Todos</option><option value="deu">Con deuda</option><option value="ok">Al día</option></select>
-      <select id="eOrden"><option value="nom">Orden: nombre</option><option value="deu">Mayor deuda primero</option><option value="pag">Más pagado primero</option><option value="pct">Menor cumplimiento primero</option></select>
-    </div>
-    <div class="card"><div class="sum" id="eSum"></div><div class="tw"><table id="eTabla"></table></div></div>
   </div>
 
   <!-- MOVIMIENTOS -->
@@ -226,13 +208,11 @@
     <div class="filters" style="margin-bottom:12px">
       <input class="inp" id="mQ" placeholder="Buscar por nombre, concepto o actividad…">
       <select id="mTipo"><option value="">Todos los tipos</option><option value="Pago">Pagos de estudiantes</option><option value="Ingreso extra">Ingresos extra</option><option value="Egreso">Egresos</option></select>
-      <select id="mCat"></select>
-      <button class="btn ghost" id="btnCsv">Descargar CSV</button>
     </div>
     <div class="card"><div class="sum" id="mSum"></div><div class="tw"><table id="mTabla"></table></div><div style="text-align:center;margin-top:12px"><button class="btn ghost" id="mMas" style="display:none">Mostrar más</button></div></div>
   </div>
 
-  <div class="foot">Datos en vivo de la tesorería del aula · solo lectura</div>
+  <div class="foot">Datos en vivo de la tesorería del aula · se actualiza solo cada 2 minutos</div>
 </div>
 <div id="tip"></div>
 
@@ -240,6 +220,7 @@
 // ── CONFIG ──────────────────────────────────────────────────
 var SHEET_ID = '1ObB4TZOgCkTyN0iPhrbgZZJNqNw2A81yEoAUfs7kT-8';
 var HOJAS = { est:'BD_Estudiantes', act:'BD_Actividades', pag:'BD_Pagos', egr:'BD_Egresos', ing:'BD_IngresosExtra', asg:'BD_Asignados' };
+var IMG_FALLO = 'login-error.jpg';   // súbela a GitHub con este nombre (o cambia el nombre aquí)
 var MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 
 // ── UTILIDADES ──────────────────────────────────────────────
@@ -278,7 +259,7 @@ function fetchSheet(nombre) {
 var D = null;      // datos calculados
 var YO = null;     // estudiante que ingresó
 var F = { desde:'', hasta:'' };
-var mLimite = 100, abiertoA = null, abiertoE = null, verTabla = false, mOrden = { k:'fecha', dir:-1 };
+var mLimite = 100, verTabla = false, mOrden = { k:'fecha', dir:-1 };
 
 function cargar() {
   var nombres = Object.keys(HOJAS);
@@ -411,86 +392,30 @@ function pintarResumen() {
 
   var yo = D.est.filter(function(e) { return e.dni === YO.dni; })[0];
   if (yo) {
-    var lista = yo.pend.slice(0, 6).map(function(a) { return '<li><span>' + esc(a.nombre) + '</span><span class="num">' + soles(a.monto) + '</span></li>'; }).join('');
+    var lista = yo.pend.map(function(a) { return '<li><span>' + esc(a.nombre) + '</span><span class="num">' + soles(a.monto) + '</span></li>'; }).join('');
     $('mine').innerHTML = '<h2>Tu estado</h2><div class="hint">' + esc(yo.nombre) + '</div><div class="mine">' +
       '<div><div class="big num">' + soles(yo.debe) + '</div><span class="pill ' + (yo.pend.length ? 'bad">✕ ' + yo.pend.length + ' pendiente' + (yo.pend.length > 1 ? 's' : '') : 'ok">✓ Estás al día') + '</span></div>' +
       '<div style="flex:1;min-width:200px">' + progreso(yo.pct, (yo.total - yo.pend.length) + ' de ' + yo.total + ' cumplidos') + '<div class="note" style="margin-top:6px;color:var(--text-2);font-size:12px">Has pagado ' + soles(yo.pagado) + ' en total.</div></div></div>' +
-      (lista ? '<ul class="det">' + lista + '</ul>' + (yo.pend.length > 6 ? '<div style="margin-top:8px"><button class="link" data-go="estudiantes">Ver los ' + yo.pend.length + ' pendientes</button></div>' : '') : '');
+      (lista ? '<ul class="det">' + lista + '</ul>' : '');
   } else { $('mine').style.display = 'none'; }
 
   $('chMes').innerHTML = graficoMes();
   $('btnTabla').textContent = verTabla ? 'Ver como gráfico' : 'Ver como tabla';
   $('chCat').innerHTML = barrasH(agrupar(per.filter(function(m) { return m.tipo === 'Egreso'; }), function(m) { return m.cat; }), 'var(--egr)', 8);
-  $('chMet').innerHTML = barrasH(agrupar(per.filter(function(m) { return m.tipo === 'Pago'; }), function(m) { return m.cat; }), 'var(--ing)', 8);
   var deu = D.est.filter(function(e) { return e.debe > 0; }).sort(function(a, b) { return b.debe - a.debe; })
     .map(function(e) { return { k: e.nombre, v: e.debe, me: e.dni === YO.dni, extra: e.pend.length + ' pendiente(s)' }; });
-  $('chDeu').innerHTML = deu.length ? barrasH(deu.slice(0, 10), 'var(--deu)', 0, { sinPct: true }) : '<div class="empty">Nadie tiene deuda. 🎉</div>';
-}
-
-// ── ACTIVIDADES ─────────────────────────────────────────────
-function pillTipo(t) { return t === 'Variable' ? '<span class="pill var">Variable</span>' : t === 'Dirigida' ? '<span class="pill dir">Dirigida</span>' : '<span class="pill neu">Fija</span>'; }
-function pintarActividades() {
-  var q = $('aQ').value.trim().toLowerCase(), t = $('aTipo').value, es = $('aEstado').value, o = $('aOrden').value;
-  var rows = D.acts.filter(function(a) {
-    return (!q || (a.nombre + ' ' + a.cod).toLowerCase().indexOf(q) !== -1) && (!t || a.tipo === t) &&
-           (!es || (es === 'pend' ? a.pendientes.length > 0 : a.pendientes.length === 0));
-  });
-  if (o === 'pct') rows.sort(function(a, b) { return a.pct - b.pct; });
-  if (o === 'deu') rows.sort(function(a, b) { return b.porCobrar - a.porCobrar; });
-  if (o === 'rec') rows.sort(function(a, b) { return b.recaudado - a.recaudado; });
-  $('aSum').innerHTML = '<span><b>' + rows.length + '</b> actividades</span><span>Recaudado <b class="num">' + soles(sumar(rows, function(a) { return a.recaudado; })) + '</b></span><span>Por cobrar <b class="num">' + soles(sumar(rows, function(a) { return a.porCobrar; })) + '</b></span>';
-  var h = '<tr><th>Actividad</th><th>Tipo</th><th class="r">Monto</th><th>Avance</th><th class="r">Recaudado</th><th class="r">Por cobrar</th></tr>';
-  rows.forEach(function(a) {
-    h += '<tr class="row" data-a="' + esc(a.cod) + '"><td><b>' + esc(a.nombre) + '</b><br><span style="color:var(--dim);font-size:12px">' + esc(a.cod) + '</span></td><td>' + pillTipo(a.tipo) + '</td>' +
-         '<td class="r num">' + soles(a.monto) + '</td><td>' + progreso(a.pct, a.pagaron.length + '/' + a.obligados.length) + '</td><td class="r num">' + soles(a.recaudado) + '</td><td class="r num">' + (a.porCobrar ? soles(a.porCobrar) : '—') + '</td></tr>';
-    if (abiertoA === a.cod) {
-      h += '<tr class="det"><td colspan="6"><div class="det-grid det"><div><h4>Pendientes (' + a.pendientes.length + ')</h4><ul>' +
-        (a.pendientes.map(function(e) { return '<li><span>' + esc(e.nombre) + '</span><span class="num">' + soles(a.monto) + '</span></li>'; }).join('') || '<li><span>Nadie pendiente</span><span></span></li>') +
-        '</ul></div><div><h4>Pagaron (' + a.pagaron.length + ')</h4><ul>' +
-        (a.pagaron.map(function(x) { return '<li><span>' + esc(x.e.nombre) + '</span><span class="num">' + fFecha(x.p.f) + ' · ' + esc(x.p.metodo) + ' · ' + soles(x.p.monto) + '</span></li>'; }).join('') || '<li><span>Aún nadie</span><span></span></li>') +
-        '</ul></div></div></td></tr>';
-    }
-  });
-  $('aTabla').innerHTML = rows.length ? h : '<tr><td class="empty">Ninguna actividad coincide con los filtros.</td></tr>';
-}
-
-// ── ESTUDIANTES ─────────────────────────────────────────────
-function pintarEstudiantes() {
-  var q = $('eQ').value.trim().toLowerCase(), es = $('eEstado').value, o = $('eOrden').value;
-  var rows = D.est.filter(function(e) { return (!q || e.nombre.toLowerCase().indexOf(q) !== -1) && (!es || (es === 'deu' ? e.debe > 0 : e.pend.length === 0)); });
-  rows.sort(function(a, b) { return o === 'deu' ? b.debe - a.debe : o === 'pag' ? b.pagado - a.pagado : o === 'pct' ? a.pct - b.pct : a.nombre.localeCompare(b.nombre); });
-  $('eSum').innerHTML = '<span><b>' + rows.length + '</b> estudiantes</span><span>Pagado <b class="num">' + soles(sumar(rows, function(e) { return e.pagado; })) + '</b></span><span>Deben <b class="num">' + soles(sumar(rows, function(e) { return e.debe; })) + '</b></span>';
-  var h = '<tr><th>Estudiante</th><th>Estado</th><th class="r">Pagado</th><th class="r">Debe</th><th>Cumplimiento</th></tr>';
-  rows.forEach(function(e) {
-    h += '<tr class="row' + (e.dni === YO.dni ? ' me' : '') + '" data-e="' + esc(e.dni) + '"><td><b>' + esc(e.nombre) + '</b>' + (e.dni === YO.dni ? ' <span class="pill var">Tú</span>' : '') + '</td>' +
-         '<td>' + (e.pend.length ? '<span class="pill bad">✕ ' + e.pend.length + ' pendiente' + (e.pend.length > 1 ? 's' : '') + '</span>' : '<span class="pill ok">✓ Al día</span>') + '</td>' +
-         '<td class="r num">' + soles(e.pagado) + '</td><td class="r num">' + (e.debe ? soles(e.debe) : '—') + '</td><td>' + progreso(e.pct, (e.total - e.pend.length) + '/' + e.total) + '</td></tr>';
-    if (abiertoE === e.dni) {
-      h += '<tr class="det"><td colspan="5"><div class="det-grid det"><div><h4>Pendientes (' + e.pend.length + ')</h4><ul>' +
-        (e.pend.map(function(a) { return '<li><span>' + esc(a.nombre) + '</span><span class="num">' + soles(a.monto) + '</span></li>'; }).join('') || '<li><span>Sin pendientes</span><span></span></li>') +
-        '</ul></div><div><h4>Pagos (' + e.pagos.length + ')</h4><ul>' +
-        (e.pagos.map(function(x) { return '<li><span>' + esc(x.a.nombre) + '</span><span class="num">' + fFecha(x.p.f) + ' · ' + esc(x.p.metodo) + ' · ' + soles(x.p.monto) + '</span></li>'; }).join('') || '<li><span>Sin pagos</span><span></span></li>') +
-        '</ul></div></div></td></tr>';
-    }
-  });
-  $('eTabla').innerHTML = rows.length ? h : '<tr><td class="empty">Ningún estudiante coincide con los filtros.</td></tr>';
+  $('chDeu').innerHTML = deu.length ? barrasH(deu, 'var(--deu)', 0, { sinPct: true }) : '<div class="empty">Nadie tiene deuda. 🎉</div>';
 }
 
 // ── MOVIMIENTOS ─────────────────────────────────────────────
 function movFiltrados() {
-  var q = $('mQ').value.trim().toLowerCase(), t = $('mTipo').value, c = $('mCat').value;
-  var rows = movPeriodo().filter(function(m) { return (!t || m.tipo === t) && (!c || m.cat === c) && (!q || (m.det + ' ' + m.cat).toLowerCase().indexOf(q) !== -1); });
+  var q = $('mQ').value.trim().toLowerCase(), t = $('mTipo').value;
+  var rows = movPeriodo().filter(function(m) { return (!t || m.tipo === t) && (!q || (m.det + ' ' + m.cat).toLowerCase().indexOf(q) !== -1); });
   rows.sort(function(a, b) {
     var x = mOrden.k === 'monto' ? a.monto - b.monto : (a.f ? a.f.getTime() : 0) - (b.f ? b.f.getTime() : 0);
     return x * mOrden.dir;
   });
   return rows;
-}
-function opcionesCat() {
-  var t = $('mTipo').value, prev = $('mCat').value, set = {};
-  movPeriodo().forEach(function(m) { if (!t || m.tipo === t) set[m.cat] = true; });
-  var ks = Object.keys(set).sort();
-  $('mCat').innerHTML = '<option value="">Todas las categorías y métodos</option>' + ks.map(function(k) { return '<option' + (k === prev ? ' selected' : '') + '>' + esc(k) + '</option>'; }).join('');
 }
 function pintarMovimientos() {
   var rows = movFiltrados();
@@ -506,18 +431,8 @@ function pintarMovimientos() {
   $('mMas').style.display = rows.length > mLimite ? 'inline-block' : 'none';
   $('mMas').textContent = 'Mostrar más (' + (rows.length - mLimite) + ' restantes)';
 }
-function descargarCsv() {
-  var rows = movFiltrados();
-  var csv = '﻿Fecha;Tipo;Detalle;Categoría o método;Monto\n' + rows.map(function(m) {
-    return [fFecha(m.f), m.tipo, '"' + m.det.replace(/"/g, '""') + '"', '"' + m.cat.replace(/"/g, '""') + '"', m.monto.toFixed(2)].join(';');
-  }).join('\n');
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-  a.download = 'movimientos_tesoreria.csv'; document.body.appendChild(a); a.click(); a.remove();
-}
-
 // ── ORQUESTA ────────────────────────────────────────────────
-function pintarTodo() { pintarResumen(); pintarActividades(); pintarEstudiantes(); opcionesCat(); pintarMovimientos(); }
+function pintarTodo() { pintarResumen(); pintarMovimientos(); }
 function llenarPeriodo() {
   var ops = D.meses.map(function(k) { return '<option value="' + k + '">' + mesTxt(k) + '</option>'; }).join('');
   $('fDesde').innerHTML = ops; $('fHasta').innerHTML = ops;
@@ -548,7 +463,12 @@ function salir() {
   YO = null; try { sessionStorage.removeItem('dash_dni'); } catch (e) {}
   $('app').style.display = 'none'; $('login').style.display = 'flex'; $('dniInput').value = '';
 }
-function errLogin(t) { var e = $('loginErr'); e.textContent = t; e.style.display = t ? 'block' : 'none'; }
+function errLogin(t) {
+  var e = $('loginErr'); e.textContent = t; e.style.display = t ? 'block' : 'none';
+  var img = $('loginFail');
+  if (t) { img.src = IMG_FALLO + '?' + Date.now(); img.style.display = 'block'; img.style.animation = 'none'; void img.offsetWidth; img.style.animation = ''; }
+  else { img.style.display = 'none'; }
+}
 function intentar() {
   var dni = $('dniInput').value.replace(/\D/g, '');
   if (dni.length < 7) { errLogin('Escribe tu DNI completo.'); return; }
@@ -582,19 +502,16 @@ document.querySelectorAll('.chip').forEach(function(c) {
   };
 });
 $('btnTabla').onclick = function() { verTabla = !verTabla; pintarResumen(); };
-['aQ', 'aTipo', 'aEstado', 'aOrden'].forEach(function(id) { $(id).oninput = pintarActividades; });
-['eQ', 'eEstado', 'eOrden'].forEach(function(id) { $(id).oninput = pintarEstudiantes; });
-$('mQ').oninput = $('mCat').oninput = function() { mLimite = 100; pintarMovimientos(); };
-$('mTipo').oninput = function() { mLimite = 100; $('mCat').value = ''; opcionesCat(); pintarMovimientos(); };
+$('mQ').oninput = $('mTipo').oninput = function() { mLimite = 100; pintarMovimientos(); };
 $('mMas').onclick = function() { mLimite += 100; pintarMovimientos(); };
-$('btnCsv').onclick = descargarCsv;
-$('aTabla').onclick = function(e) { var r = e.target.closest('tr.row'); if (r) { abiertoA = abiertoA === r.dataset.a ? null : r.dataset.a; pintarActividades(); } };
-$('eTabla').onclick = function(e) { var r = e.target.closest('tr.row'); if (r) { abiertoE = abiertoE === r.dataset.e ? null : r.dataset.e; pintarEstudiantes(); } };
 $('mTabla').onclick = function(e) { var t = e.target.closest('th.s'); if (t) { mOrden = { k: t.dataset.o, dir: mOrden.k === t.dataset.o ? -mOrden.dir : -1 }; pintarMovimientos(); } };
-document.addEventListener('click', function(e) {
-  var g = e.target.closest('[data-go]');
-  if (g) { if (g.dataset.go === 'estudiantes' && YO && g.closest('#mine')) { abiertoE = YO.dni; pintarEstudiantes(); } irA(g.dataset.go); }
-});
+// Actualización automática: cada 2 minutos y al volver a la pestaña
+function refrescar() {
+  if (!YO || document.hidden) return;
+  cargar().then(function() { var est = D.est.filter(function(e) { return e.dni === YO.dni; })[0]; if (est) entrar(est); else salir(); }).catch(function() {});
+}
+setInterval(refrescar, 120000);
+document.addEventListener('visibilitychange', refrescar);
 
 // Tooltip compartido
 (function() {
