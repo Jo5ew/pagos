@@ -514,6 +514,7 @@
   var HOJA_ACT  = 'BD_Actividades';
   var HOJA_PAG  = 'BD_Pagos';
   var HOJA_ASI  = 'BD_Asistencias';
+  var HOJA_ASG  = 'BD_Asignados';   // actividades dirigidas (V10.5)
 
   // ── PARSEO DE FECHAS ──
   function parseFechaLegible(val) {
@@ -560,7 +561,7 @@
   }
 
   // ── DATOS EN MEMORIA ─────────────────────────────────────────
-  var dataEst = [], dataAct = [], dataPag = [], dataAsi = [];
+  var dataEst = [], dataAct = [], dataPag = [], dataAsi = [], dataAsg = [];
   var cargado = false;
 
   function cargarDatos() {
@@ -568,12 +569,14 @@
       fetchSheet(HOJA_EST),
       fetchSheet(HOJA_ACT),
       fetchSheet(HOJA_PAG),
-      fetchSheet(HOJA_ASI).catch(function() { return []; })
+      fetchSheet(HOJA_ASI).catch(function() { return []; }),
+      fetchSheet(HOJA_ASG).catch(function() { return []; })
     ]).then(function(res) {
       dataEst = res[0].filter(function(r) { return r['DNI'] && r['DNI'].toString().trim() !== ''; });
       dataAct = res[1].filter(function(r) { return r['Código'] && r['Código'].toString().trim() !== ''; });
       dataPag = res[2].filter(function(r) { return r['ID'] && r['ID'].toString().trim() !== ''; });
       dataAsi = res[3] || [];
+      dataAsg = (res[4] || []).filter(function(r) { return r['Código Act.'] && r['DNI']; });
       cargado = true;
     });
   }
@@ -697,7 +700,11 @@
       })) {
         asistidas.push(a);
       } else {
-        pendientes.push(a);
+        // Las actividades dirigidas solo cuentan para los estudiantes asignados
+        var esMia = tipo !== 'Dirigida' || dataAsg.some(function(x) {
+          return x['Código Act.'].toString().trim() === cod && x['DNI'].toString().trim() === dni;
+        });
+        if (esMia) pendientes.push(a);
       }
     });
 
