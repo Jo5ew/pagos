@@ -464,10 +464,9 @@ function salir() {
   $('app').style.display = 'none'; $('login').style.display = 'flex'; $('dniInput').value = '';
 }
 function errLogin(t) {
-  var e = $('loginErr'); e.textContent = t; e.style.display = t ? 'block' : 'none';
-  var img = $('loginFail');
-  if (t) { img.src = IMG_FALLO + '?' + Date.now(); img.style.display = 'block'; img.style.animation = 'none'; void img.offsetWidth; img.style.animation = ''; }
-  else { img.style.display = 'none'; }
+  $('loginErr').textContent = t; $('loginErr').style.display = t ? 'block' : 'none';
+  if (t) { var img = $('loginFail'); img.style.display = 'block'; img.style.animation = 'none'; void img.offsetWidth; img.style.animation = ''; }
+  // la imagen NO se oculta aquí: se queda hasta un DNI válido (entrar() oculta toda la pantalla de login)
 }
 function intentar() {
   var dni = $('dniInput').value.replace(/\D/g, '');
