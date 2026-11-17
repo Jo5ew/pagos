@@ -69,8 +69,27 @@
   .kpi .lbl { font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--dim); }
   .kpi .val { font-family:'Space Grotesk',sans-serif; font-size:24px; font-weight:700; color:#fff; margin:4px 0 2px; }
   .kpi .note { font-size:12px; color:var(--text-2); }
-  .kpi.hero { background:linear-gradient(135deg,rgba(139,92,246,.22),rgba(59,130,246,.10)); border-color:rgba(139,92,246,.35); }
-  .kpi.hero .val { font-size:30px; }
+  /* ── BANNER GRANDE DEL SALDO ── */
+  .saldo-hero { position:relative; overflow:hidden; border-radius:22px; padding:28px 32px; margin-bottom:14px;
+    display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:22px; border:1.5px solid var(--border); }
+  .saldo-hero::after { content:''; position:absolute; right:-50px; top:-50px; width:240px; height:240px; border-radius:50%; filter:blur(70px); opacity:.55; pointer-events:none; }
+  .saldo-hero.neg { background:linear-gradient(135deg, rgba(244,63,94,.22), rgba(244,63,94,.04)); border-color:rgba(244,63,94,.45); }
+  .saldo-hero.neg::after { background:rgba(244,63,94,.4); }
+  .saldo-hero.pos { background:linear-gradient(135deg, rgba(0,201,167,.20), rgba(0,201,167,.04)); border-color:rgba(0,201,167,.45); }
+  .saldo-hero.pos::after { background:rgba(0,201,167,.32); }
+  .sh-left { position:relative; z-index:1; }
+  .sh-lbl { font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--text-2); margin-bottom:8px; }
+  .sh-val { font-family:'Space Grotesk',sans-serif; font-weight:700; line-height:1; font-size:clamp(38px,7vw,60px); letter-spacing:-1.5px; }
+  .saldo-hero.neg .sh-val { color:#FB7185; }
+  .saldo-hero.pos .sh-val { color:#2DD4BF; }
+  .sh-badge { display:inline-flex; align-items:center; gap:6px; margin-top:14px; font-size:12px; font-weight:700; padding:6px 13px; border-radius:99px; }
+  .saldo-hero.neg .sh-badge { background:rgba(244,63,94,.18); color:#FDA4B4; }
+  .saldo-hero.pos .sh-badge { background:rgba(0,201,167,.18); color:#5EEAD4; }
+  .sh-right { position:relative; z-index:1; display:flex; gap:28px; }
+  .sh-mini .m-lbl { font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--dim); margin-bottom:4px; }
+  .sh-mini .m-val { font-family:'Space Grotesk',sans-serif; font-size:20px; font-weight:700; color:#fff; }
+  .sh-mini .m-val.up { color:#7DD3FC; } .sh-mini .m-val.down { color:#FDBA9B; }
+  @media (max-width:560px) { .saldo-hero { padding:22px; } .sh-right { width:100%; gap:22px; } .sh-val { letter-spacing:-1px; } }
   .two { grid-template-columns:1fr; align-items:start; }
   @media (min-width:860px) { .two { grid-template-columns:1fr 1fr; } .span2 { grid-column:span 2; } }
 
@@ -143,6 +162,12 @@
   #loginFail { display:none; margin-top:16px; max-width:100%; border-radius:12px; border:1px solid var(--border); animation:shake .5s ease; }
   @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px) rotate(-2deg)} 40%{transform:translateX(8px) rotate(2deg)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }
   @media (prefers-reduced-motion:reduce) { #loginFail { animation:none; } }
+  .welcome { position:fixed; top:16px; left:50%; transform:translateX(-50%) translateY(-24px); z-index:60;
+    background:linear-gradient(135deg, rgba(139,92,246,.95), rgba(59,130,246,.9)); color:#fff; font-weight:600;
+    padding:12px 22px; border-radius:999px; box-shadow:0 14px 40px -10px rgba(139,92,246,.7);
+    opacity:0; pointer-events:none; transition:opacity .4s ease, transform .4s ease; font-size:14px; white-space:nowrap; max-width:90vw; }
+  .welcome.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  @media (prefers-reduced-motion:reduce){ .welcome{ transition:opacity .2s; transform:translateX(-50%); } }
   #tip { position:fixed; z-index:99; pointer-events:none; display:none; background:#1E293B; border:1px solid rgba(255,255,255,.14); border-radius:10px; padding:8px 10px; font-size:12px; color:var(--text); box-shadow:0 10px 30px rgba(0,0,0,.5); max-width:260px; white-space:pre-line; }
 </style>
 </head>
@@ -164,6 +189,7 @@
 
 <!-- APP -->
 <div id="app">
+  <div class="welcome" id="welcome"></div>
   <div class="top">
     <h1>Estado de cuenta del salón<span class="sub" id="updated"></span></h1>
     <div class="who"><div class="av" id="whoAv"></div><span id="whoName"></span></div>
@@ -190,6 +216,7 @@
 
   <!-- RESUMEN -->
   <div class="view on" id="v-resumen">
+    <div id="saldoHero"></div>
     <div class="grid kpis" id="kpis"></div>
     <div class="card" id="mine" style="margin-bottom:12px"></div>
     <div class="grid two">
@@ -221,13 +248,21 @@
 var SHEET_ID = '1ObB4TZOgCkTyN0iPhrbgZZJNqNw2A81yEoAUfs7kT-8';
 var WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbzhFDAZmzyZLRbbJjWC3NyKEO0WYlw3S2KsO27-DLHU9AGRueEqmDHyYIJA-sZpaJ_Reg/exec';
 var PIN_DASH = '2580';   // PIN público (solo permite registrar accesos; mismo que la consulta)
+// Código único y estable por equipo/navegador (identifica el dispositivo, no la persona)
+function getDeviceId() {
+  try {
+    var id = localStorage.getItem('dash_device');
+    if (!id) { id = 'equipo-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10); localStorage.setItem('dash_device', id); }
+    return id;
+  } catch (e) { return 'equipo-sin-permiso'; }
+}
 // Registra en el Excel cada acceso al dashboard (ingreso correcto o DNI fallido), con IP
 function registrarAcceso(dni, nombre, resultado) {
   function enviar(ip) {
     try {
       fetch(WEBAPP_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({ pin: PIN_DASH, accion: 'registrarAccesoDashboard', dni: dni || '', nombre: nombre || '',
-          resultado: resultado, ip: ip || '', ua: navigator.userAgent, deviceId: 'dash_' + Math.random().toString(36).slice(2, 10) }) }).catch(function(){});
+          resultado: resultado, ip: ip || '', ua: navigator.userAgent, dispositivo: getDeviceId(), deviceId: getDeviceId() }) }).catch(function(){});
     } catch (e) {}
   }
   fetch('https://api.ipify.org?format=json').then(function(r){ return r.json(); }).then(function(j){ enviar(j.ip); }).catch(function(){ enviar(''); });
@@ -396,8 +431,23 @@ function pintarResumen() {
   var porCobrar = sumar(D.acts, function(a) { return a.porCobrar; });
   var deudores = D.est.filter(function(e) { return e.pend.length > 0; }).length;
   var lblPer = periodoCompleto() ? 'todo el historial' : mesTxt(F.desde) + (F.desde !== F.hasta ? ' a ' + mesTxt(F.hasta) : '');
+  var ingTot = sumar(D.mov.filter(function(m) { return m.monto > 0; }));
+  var egrTot = -sumar(D.mov.filter(function(m) { return m.monto < 0; }));
+  var signo = saldo < 0 ? 'neg' : 'pos';
+  var estado = saldo < 0 ? '😔 En números rojos' : (saldo > 0 ? '🤑 Hay fondos disponibles' : '😐 Sin saldo');
+  $('saldoHero').innerHTML =
+    '<div class="saldo-hero ' + signo + '">' +
+      '<div class="sh-left">' +
+        '<div class="sh-lbl">💰 Saldo en caja — acumulado a hoy</div>' +
+        '<div class="sh-val num">' + soles(saldo) + '</div>' +
+        '<span class="sh-badge">' + estado + '</span>' +
+      '</div>' +
+      '<div class="sh-right">' +
+        '<div class="sh-mini"><div class="m-lbl">Entró en total</div><div class="m-val up num">' + soles(ingTot) + '</div></div>' +
+        '<div class="sh-mini"><div class="m-lbl">Salió en total</div><div class="m-val down num">' + soles(egrTot) + '</div></div>' +
+      '</div>' +
+    '</div>';
   $('kpis').innerHTML =
-    '<div class="card kpi hero"><div class="lbl">Saldo en caja</div><div class="val num">' + soles(saldo) + '</div><div class="note">Acumulado a hoy</div></div>' +
     '<div class="card kpi"><div class="lbl">Ingresos</div><div class="val num">' + soles(ing) + '</div><div class="note">' + lblPer + '</div></div>' +
     '<div class="card kpi"><div class="lbl">Egresos</div><div class="val num">' + soles(egr) + '</div><div class="note">' + lblPer + '</div></div>' +
     '<div class="card kpi"><div class="lbl">Por cobrar</div><div class="val num">' + soles(porCobrar) + '</div><div class="note">Deuda actual del salón</div></div>' +
@@ -481,6 +531,13 @@ function errLogin(t) {
   if (t) { var img = $('loginFail'); img.style.display = 'block'; img.style.animation = 'none'; void img.offsetWidth; img.style.animation = ''; }
   // la imagen NO se oculta aquí: se queda hasta un DNI válido (entrar() oculta toda la pantalla de login)
 }
+function mostrarBienvenida(nombre) {
+  var w = $('welcome'); if (!w) return;
+  var corto = (nombre.indexOf(',') >= 0 ? nombre.split(',').pop() : nombre).trim().split(' ')[0] || nombre;
+  w.textContent = '👋 ¡Bienvenido, ' + corto + '!';
+  w.classList.add('show');
+  setTimeout(function(){ w.classList.remove('show'); }, 3200);
+}
 function intentar(fromAuto) {
   var dni = $('dniInput').value.replace(/\D/g, '');
   if (dni.length < 7) { errLogin('Escribe tu DNI completo.'); return; }
@@ -494,6 +551,7 @@ function intentar(fromAuto) {
       return;
     }
     entrar(est);
+    mostrarBienvenida(est.nombre);
     if (!fromAuto) registrarAcceso(est.dni, est.nombre, 'Ingresó');
   }).catch(function() { b.disabled = false; b.textContent = 'Ingresar'; D = null; errLogin('No se pudo conectar con los datos. Intenta de nuevo.'); });
 }
