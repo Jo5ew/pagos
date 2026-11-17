@@ -219,6 +219,19 @@
 <script>
 // ── CONFIG ──────────────────────────────────────────────────
 var SHEET_ID = '1ObB4TZOgCkTyN0iPhrbgZZJNqNw2A81yEoAUfs7kT-8';
+var WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbzhFDAZmzyZLRbbJjWC3NyKEO0WYlw3S2KsO27-DLHU9AGRueEqmDHyYIJA-sZpaJ_Reg/exec';
+var PIN_DASH = '2580';   // PIN público (solo permite registrar accesos; mismo que la consulta)
+// Registra en el Excel cada acceso al dashboard (ingreso correcto o DNI fallido), con IP
+function registrarAcceso(dni, nombre, resultado) {
+  function enviar(ip) {
+    try {
+      fetch(WEBAPP_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ pin: PIN_DASH, accion: 'registrarAccesoDashboard', dni: dni || '', nombre: nombre || '',
+          resultado: resultado, ip: ip || '', ua: navigator.userAgent, deviceId: 'dash_' + Math.random().toString(36).slice(2, 10) }) }).catch(function(){});
+    } catch (e) {}
+  }
+  fetch('https://api.ipify.org?format=json').then(function(r){ return r.json(); }).then(function(j){ enviar(j.ip); }).catch(function(){ enviar(''); });
+}
 var HOJAS = { est:'BD_Estudiantes', act:'BD_Actividades', pag:'BD_Pagos', egr:'BD_Egresos', ing:'BD_IngresosExtra', asg:'BD_Asignados' };
 var IMG_FALLO = 'login-error.jpeg';   // súbela a GitHub con este nombre (o cambia el nombre aquí)
 var MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
@@ -468,20 +481,25 @@ function errLogin(t) {
   if (t) { var img = $('loginFail'); img.style.display = 'block'; img.style.animation = 'none'; void img.offsetWidth; img.style.animation = ''; }
   // la imagen NO se oculta aquí: se queda hasta un DNI válido (entrar() oculta toda la pantalla de login)
 }
-function intentar() {
+function intentar(fromAuto) {
   var dni = $('dniInput').value.replace(/\D/g, '');
   if (dni.length < 7) { errLogin('Escribe tu DNI completo.'); return; }
   var b = $('btnLogin'); b.disabled = true; b.textContent = 'Verificando…'; errLogin('');
   (D ? Promise.resolve() : cargar()).then(function() {
     b.disabled = false; b.textContent = 'Ingresar';
     var est = D.est.filter(function(e) { return e.dni === dni; })[0];
-    if (!est) { errLogin('Ese DNI no está en la lista del salón.'); return; }
+    if (!est) {
+      errLogin('Ese DNI no está en la lista del salón.');
+      if (!fromAuto) registrarAcceso(dni, '', 'DNI no encontrado');
+      return;
+    }
     entrar(est);
+    if (!fromAuto) registrarAcceso(est.dni, est.nombre, 'Ingresó');
   }).catch(function() { b.disabled = false; b.textContent = 'Ingresar'; D = null; errLogin('No se pudo conectar con los datos. Intenta de nuevo.'); });
 }
 
 // ── EVENTOS ─────────────────────────────────────────────────
-$('btnLogin').onclick = intentar;
+$('btnLogin').onclick = function() { intentar(); };
 $('dniInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') intentar(); });
 $('btnOut').onclick = salir;
 $('btnRefresh').onclick = function() {
@@ -531,7 +549,7 @@ document.addEventListener('visibilitychange', refrescar);
 (function() {
   var dni = ''; try { dni = sessionStorage.getItem('dash_dni') || ''; } catch (e) {}
   if (!dni) return;
-  $('dniInput').value = dni; intentar();
+  $('dniInput').value = dni; intentar(true);
 })();
 </script>
 </body>
