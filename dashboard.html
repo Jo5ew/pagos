@@ -202,7 +202,6 @@
     <div class="tabs" id="tabs">
       <button class="tab on" data-v="resumen">Resumen</button>
       <button class="tab" data-v="movimientos">Movimientos</button>
-      <button class="tab" data-v="control" id="tabControl" style="display:none">🔑 Control</button>
     </div>
     <div class="filters">
       <label for="fDesde">Periodo</label>
@@ -240,22 +239,6 @@
     <div class="card"><div class="sum" id="mSum"></div><div class="tw"><table id="mTabla"></table></div><div style="text-align:center;margin-top:12px"><button class="btn ghost" id="mMas" style="display:none">Mostrar más</button></div></div>
   </div>
 
-  <!-- CONTROL (solo tesorero) -->
-  <div class="view" id="v-control">
-    <div class="grid two">
-      <div class="card span2">
-        <h2>Deudores — a quién cobrar</h2>
-        <div class="hint">Estudiantes con deuda y su teléfono. Esto solo lo ves tú.</div>
-        <div id="cDeudores"></div>
-      </div>
-      <div class="card span2">
-        <h2>Accesos al dashboard</h2>
-        <div class="hint" id="cAccResumen"></div>
-        <div id="cAccesos"></div>
-      </div>
-    </div>
-  </div>
-
   <div class="foot">Datos en vivo de la tesorería del aula · se actualiza solo cada 2 minutos</div>
 </div>
 <div id="tip"></div>
@@ -284,9 +267,7 @@ function registrarAcceso(dni, nombre, resultado) {
   }
   fetch('https://api.ipify.org?format=json').then(function(r){ return r.json(); }).then(function(j){ enviar(j.ip); }).catch(function(){ enviar(''); });
 }
-var HOJAS = { est:'BD_Estudiantes', act:'BD_Actividades', pag:'BD_Pagos', egr:'BD_Egresos', ing:'BD_IngresosExtra', asg:'BD_Asignados', acc:'BD_AccesosDashboard' };
-// DNI del/los tesorero(s): solo ellos ven la pestaña Control. Agrega más separados por coma.
-var ADMIN_DNIS = ['707504361'];
+var HOJAS = { est:'BD_Estudiantes', act:'BD_Actividades', pag:'BD_Pagos', egr:'BD_Egresos', ing:'BD_IngresosExtra', asg:'BD_Asignados' };
 var IMG_FALLO = 'login-error.jpeg';   // súbela a GitHub con este nombre (o cambia el nombre aquí)
 var MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 
@@ -307,12 +288,6 @@ function fecha(v) {
 function fFecha(d) { return d ? ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear() : '—'; }
 function mesKey(d) { return d ? d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) : ''; }
 function mesTxt(k) { var p = k.split('-'); return MESES[+p[1] - 1] + ' ' + p[0].slice(2); }
-function horaFmt(v) {
-  if (v == null || v === '') return '';
-  if (Array.isArray(v)) return ('0' + v[0]).slice(-2) + ':' + ('0' + v[1]).slice(-2);
-  var m = String(v).match(/^(\d{1,2})[,:](\d{2})/);
-  return m ? ('0' + m[1]).slice(-2) + ':' + m[2] : String(v);
-}
 function ini(n) { return str(n).substring(0, 2).toUpperCase(); }
 
 // ── CARGA DE DATOS ──────────────────────────────────────────
@@ -332,6 +307,17 @@ function fetchSheet(nombre) {
 var D = null;      // datos calculados
 var YO = null;     // estudiante que ingresó
 var F = { desde:'', hasta:'' };
+var INACT_MIN = 5;   // minutos sin actividad antes de cerrar la sesión
+var inactTimer = null, inactOn = false;
+var INACT_EV = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'];
+function resetInact() { clearTimeout(inactTimer); if (!YO) return; inactTimer = setTimeout(porInactividad, INACT_MIN * 60 * 1000); }
+function startInact() { INACT_EV.forEach(function(e) { document.addEventListener(e, resetInact, { passive: true }); }); resetInact(); }
+function stopInact() { clearTimeout(inactTimer); INACT_EV.forEach(function(e) { document.removeEventListener(e, resetInact); }); }
+function porInactividad() {
+  stopInact(); inactOn = false; salir();
+  $('loginErr').textContent = 'Sesión cerrada por inactividad. Vuelve a ingresar.';
+  $('loginErr').style.display = 'block';
+}
 var mLimite = 100, verTabla = false, mOrden = { k:'fecha', dir:-1 };
 
 function cargar() {
@@ -348,7 +334,7 @@ function cargar() {
 // Regla única: ¿a este estudiante le corresponde esta actividad?
 function calcular(raw) {
   var est = raw.est.filter(function(r) { return str(r['DNI']) && str(r['Estado']).toUpperCase() !== 'NO'; })
-    .map(function(r) { return { dni: str(r['DNI']), nombre: str(r['Nombre']), tel: str(r['Teléfono']) }; });
+    .map(function(r) { return { dni: str(r['DNI']), nombre: str(r['Nombre']) }; });
   var asig = {};
   raw.asg.forEach(function(r) { var c = str(r['Código Act.']), d = str(r['DNI']); if (c && d) { (asig[c] = asig[c] || {})[d] = true; } });
 
@@ -392,11 +378,7 @@ function calcular(raw) {
     mov.push({ tipo:'Egreso', f:fecha(r['Fecha']), det:str(r['Concepto']), cat:str(r['Categoría']) || 'Sin categoría', monto:-numero(campo(r, 'Monto')) });
   });
   var meses = {}; mov.forEach(function(m) { var k = mesKey(m.f); if (k) meses[k] = true; });
-  var accesos = (raw.acc || []).filter(function(r) { return str(r['Fecha']); }).map(function(r) {
-    return { fecha: str(r['Fecha']), hora: horaFmt(r['Hora']), dni: str(r['DNI']), nombre: str(r['Nombre']),
-             resultado: str(r['Resultado']), ip: str(r['IP pública']) || str(r['IP']), disp: str(r['Dispositivo']) };
-  });
-  return { est: est, acts: acts, mov: mov, meses: Object.keys(meses).sort(), accesos: accesos };
+  return { est: est, acts: acts, mov: mov, meses: Object.keys(meses).sort() };
 }
 
 // ── FILTRO DE PERIODO ───────────────────────────────────────
@@ -524,39 +506,7 @@ function pintarMovimientos() {
   $('mMas').textContent = 'Mostrar más (' + (rows.length - mLimite) + ' restantes)';
 }
 // ── ORQUESTA ────────────────────────────────────────────────
-function pintarControl() {
-  if (!esAdmin()) return;
-  var deu = D.est.filter(function(e) { return e.debe > 0; }).sort(function(a, b) { return b.debe - a.debe; });
-  var h = '<div class="sum"><span><b>' + deu.length + '</b> con deuda</span><span>Total <b class="num">' + soles(sumar(deu, function(e) { return e.debe; })) + '</b></span></div>';
-  if (deu.length) {
-    h += '<div class="tw"><table><tr><th>Estudiante</th><th class="r">Debe</th><th>Pend.</th><th>Teléfono</th></tr>';
-    deu.forEach(function(e) {
-      var tel = (e.tel || '').replace(/\D/g, '');
-      var cel = tel ? '<a class="link" href="https://wa.me/51' + tel + '" target="_blank" rel="noopener">' + esc(e.tel) + ' · WhatsApp</a>' : '<span style="color:var(--dim)">Sin teléfono</span>';
-      h += '<tr><td><b>' + esc(e.nombre) + '</b></td><td class="r num">' + soles(e.debe) + '</td><td>' + e.pend.length + '</td><td>' + cel + '</td></tr>';
-    });
-    h += '</table></div>';
-    $('cDeudores').innerHTML = h;
-  } else { $('cDeudores').innerHTML = '<div class="empty">Nadie tiene deuda. 🎉</div>'; }
-
-  var acc = (D.accesos || []).slice().reverse();
-  var ingresos = acc.filter(function(a) { return a.resultado.toLowerCase().indexOf('ingres') === 0; }).length;
-  $('cAccResumen').innerHTML = '<b>' + acc.length + '</b> accesos · ' + ingresos + ' ingresos · ' + (acc.length - ingresos) + ' intentos con DNI que no existe';
-  if (acc.length) {
-    var ah = '<div class="tw"><table><tr><th>Cuándo</th><th>Resultado</th><th>Quién</th><th>IP pública</th><th>Dispositivo</th></tr>';
-    acc.slice(0, 60).forEach(function(a) {
-      var ok = a.resultado.toLowerCase().indexOf('ingres') === 0;
-      ah += '<tr><td class="num" style="white-space:nowrap">' + esc(a.fecha) + ' ' + esc(a.hora) + '</td>' +
-        '<td><span class="pill ' + (ok ? 'ok' : 'bad') + '">' + esc(a.resultado) + '</span></td>' +
-        '<td>' + esc(a.nombre || ('DNI ' + a.dni)) + '</td>' +
-        '<td class="num" style="color:var(--text-2)">' + esc(a.ip || '—') + '</td>' +
-        '<td style="color:var(--dim);font-size:12px">' + esc(a.disp || '—') + '</td></tr>';
-    });
-    ah += '</table></div>';
-    $('cAccesos').innerHTML = ah;
-  } else { $('cAccesos').innerHTML = '<div class="empty">Aún no hay accesos registrados.</div>'; }
-}
-function pintarTodo() { pintarResumen(); pintarMovimientos(); pintarControl(); }
+function pintarTodo() { pintarResumen(); pintarMovimientos(); }
 function llenarPeriodo() {
   var ops = D.meses.map(function(k) { return '<option value="' + k + '">' + mesTxt(k) + '</option>'; }).join('');
   $('fDesde').innerHTML = ops; $('fHasta').innerHTML = ops;
@@ -575,18 +525,17 @@ function irA(v) {
   document.querySelectorAll('.view').forEach(function(x) { x.classList.toggle('on', x.id === 'v-' + v); });
   window.scrollTo(0, 0);
 }
-function esAdmin() { return YO && ADMIN_DNIS.indexOf(YO.dni) !== -1; }
 function entrar(est) {
   YO = est;
+  if (!inactOn) { startInact(); inactOn = true; }
   try { sessionStorage.setItem('dash_dni', est.dni); } catch (e) {}
   $('login').style.display = 'none'; $('app').style.display = 'block';
   $('whoAv').textContent = ini(est.nombre); $('whoName').textContent = est.nombre.split(',').pop().trim() || est.nombre;
-  $('tabControl').style.display = esAdmin() ? 'inline-block' : 'none';
   $('updated').textContent = 'Actualizado ' + new Date().toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' });
   llenarPeriodo(); pintarTodo();
 }
 function salir() {
-  YO = null; try { sessionStorage.removeItem('dash_dni'); } catch (e) {}
+  YO = null; stopInact(); inactOn = false; try { sessionStorage.removeItem('dash_dni'); } catch (e) {}
   $('app').style.display = 'none'; $('login').style.display = 'flex'; $('dniInput').value = '';
 }
 function errLogin(t) {
